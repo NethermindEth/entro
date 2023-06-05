@@ -2,6 +2,6 @@
 
 ## Resources:
 
-* [Documentation](nethermindETH.github.io/python-eth-amm/)
+* [Documentation](https://nethermindETH.github.io/python-eth-amm/)
 * 
 
