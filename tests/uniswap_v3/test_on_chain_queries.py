@@ -1,0 +1,334 @@
+import logging
+
+import pytest
+from eth_utils import to_checksum_address
+
+from python_eth_amm.exceptions import UniswapV3Revert
+from python_eth_amm.uniswap_v3.chain_interface import (
+    _get_pos_from_bitmap,
+    fetch_initialization_block,
+    fetch_liquidity,
+    fetch_pool_state,
+    fetch_positions,
+    fetch_slot_0,
+    get_events,
+)
+from python_eth_amm.uniswap_v3.schema import (
+    UniswapV3BurnEventsModel,
+    UniswapV3CollectEventsModel,
+    UniswapV3FlashEventsModel,
+    UniswapV3MintEventsModel,
+    UniswapV3SwapEventsModel,
+)
+
+
+class TestPoolInitialization:
+    def test_fetches_initialization_block(self, usdc_weth_contract):
+        assert fetch_initialization_block(usdc_weth_contract) == 12370624
+
+    def test_querying_old_pool_raises(self, exact_math_factory, w3_archive_node):
+        with pytest.raises(UniswapV3Revert):
+            usdc_weth_pool = exact_math_factory.initialize_from_chain(
+                pool_type="uniswap_v3",
+                pool_address=to_checksum_address(
+                    "0x8ad599c3a0ff1de082011efddc58f1908eb6e6d8"
+                ),
+                at_block=12370000,
+            )
+
+    def test_querying_new_pool_succeeds(self, exact_math_factory, w3_archive_node):
+        usdc_weth_pool = exact_math_factory.initialize_from_chain(
+            pool_type="uniswap_v3",
+            pool_address=to_checksum_address(
+                "0x8ad599c3a0ff1de082011efddc58f1908eb6e6d8"
+            ),
+            at_block=12400000,
+        )
+
+    def test_position_owners_match_mint_events(
+        self, exact_math_factory, w3_archive_node, db_session
+    ):
+        usdc_weth_pool = exact_math_factory.initialize_from_chain(
+            pool_type="uniswap_v3",
+            pool_address=to_checksum_address(
+                "0x8ad599c3a0ff1de082011efddc58f1908eb6e6d8"
+            ),
+            at_block=12400000,
+        )
+
+        mint_events = get_events(
+            usdc_weth_pool.pool_contract,
+            db_session,
+            "Mint",
+            12400000,
+            12600000,
+            usdc_weth_pool.logger,
+        )
+        minting_lp_addresses = set([event["args"]["owner"] for event in mint_events])
+        for key, data in usdc_weth_pool.positions.items():
+            assert key[0] in minting_lp_addresses
+
+    def test_initialized_ticks_match_positions(
+        self, exact_math_factory, w3_archive_node
+    ):
+        usdc_weth_pool = exact_math_factory.initialize_from_chain(
+            pool_type="uniswap_v3",
+            pool_address=to_checksum_address(
+                "0x8ad599c3a0ff1de082011efddc58f1908eb6e6d8"
+            ),
+            at_block=12400000,
+        )
+
+
+class TestFetchOnChainLiquidity:
+    def test_bitmap_returns_none_on_zero(self):
+        bitmap = int(("0" * 256), 2)
+        assert _get_pos_from_bitmap(bitmap) == []
+
+    def test_bitmap_returns_correct_number_of_bits(self, get_random_binary_string):
+        bitmap = get_random_binary_string(256)
+        tick_queue = _get_pos_from_bitmap(int(bitmap, 2))
+        assert len(tick_queue) == bitmap.count("1")
+
+    def test_fetch_liquidity_raises_uninintialized_pool(
+        self, w3_archive_node, usdc_weth_contract, test_logger
+    ):
+        with pytest.raises(UniswapV3Revert):
+            fetch_liquidity(
+                contract=usdc_weth_contract,
+                tick_spacing=10,
+                logger=test_logger,
+                at_block=12370000,
+            )
+
+    def test_liquidity_net_is_zero_established_pool_low_fee(
+        self, w3_archive_node, usdc_weth_contract, test_logger
+    ):
+        liquidity = fetch_liquidity(
+            contract=usdc_weth_contract,
+            tick_spacing=10,
+            logger=test_logger,
+            at_block=15000000,
+        )
+        assert sum([liq.liquidity_net for liq in liquidity.values()]) == 0
+
+    def test_liquidity_net_is_zero_established_pool_medium_fee(
+        self, w3_archive_node, wbtc_weth_contract, test_logger
+    ):
+        liquidity = fetch_liquidity(
+            contract=wbtc_weth_contract,
+            tick_spacing=60,
+            logger=test_logger,
+            at_block=15000000,
+        )
+        assert sum([liq.liquidity_net for liq in liquidity.values()]) == 0
+
+    def test_liquidity_net_is_zero_established_pool_high_fee(
+        self, w3_archive_node, usdt_weth_contract, test_logger
+    ):
+        liquidity = fetch_liquidity(
+            contract=usdt_weth_contract,
+            tick_spacing=200,
+            logger=test_logger,
+            at_block=15000000,
+        )
+        assert sum([liq.liquidity_net for liq in liquidity.values()]) == 0
+
+
+class TestFetchPositions:
+    def test_fetch_positions_for_invalid_pool_raises(
+        self, w3_archive_node, usdc_weth_contract, test_logger, db_session
+    ):
+        with pytest.raises(UniswapV3Revert):
+            fetch_positions(
+                contract=usdc_weth_contract,
+                logger=test_logger,
+                db_session=db_session,
+                initialization_block=12370624,
+                at_block=12370000,
+            )
+
+    def test_fetch_positions_on_new_pool_succeeds_and_returns_zero(
+        self, w3_archive_node, usdc_weth_contract, test_logger, db_session
+    ):
+        positions = fetch_positions(
+            contract=usdc_weth_contract,
+            logger=test_logger,
+            db_session=db_session,
+            initialization_block=12370624,
+            at_block=12380000,
+        )
+
+        assert len(positions) == 243
+        assert (
+            positions[
+                (
+                    to_checksum_address("0xC36442b4a4522E871399CD717aBDD847Ab11FE88"),
+                    192180,
+                    193380,
+                )
+            ].liquidity
+            == 45664982023859
+        )
+
+    def test_fetch_established_positions_low_fee(
+        self, w3_archive_node, usdc_weth_contract, test_logger, db_session
+    ):
+        positions = fetch_positions(
+            contract=usdc_weth_contract,
+            logger=test_logger,
+            db_session=db_session,
+            initialization_block=12370624,
+            at_block=16000000,
+        )
+        print(positions)
+
+    def test_fetch_established_positions_medium_fee(
+        self, w3_archive_node, wbtc_weth_contract, test_logger, db_session
+    ):
+        positions = fetch_positions(
+            contract=wbtc_weth_contract,
+            logger=test_logger,
+            db_session=db_session,
+            initialization_block=12370624,
+            at_block=16000000,
+        )
+        print(positions)
+
+    def test_fetch_established_positions_high_fee(
+        self, w3_archive_node, usdt_weth_contract, test_logger, db_session
+    ):
+        positions = fetch_positions(
+            contract=usdt_weth_contract,
+            logger=test_logger,
+            db_session=db_session,
+            initialization_block=12370624,
+            at_block=16000000,
+        )
+        print(positions)
+
+
+class TestFetchPoolState:
+    def test_fetch_pool_immutables_raises_for_uninitialize_pool(
+        self, w3_archive_node, usdc_weth_contract, test_logger
+    ):
+        with pytest.raises(UniswapV3Revert):
+            fetch_pool_state(
+                w3=w3_archive_node,
+                contract=usdc_weth_contract,
+                logger=test_logger,
+                at_block=12370000,
+            )
+
+    def test_fetch_pool_immutables_usdc_weth(
+        self, w3_archive_node, usdc_weth_contract, test_logger
+    ):
+        immutables, state = fetch_pool_state(
+            w3=w3_archive_node,
+            contract=usdc_weth_contract,
+            logger=test_logger,
+            at_block=15000000,
+        )
+        assert immutables.fee == 3000
+        assert immutables.tick_spacing == 60
+        assert immutables.max_liquidity_per_tick == 11505743598341114571880798222544994
+
+        assert (
+            immutables.token_0.address.lower()
+            == "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48"
+        )
+        assert immutables.token_0.name == "USD Coin"
+        assert immutables.token_0.symbol == "USDC"
+        assert immutables.token_0.decimals == 6
+
+        assert (
+            immutables.token_1.address.lower()
+            == "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2"
+        )
+        assert immutables.token_1.name == "Wrapped Ether"
+        assert immutables.token_1.symbol == "WETH"
+        assert immutables.token_1.decimals == 18
+
+        assert state.balance_0 == 63321438203194
+        assert state.balance_1 == 125957720212193473568385
+        assert state.liquidity == 17783115650573390796
+        assert state.fee_growth_global_0 == 2384901816825010603876380800662915
+        assert state.fee_growth_global_1 == 968198056183068283229668960768177396717155
+
+
+class TestFetchSlot0:
+    def test_fetch_slot_0_raises_unintialized_pool(
+        self, w3_archive_node, usdc_weth_contract, test_logger
+    ):
+        with pytest.raises(UniswapV3Revert):
+            fetch_slot_0(
+                contract=usdc_weth_contract,
+                logger=test_logger,
+                at_block=12370000,
+            )
+
+    def test_slot_0_returns_historical_snapshot(self, usdc_weth_contract, test_logger):
+        slot_0 = fetch_slot_0(
+            contract=usdc_weth_contract,
+            logger=test_logger,
+            at_block=15000000,
+        )
+
+        assert slot_0.tick == 206129
+        assert slot_0.sqrt_price == 2369736745864564341698764262195618
+        assert slot_0.observation_cardinality == 1440
+        assert slot_0.observation_cardinality_next == 1440
+        assert slot_0.observation_index == 205
+        assert slot_0.fee_protocol == 0
+
+    def test_slot_0_is_not_equal_at_different_blocks(
+        self, usdc_weth_contract, test_logger
+    ):
+        slot_0_1 = fetch_slot_0(
+            contract=usdc_weth_contract,
+            logger=test_logger,
+            at_block=14000000,
+        )
+        slot_0_2 = fetch_slot_0(
+            contract=usdc_weth_contract,
+            logger=test_logger,
+            at_block=15000000,
+        )
+        assert slot_0_1 != slot_0_2
+
+
+class TestEventQuery:
+    def test_query_swap_events_doesnt_loose_edge_events(
+        self, w3_archive_node, usdc_weth_contract, test_logger
+    ):
+        pass
+
+    def test_query_swap_events_less_than_50_000_returns_single(
+        self, w3_archive_node, usdc_weth_contract, test_logger, caplog
+    ):
+        pass
+
+    def test_swap_events_saved_to_db(
+        self, w3_archive_node, usdc_weth_contract, test_logger, db_session
+    ):
+        pass
+
+    def test_flash_events_saved_to_db(
+        self, w3_archive_node, usdc_weth_contract, test_logger, db_session
+    ):
+        pass
+
+    def test_mint_events_saved_to_db(
+        self, w3_archive_node, usdc_weth_contract, test_logger, db_session
+    ):
+        pass
+
+    def test_burn_events_saved_to_db(
+        self, w3_archive_node, usdc_weth_contract, test_logger, db_session
+    ):
+        pass
+
+    def test_collect_events_saved_to_db(
+        self, w3_archive_node, usdc_weth_contract, test_logger, db_session
+    ):
+        pass

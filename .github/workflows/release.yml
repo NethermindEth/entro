@@ -1,0 +1,51 @@
+name: Docs
+on:
+  push:
+    branches:
+      - releases
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  publish-docs:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Setup Python
+        id: setup-python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+
+      - name: Load Cached Poetry
+        id: cached-poetry
+        uses: actions/cache@v3
+        with:
+          path: /home/runner/.local
+          key: poetry-${{ runner.os }}-${{ steps.setup-python.outputs.python-version }}
+
+      - name: Add Cached Poetry to PATH
+        if: steps.cached-poetry.outputs.cache-hit == 'true'
+        run: echo "${HOME}/.local/bin" >> $GITHUB_PATH
+
+      - name: Load Cached Virtualenv
+        id: cached-poetry-dependencies
+        uses: actions/cache@v3
+        with:
+          path: .venv
+          key: venv-${{ runner.os }}-${{ steps.setup-python.outputs.python-version }}-${{ hashFiles('**/poetry.lock') }}
+
+      - name: Sphinx Build
+        run: poetry run sphinx-build docs/source _build
+
+      - name: Github Pages Deploy
+        uses: peaceiris/actions-gh-pages@v3
+        if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/releases' }}
+        with:
+          publish_branch: gh-pages
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: _build/
+          force_orphan: true
