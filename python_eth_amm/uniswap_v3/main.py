@@ -18,20 +18,28 @@ from sqlalchemy.engine import Engine
 from web3.contract import Contract
 
 from python_eth_amm.base.token import ERC20Token
+from python_eth_amm.events import backfill_events
 from python_eth_amm.exceptions import UniswapV3Revert
-from python_eth_amm.lib.math import UniswapV3SwapMath
-from python_eth_amm.lib.util import random_address, uint_over_under_flow
+from python_eth_amm.math import UniswapV3SwapMath
+from python_eth_amm.utils import random_address, uint_over_under_flow
 
 from .chain_interface import (
-    backfill_events,
     fetch_initialization_block,
     fetch_liquidity,
     fetch_observations,
+    fetch_pool_immutables,
     fetch_pool_state,
     fetch_positions,
     fetch_slot_0,
 )
-from .schema import UniswapV3Base, UniV3PositionLogs, UniV3SwapLogs
+from .db import (
+    UniswapV3Base,
+    UniV3EventBase,
+    UniV3MintEvent,
+    UniV3PositionLogs,
+    UniV3SwapLogs,
+    _parse_uniswap_events,
+)
 from .types import (
     OracleObservation,
     PoolImmutables,
@@ -182,13 +190,11 @@ class UniswapV3Pool:
     def from_chain(
         cls,
         factory,
-        pool_address: Union[ChecksumAddress, str],
+        pool_address: str,
         at_block: Optional[int] = None,
         load_pool_state: bool = True,
     ) -> "UniswapV3Pool":
         """Loads a pool from the chain at a given block number"""
-        if isinstance(pool_address, str):
-            pool_address = to_checksum_address(pool_address)
 
         pool = UniswapV3Pool(factory)
 
@@ -199,24 +205,31 @@ class UniswapV3Pool:
             )
 
         contract = factory.w3.eth.contract(
-            pool_address,
+            to_checksum_address(pool_address),
             abi=cls.get_abi(),
         )
         pool.pool_contract = contract
         pool.initialization_block = fetch_initialization_block(contract)
-        pool.block_number = pool.initialization_block
+        pool.block_number = at_block
         pool.block_timestamp = factory.w3.eth.get_block(at_block)["timestamp"]
-        pool.logger.info(f"Pool initialized at block {pool.initialization_block}")
 
-        pool.immutables, pool.state = fetch_pool_state(
-            w3=factory.w3, contract=contract, logger=factory.logger, at_block=at_block
-        )
-
-        pool.slot0 = fetch_slot_0(
-            contract=contract, logger=factory.logger, at_block=at_block
+        pool.immutables = fetch_pool_immutables(
+            w3=factory.w3, contract=contract, logger=factory.logger
         )
 
         if load_pool_state:
+            pool.state = fetch_pool_state(
+                contract=contract,
+                token_0=pool.immutables.token_0,
+                token_1=pool.immutables.token_1,
+                logger=factory.logger,
+                at_block=at_block,
+            )
+
+            pool.slot0 = fetch_slot_0(
+                contract=contract, logger=factory.logger, at_block=at_block
+            )
+
             pool.ticks = fetch_liquidity(
                 contract=contract,
                 tick_spacing=pool.immutables.tick_spacing,
@@ -237,6 +250,7 @@ class UniswapV3Pool:
                 logger=factory.logger,
                 at_block=at_block,
             )
+        pool.logger.info(f"Pool initialized at block {pool.initialization_block}")
 
         return pool
 
@@ -431,6 +445,7 @@ class UniswapV3Pool:
             conn.commit()
 
         UniswapV3Base.metadata.create_all(bind=sqlalchemy_engine)
+        UniV3EventBase.metadata.create_all(bind=sqlalchemy_engine)
 
     def advance_block(self, blocks: int = 1):
         """
@@ -443,24 +458,33 @@ class UniswapV3Pool:
     def save_events(
         self,
         event_name: Literal["Mint", "Burn", "Collect", "Swap", "Flash"],
-        chunk_size: Optional[int] = 1000,
+        chunk_size: Optional[int] = 1_000,
+        from_block: Optional[int] = None,
+        to_block: Optional[int] = None,
     ):
         """
         Saves events of a given type to the database.
 
         :param event_name:
+            Name of Event to save.  Must be one of "Mint", "Burn", "Collect", "Swap", "Flash"
         :param chunk_size:
+            Number of events to save per database commit.  When backfilling Mint, Burn, and Collect events, this value
+            can be set to 10-50k to speed up backfilling.  Swaps are much more frequent, and the chunk size should be
+            set to 5k on average pools, 1k on the largest pools.  Defaults to 1k
+        :param from_block:
+            Block number to start backfilling from.  Defaults to the pool's initialization block
+        :param to_block:
+            Block number to stop backfilling at.  Defaults to the current block number
         """
-        end_block = self.pool_contract.w3.eth.block_number
-        self.logger.info(
-            f"Saving {event_name} events to database up to block {end_block}"
-        )
         backfill_events(
             contract=self.pool_contract,
             event_name=event_name,
             db_session=self.pool_factory.create_db_session(),
+            db_model=UniV3MintEvent,
+            model_parsing_func=_parse_uniswap_events,
             logger=self.logger,
-            contract_init_block=self.initialization_block,
+            from_block=from_block if from_block else self.initialization_block,
+            to_block=to_block if to_block else self.pool_factory.w3.eth.block_number,
             chunk_size=chunk_size,
         )
         self.logger.info(f"Finished saving {event_name} events to database")

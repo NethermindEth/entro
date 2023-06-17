@@ -1,4 +1,5 @@
 import datetime
+from typing import Literal, Union
 
 from sqlalchemy import (
     VARCHAR,
@@ -11,11 +12,16 @@ from sqlalchemy import (
     PrimaryKeyConstraint,
 )
 from sqlalchemy.ext.declarative import declarative_base
+from web3.types import EventData
+
+from python_eth_amm.events import EventBase
 
 # pylint: skip-file
 
 uniswap_v3_metadata = MetaData(schema="uniswap_v3")
 UniswapV3Base = declarative_base(metadata=uniswap_v3_metadata)
+UniV3EventBase = EventBase
+UniV3EventBase.metadata = uniswap_v3_metadata
 
 
 class UniV3SwapLogs(UniswapV3Base):
@@ -57,17 +63,7 @@ class UniV3PositionLogs(UniswapV3Base):
     )
 
 
-class UniswapV3Events(UniswapV3Base):
-    __abstract__ = True
-    block_number = Column(Integer, nullable=False)
-    log_index = Column(Integer, nullable=False)
-    transaction_hash = Column(VARCHAR(66), nullable=False)
-    contract_address = Column(VARCHAR(42), nullable=False)
-
-    __table_args__ = (PrimaryKeyConstraint("block_number", "log_index"),)
-
-
-class UniswapV3MintEventsModel(UniswapV3Events):
+class UniV3MintEvent(UniV3EventBase):
     __tablename__ = "mint_events"
 
     sender = Column(VARCHAR(42), nullable=False)
@@ -79,7 +75,7 @@ class UniswapV3MintEventsModel(UniswapV3Events):
     amount_1 = Column(Numeric(80, 0))
 
 
-class UniswapV3CollectEventsModel(UniswapV3Events):
+class UniV3CollectEvent(UniV3EventBase):
     __tablename__ = "collect_events"
 
     owner = Column(VARCHAR(42))
@@ -90,7 +86,7 @@ class UniswapV3CollectEventsModel(UniswapV3Events):
     amount_1 = Column(Numeric(80, 0))
 
 
-class UniswapV3BurnEventsModel(UniswapV3Events):
+class UniV3BurnEvent(UniV3EventBase):
     __tablename__ = "burn_events"
 
     owner = Column(VARCHAR(42))
@@ -101,7 +97,7 @@ class UniswapV3BurnEventsModel(UniswapV3Events):
     amount_1 = Column(Numeric(80, 0))
 
 
-class UniswapV3SwapEventsModel(UniswapV3Events):
+class UniV3SwapEvent(UniV3EventBase):
     __tablename__ = "swap_events"
 
     sender = Column(VARCHAR(42))
@@ -113,7 +109,7 @@ class UniswapV3SwapEventsModel(UniswapV3Events):
     tick = Column(Integer)
 
 
-class UniswapV3FlashEventsModel(UniswapV3Events):
+class UniV3FlashEvent(UniV3EventBase):
     __tablename__ = "flash_events"
 
     sender = Column(VARCHAR(42))
@@ -122,3 +118,64 @@ class UniswapV3FlashEventsModel(UniswapV3Events):
     amount_1 = Column(Numeric(80, 0))
     paid_0 = Column(Numeric(80, 0))
     paid_1 = Column(Numeric(80, 0))
+
+
+def _parse_uniswap_events(
+    data: EventData, event_name: Literal["Swap", "Flash", "Mint", "Burn", "Collect"]
+) -> Union[
+    UniV3SwapEvent, UniV3FlashEvent, UniV3MintEvent, UniV3BurnEvent, UniV3CollectEvent
+]:
+    shared_data = {
+        "block_number": data["blockNumber"],
+        "log_index": data["logIndex"],
+        "transaction_hash": data["transactionHash"].hex(),
+        "contract_address": data["address"],
+        "amount_0": data["args"]["amount0"],
+        "amount_1": data["args"]["amount1"],
+    }
+
+    match event_name:
+        case "Swap":
+            return UniV3SwapEvent(
+                sender=data["args"]["sender"],
+                recipient=data["args"]["recipient"],
+                sqrt_price=data["args"]["sqrtPriceX96"],
+                liquidity=data["args"]["liquidity"],
+                tick=data["args"]["tick"],
+                **shared_data,
+            )
+        case "Flash":
+            return UniV3FlashEvent(
+                sender=data["args"]["sender"],
+                recipient=data["args"]["recipient"],
+                paid_0=data["args"]["paid0"],
+                paid_1=data["args"]["paid1"],
+                **shared_data,
+            )
+        case "Mint":
+            return UniV3MintEvent(
+                owner=data["args"]["owner"],
+                tick_lower=data["args"]["tickLower"],
+                tick_upper=data["args"]["tickUpper"],
+                sender=data["args"]["sender"],
+                amount=data["args"]["amount"],
+                **shared_data,
+            )
+        case "Burn":
+            return UniV3BurnEvent(
+                owner=data["args"]["owner"],
+                tick_lower=data["args"]["tickLower"],
+                tick_upper=data["args"]["tickUpper"],
+                amount=data["args"]["amount"],
+                **shared_data,
+            )
+        case "Collect":
+            return UniV3CollectEvent(
+                owner=data["args"]["owner"],
+                tick_lower=data["args"]["tickLower"],
+                tick_upper=data["args"]["tickUpper"],
+                recipient=data["args"]["recipient"],
+                **shared_data,
+            )
+        case _:
+            raise ValueError(f"Cannot parse invalid event type: {event_name}")

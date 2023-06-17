@@ -40,3 +40,9 @@ class SqrtPriceMathRevert(Exception):
     Raised when a sqrt_price value is out of bounds, or the inputs to a price calculation are
     invalid, ie swapping with zero input or swapping with a sqrt_price limit in the opposite direction
     """
+
+
+class PriceBackfillError(Exception):
+    """
+    # TODO: Add docstring
+    """

@@ -8,7 +8,7 @@ from sqlalchemy.engine import Engine, create_engine
 from sqlalchemy.orm import Session, sessionmaker
 from web3 import Web3
 
-from python_eth_amm.lib.math import (
+from python_eth_amm.math import (
     ExactMathModule,
     FullMathModule,
     SqrtPriceMathModule,
@@ -16,6 +16,7 @@ from python_eth_amm.lib.math import (
     TranslatedMathModule,
     UniswapV3SwapMath,
 )
+from python_eth_amm.pricing_oracle import PricingOracle
 from python_eth_amm.uniswap_v3 import UniswapV3Pool
 
 
@@ -187,6 +188,7 @@ class PoolFactory:
         pool_type: Literal["uniswap_v3", "uniswap_v2"],
         pool_address: str,
         at_block: Optional[int] = None,
+        initialization_args: Optional[dict] = None,
     ):
         """
         Initializes Pool Instance from contract address, pulling on-chain liquidity, prices, and parameters.
@@ -204,6 +206,8 @@ class PoolFactory:
             Block number to pull on-chain state from.  If None, w3.eth.block_number is used.
             block_number='latest' is rarely used in this library due to inaccuracies if the 'latest' block at the
             beginning and end of pool initialization differ.
+        :param Optional[dict] initialization_args:
+            Initialization kwargs for pool class
         :return:
             Pool instance
         """
@@ -215,12 +219,33 @@ class PoolFactory:
         match pool_type:
             case "uniswap_v3":
                 pool_instance = UniswapV3Pool.from_chain(
-                    self, to_checksum_address(pool_address), at_block=at_block
+                    self,
+                    to_checksum_address(pool_address),
+                    at_block=at_block,
+                    **initialization_args,
                 )
             case _:
                 raise ValueError(f"Unknown pool type: {pool_type}")
 
         return pool_instance
+
+    def initialize_pricing_oracle(
+        self,
+        timestamp_resolution: Optional[int] = 10_000,
+    ) -> PricingOracle:
+        """
+        Initializes Pricing Oracle Instance
+
+        :param Optional[int] timestamp_resolution:
+            Optional Parameter to set the resolution of the oracle.  If None, the oracle will query every 10_000th
+            (~ 2 Days) block, and average between blocks to generate timestamps for blocks
+
+        :return:
+            Pricing Oracle Instance
+        """
+        return PricingOracle(
+            pool_factory=self, timestamp_resolution=timestamp_resolution
+        )
 
     def _get_math_module(self, module_name) -> ExactMathModule | TranslatedMathModule:
         return self.loaded_math_modules[module_name]

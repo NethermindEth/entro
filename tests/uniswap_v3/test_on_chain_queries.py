@@ -3,6 +3,7 @@ import logging
 import pytest
 from eth_utils import to_checksum_address
 
+from python_eth_amm.events import backfill_events, query_events_from_db
 from python_eth_amm.exceptions import UniswapV3Revert
 from python_eth_amm.uniswap_v3.chain_interface import (
     _get_pos_from_bitmap,
@@ -11,15 +12,8 @@ from python_eth_amm.uniswap_v3.chain_interface import (
     fetch_pool_state,
     fetch_positions,
     fetch_slot_0,
-    get_events,
 )
-from python_eth_amm.uniswap_v3.schema import (
-    UniswapV3BurnEventsModel,
-    UniswapV3CollectEventsModel,
-    UniswapV3FlashEventsModel,
-    UniswapV3MintEventsModel,
-    UniswapV3SwapEventsModel,
-)
+from python_eth_amm.uniswap_v3.db import UniV3MintEvent, _parse_uniswap_events
 
 
 class TestPoolInitialization:
@@ -48,6 +42,12 @@ class TestPoolInitialization:
     def test_position_owners_match_mint_events(
         self, exact_math_factory, w3_archive_node, db_session
     ):
+        db_session.query(UniV3MintEvent).filter(
+            UniV3MintEvent.contract_address
+            == "0x8ad599c3a0ff1de082011efddc58f1908eb6e6d8",
+            UniV3MintEvent.block_number <= 12_400_000,
+        ).delete()
+
         usdc_weth_pool = exact_math_factory.initialize_from_chain(
             pool_type="uniswap_v3",
             pool_address=to_checksum_address(
@@ -56,13 +56,18 @@ class TestPoolInitialization:
             at_block=12400000,
         )
 
-        mint_events = get_events(
-            usdc_weth_pool.pool_contract,
-            db_session,
-            "Mint",
-            12400000,
-            12600000,
-            usdc_weth_pool.logger,
+        backfill_events(
+            contract=usdc_weth_pool.pool_contract,
+            db_session=db_session,
+            db_model=UniV3MintEvent,
+            model_parsing_func=_parse_uniswap_events,
+            event_name="Mint",
+            from_block=12370624,
+            to_block=12400000,
+            logger=usdc_weth_pool.logger,
+        )
+        mint_events = query_events_from_db(
+            db_session, UniV3MintEvent, 12400000, 12600000
         )
         minting_lp_addresses = set([event["args"]["owner"] for event in mint_events])
         for key, data in usdc_weth_pool.positions.items():
