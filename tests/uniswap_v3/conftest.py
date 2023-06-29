@@ -1,4 +1,3 @@
-import logging
 import os
 from decimal import getcontext
 from typing import Optional, Tuple
@@ -37,7 +36,10 @@ def exact_math_factory(w3_archive_node, test_logger):
 @pytest.fixture(name="initialize_empty_pool")
 def fixture_initialize_empty_pool(test_logger):
     def _initialize_empty_pool(
-        tick_spacing: Optional[int] = 60, pool_factory: Optional = None, **kwargs
+        tick_spacing: Optional[int] = 60,
+        fee: Optional[int] = 3_000,
+        pool_factory: Optional = None,
+        **kwargs,
     ):
         if pool_factory is None:
             pool_factory = PoolFactory(
@@ -50,6 +52,7 @@ def fixture_initialize_empty_pool(test_logger):
             initialization_args={
                 "tick_spacing": tick_spacing,
                 "initial_block": 10_000_000,
+                "fee": fee,
                 **kwargs,
             },
         )

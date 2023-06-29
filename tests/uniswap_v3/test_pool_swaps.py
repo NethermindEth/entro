@@ -11,7 +11,7 @@ from pydantic import BaseModel
 
 from python_eth_amm import PoolFactory
 from python_eth_amm.exceptions import UniswapV3Revert
-from python_eth_amm.lib.math import TickMathModule, UniswapV3SwapMath
+from python_eth_amm.math import TickMathModule, UniswapV3SwapMath
 from python_eth_amm.uniswap_v3 import UniswapV3Pool
 from python_eth_amm.uniswap_v3.types import Slot0
 from tests.uniswap_v3.utils import decode_sqrt_price, encode_sqrt_price
@@ -351,7 +351,9 @@ class TestSwaps:
         initialize_empty_pool,
     ) -> UniswapV3Pool:
         pool: UniswapV3Pool = initialize_empty_pool(
-            tick_spacing=pool_test_case.tick_spacing, pool_factory=self.factory
+            tick_spacing=pool_test_case.tick_spacing,
+            fee=pool_test_case.fee_amount,
+            pool_factory=self.factory,
         )
         pool.slot0 = Slot0(
             sqrt_price=pool_test_case.starting_price,
@@ -378,7 +380,7 @@ class TestSwaps:
         self,
         pool: UniswapV3Pool,
         test_case: SwapCase,
-    ) -> str:
+    ):
         max_tokens = 2**128
         if test_case.sqrt_price_limit is None:
             sqrt_price_limit = (
@@ -391,26 +393,26 @@ class TestSwaps:
             sqrt_price_limit = test_case.sqrt_price_limit
 
         if test_case.exact_out is None:
-            swap_id = pool.swap(
+            pool.swap(
                 zero_for_one=test_case.zero_for_one,
                 amount_specified=max_tokens,
                 sqrt_price_limit=sqrt_price_limit,
                 log_swap=False,
             )
-            return swap_id
 
-        amount_specified = (-1 if test_case.exact_out else 1) * (
-            test_case.amount_1
-            if test_case.zero_for_one == test_case.exact_out
-            else test_case.amount_0
-        )
+        else:
+            amount_specified = (-1 if test_case.exact_out else 1) * (
+                test_case.amount_1
+                if test_case.zero_for_one == test_case.exact_out
+                else test_case.amount_0
+            )
 
-        return pool.swap(
-            zero_for_one=test_case.zero_for_one,
-            amount_specified=amount_specified,
-            sqrt_price_limit=sqrt_price_limit,
-            log_swap=False,
-        )
+            pool.swap(
+                zero_for_one=test_case.zero_for_one,
+                amount_specified=amount_specified,
+                sqrt_price_limit=sqrt_price_limit,
+                log_swap=False,
+            )
 
     @pytest.mark.timeout(5)
     @pytest.mark.parametrize("swap_test_case", SWAP_CASES.keys())
@@ -461,13 +463,16 @@ class TestSwaps:
         )
 
         if "executionPrice" in test_fixture:
-            execution_price = (
-                amount_1_delta / amount_0_delta * -1 if amount_0_delta else 0
-            )
-            delta = (
-                execution_price - float(test_fixture["executionPrice"])
-            ) / execution_price
-            assert delta < 0.0001
+            if test_fixture["executionPrice"] == "NaN":
+                assert amount_0_delta == amount_1_delta == 0
+            else:
+                execution_price = (
+                    amount_1_delta / amount_0_delta * -1 if amount_0_delta else 0
+                )
+                delta = (
+                    execution_price - float(test_fixture["executionPrice"])
+                ) / execution_price
+                assert delta < 0.0001
 
         if "tickBefore" in test_fixture:
             assert slot_0_before.tick == test_fixture["tickBefore"]
