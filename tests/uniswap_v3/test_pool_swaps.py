@@ -41,7 +41,6 @@ class PoolTestCase(BaseModel):
     tick_spacing: int
     starting_price: int
     positions: List[Position]
-    swap_tests: Optional[List[SwapCase]]
 
 
 LIQUIDITY_PROVIDER_ADDRESS = to_checksum_address(

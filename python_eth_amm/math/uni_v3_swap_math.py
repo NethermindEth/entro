@@ -1,6 +1,7 @@
 from decimal import Decimal
 from logging import Logger
 from math import ceil, floor
+from typing import Optional
 
 from pydantic import BaseModel
 
@@ -31,7 +32,7 @@ def overflow_check(number, max_value):
     return number
 
 
-def input_check(tick: int = None, sqrt_price: float = None):
+def input_check(tick: Optional[int] = None, sqrt_price: Optional[float] = None):
     if tick:
         if tick > TickMathModule.MAX_TICK or tick < TickMathModule.MIN_TICK:
             raise UniswapV3Revert(f"Tick Index out of Bounds: {tick}")

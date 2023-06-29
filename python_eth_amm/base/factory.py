@@ -1,7 +1,7 @@
 import logging
 from decimal import getcontext
 from logging import Logger
-from typing import Dict, List, Literal, Optional
+from typing import Dict, List, Literal, Optional, Type
 
 from eth_utils import to_checksum_address
 from sqlalchemy.engine import Engine, create_engine
@@ -254,7 +254,7 @@ class PoolFactory:
         self,
         to_address: str,
         data: bytes,
-        exception_class: Optional[Exception] = None,
+        exception_class: Optional[Type[Exception]] = None,
     ) -> str:
         """
         Internal Method used during exact math mode.  Contracts are deployed to a Rust EVM implementation,

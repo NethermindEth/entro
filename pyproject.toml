@@ -80,7 +80,7 @@ ignore-paths = [ "^tests\\.*$", "^docs\\.*$" ]
 extension-pkg-whitelist=["pydantic"]
 py-version = "3.10"
 suggestion-mode = true
-disable=["C0114", "W1514", "R0903", "W1203"]
+disable=["C0114", "W1514", "R0903", "R1719", "W1203"]
 
 
 [tool.pylint.design]

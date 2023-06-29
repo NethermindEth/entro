@@ -39,7 +39,10 @@ def fetch_initialization_block(contract: Contract) -> int:
 
 
 def fetch_pool_immutables(
-    w3: Web3, contract: Contract, logger: Logger
+    # pylint-disable: invalid-name
+    w3: Web3,
+    contract: Contract,
+    logger: Logger,
 ) -> PoolImmutables:
     """Fetches Immutable Parameters for a V3 Pool"""
     token_0 = ERC20Token.from_chain(w3, tca(contract.functions.token0().call()))
@@ -134,7 +137,6 @@ def fetch_slot_0(
         observation_cardinality=slot_0[3],
         observation_cardinality_next=slot_0[4],
         fee_protocol=slot_0[5],
-        unlocked=slot_0[6],
     )
 
 
@@ -171,7 +173,6 @@ def fetch_liquidity(
             tick_cumulative_outside=tick_data[4],
             seconds_per_liquidity_outside=tick_data[5],
             seconds_outside=tick_data[6],
-            initialized=True,
         )
     return liquidity_by_tick
 
@@ -238,7 +239,7 @@ def fetch_positions(
     all_positions: Dict[Tuple[ChecksumAddress, int, int], PositionInfo] = {}
 
     for key in tqdm(position_keys, desc="Fetching Position Data"):
-        key = (to_checksum_address(key[0]), key[1], key[2])
+        key = (tca(key[0]), key[1], key[2])
         keccak_key = keccak(encode_packed(["address", "int24", "int24"], key))
 
         position = contract.functions.positions(keccak_key).call(

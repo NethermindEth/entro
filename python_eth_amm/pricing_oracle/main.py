@@ -19,6 +19,8 @@ from .db import (
     _parse_pool_creation,
 )
 
+# pylint-disable: invalid-name
+
 WETH_ADDRESS = to_checksum_address("0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2")
 USDC_ADDRESS = to_checksum_address("0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48")
 
@@ -64,6 +66,8 @@ POOL_CREATED_ABI = [
 
 
 class PricingOracle:
+    _weth_prices: Optional[DataFrame] = None
+
     def __init__(
         self,
         pool_factory,
@@ -74,8 +78,6 @@ class PricingOracle:
         self.db_session = pool_factory.create_db_session()
         self.logger = pool_factory.logger
         self.timestamp_resolution = timestamp_resolution
-
-        self._weth_prices = None
 
         self._initialize_timestamp_converter()
         self._migrate_up()
@@ -137,10 +139,8 @@ class PricingOracle:
         )
 
     def _migrate_up(self):
-        from python_eth_amm.pricing_oracle.db import (  # pylint: disable=import-outside-toplevel
-            OracleBase,
-            OracleEventBase,
-        )
+        # pylint: disable=import-outside-toplevel
+        from python_eth_amm.pricing_oracle.db import OracleBase, OracleEventBase
 
         db_engine = self.db_session.get_bind()
 
@@ -158,7 +158,6 @@ class PricingOracle:
         from_block: Union[int, None],
         to_block: Union[int, None],
     ) -> List[Tuple[int, int]]:
-        pass
         """
         Compute the backfill ranges for a given pool_id and block range.
         :param pool_id: 
@@ -205,11 +204,11 @@ class PricingOracle:
         if from_block < old_backfill.backfill_start:
             if to_block <= old_backfill.backfill_end:
                 return [(from_block, old_backfill.backfill_start)]
-            else:
-                return [
-                    (from_block, old_backfill.backfill_start),
-                    (old_backfill.backfill_end, to_block),
-                ]
+
+            return [
+                (from_block, old_backfill.backfill_start),
+                (old_backfill.backfill_end, to_block),
+            ]
         return [(old_backfill.backfill_end, to_block)]
 
     def _update_backfill(
@@ -261,25 +260,23 @@ class PricingOracle:
         self.logger.debug(f"Backfill Ranges: {backfills}")
 
         if not backfills:
-            self.logger.info(f"Block range already backfilled.  Skipping price query")
+            self.logger.info("Block range already backfilled.  Skipping price query")
             return
 
-        pool_translator: UniswapV3Pool = self.factory.initialize_from_chain(
+        pool: UniswapV3Pool = self.factory.initialize_from_chain(
             pool_type="uniswap_v3",
             pool_address=pool_id,
             initialization_args={"load_pool_state": False},
-        )
-        token_0, token_1 = (
-            pool_translator.immutables.token_0,
-            pool_translator.immutables.token_1,
         )
 
         for backfill_start, backfill_end in backfills:
             self._run_backfill(
                 backfill_start=backfill_start,
                 backfill_end=backfill_end,
-                v3_pool=pool_translator,
-                reference_token_num=0 if token_0.address == reference_token else 1,
+                v3_pool=pool,
+                reference_token_num=0
+                if pool.immutables.token_0.address == reference_token
+                else 1,
             )
 
     def _get_weth_price(self, block_number: int) -> float:
@@ -327,6 +324,7 @@ class PricingOracle:
                 spot_price = v3_pool.get_price_at_sqrt_ratio(
                     int(event.sqrt_price), not bool(reference_token_num)
                 )
+
                 if weth_conversion:
                     spot_price *= self._get_weth_price(event.block_number)
 

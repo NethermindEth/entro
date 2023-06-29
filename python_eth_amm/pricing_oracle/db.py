@@ -84,7 +84,7 @@ class UniV3PoolCreations(OracleEventBase):
     pool_address = Column(String, nullable=False)
     fee = Column(Integer, nullable=False)
 
-
+# pylint-disable: unused-argument
 def _parse_pool_creation(data: EventData, **kwargs) -> UniV3PoolCreations:
     return UniV3PoolCreations(
         block_number=data["blockNumber"],
