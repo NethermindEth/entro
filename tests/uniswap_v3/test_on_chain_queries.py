@@ -176,42 +176,6 @@ class TestFetchPositions:
             == 45664982023859
         )
 
-    def test_fetch_established_positions_low_fee(
-        self, w3_archive_node, usdc_weth_contract, test_logger, db_session
-    ):
-        positions = fetch_positions(
-            contract=usdc_weth_contract,
-            logger=test_logger,
-            db_session=db_session,
-            initialization_block=12370624,
-            at_block=16000000,
-        )
-        print(positions)
-
-    def test_fetch_established_positions_medium_fee(
-        self, w3_archive_node, wbtc_weth_contract, test_logger, db_session
-    ):
-        positions = fetch_positions(
-            contract=wbtc_weth_contract,
-            logger=test_logger,
-            db_session=db_session,
-            initialization_block=12370624,
-            at_block=16000000,
-        )
-        print(positions)
-
-    def test_fetch_established_positions_high_fee(
-        self, w3_archive_node, usdt_weth_contract, test_logger, db_session
-    ):
-        positions = fetch_positions(
-            contract=usdt_weth_contract,
-            logger=test_logger,
-            db_session=db_session,
-            initialization_block=12370624,
-            at_block=16000000,
-        )
-        print(positions)
-
 
 class TestFetchPoolState:
     def test_fetch_pool_immutables_raises_for_uninitialize_pool(

@@ -296,7 +296,7 @@ def fetch_observations(
 
 
 def _generate_tick_queue(
-    contract: Contract, tick_spacing: int, logger: Logger, at_block: int
+    contract: Contract, tick_spacing: int, logger: Logger, at_block: Union[int, str]
 ) -> List[int]:
     lower_bound_key = floor(TickMathModule.MIN_TICK / (256 * tick_spacing))
     upper_bound_key = ceil(TickMathModule.MAX_TICK / (256 * tick_spacing)) + 1

@@ -276,8 +276,7 @@ class UniswapV3Pool:
         self,
         sqrt_price: int,
         reverse_tokens: bool = False,
-        string_description: bool = False,
-    ) -> Union[float, str]:
+    ) -> float:
         """
         Converts a sqrt_price to a human-readable price.
 
@@ -287,10 +286,32 @@ class UniswapV3Pool:
             Whether to reverse the tokens in the price.  The sqrt_price represents the
             :math:`\\frac{ Token 1 }{ Token 0}`.  If reverse_tokens is True, the price will be represented as
             :math:`\\frac{ Token 0 }{ Token 1}`.
-        :param string_description:
-            If True, returns a string description of the price in the Format: [WETH: 3,456.23 USDC].
-            Otherwise, returns a float.
+        """
+        token_0, token_1 = self.immutables.token_0, self.immutables.token_1
 
+        raw_price_float = (sqrt_price / (2**96)) ** 2
+        adjusted_price = raw_price_float / (10 ** (token_1.decimals - token_0.decimals))
+
+        if reverse_tokens:
+            adjusted_price = 1 / adjusted_price
+
+        return adjusted_price
+
+    def get_formatted_price_at_sqrt_ratio(
+        self,
+        sqrt_price: int,
+        reverse_tokens: bool = False,
+    ) -> str:
+        """
+        Converts a sqrt_price to a formatted price string.  Includes rounding to 6 significant figures, and listing
+        the Reference Asset, ie WETH: 2245.32 USDC.
+
+        :param sqrt_price:
+            sqrt_price encoded as fixed point Q64.96
+        :param reverse_tokens:
+            Whether to reverse the tokens in the price.  The sqrt_price represents the
+            :math:`\\frac{ Token 1 }{ Token 0}`.  If reverse_tokens is True, the price will be represented as
+            :math:`\\frac{ Token 0 }{ Token 1}`.
         """
 
         token_0, token_1 = self.immutables.token_0, self.immutables.token_1
@@ -300,9 +321,6 @@ class UniswapV3Pool:
 
         if reverse_tokens:
             adjusted_price = 1 / adjusted_price
-
-        if not string_description:
-            return adjusted_price
 
         rounded_price = np.format_float_positional(float(f"{adjusted_price:.6g}"))
         return (
@@ -782,8 +800,13 @@ class UniswapV3Pool:
             owner_address, tick_lower, tick_upper, -amount, committing
         )
 
+        # TODO: Double check tokens owed
         position_info.tokens_owed_0 += -amount_0_int
         position_info.tokens_owed_1 += -amount_1_int
+
+        if committing:
+            self.state.balance_0 += amount_0_int
+            self.state.balance_1 += amount_1_int
 
         return amount_0_int, amount_1_int
 
@@ -812,6 +835,7 @@ class UniswapV3Pool:
             If False, does not log the swap to the database & returns None.  Default: False
 
         """
+        # Disable branch & statement checks.  This implementation will be complex regardless
         # pylint: disable=too-many-locals,too-many-branches,too-many-statements
         self.logger.debug(
             f"------ Swapping Token {0 if zero_for_one else 1} for Token {1 if zero_for_one else 0} -------"
@@ -844,6 +868,9 @@ class UniswapV3Pool:
 
         slot_0_start = self.slot0.copy()
 
+        # Disable pylint no-member due to SwapState and SwapCache raising false positives
+        # pylint: disable=no-member
+
         swap_cache = SwapCache(
             liquidity_start=self.state.liquidity,
             block_timestamp=self.block_timestamp,
@@ -867,8 +894,7 @@ class UniswapV3Pool:
             protocol_fee=0,
             liquidity=swap_cache.liquidity_start,
         )
-        # Disable pylint no-member due to SwapState and SwapCache raising false positives
-        # pylint: disable=no-member
+
         while (
             state.amount_specified_remaining != 0
             and state.sqrt_price != sqrt_price_limit
@@ -1047,7 +1073,7 @@ class UniswapV3Pool:
                 amount_specified - state.amount_specified_remaining,
             )
 
-        # pylint: enable=no-member
+        # pylint: enable=no-member,too-many-locals,too-many-branches,too-many-statements
         self.logger.debug("--- Swap Complete ---")
         self.logger.debug(f"Token 0 Delta: {amount_0} \t Token 1 Delta: {amount_1}")
         self.logger.debug(f"Current Tick: {self.slot0.tick}")
