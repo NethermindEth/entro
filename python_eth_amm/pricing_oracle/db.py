@@ -1,5 +1,4 @@
 from sqlalchemy import (
-    JSON,
     Column,
     DateTime,
     Integer,
@@ -44,18 +43,7 @@ class BlockTimestamps(OracleBase):
     __tablename__ = "block_timestamps"
 
     block_number = Column(Integer, primary_key=True)
-    timestamp = Column(DateTime, nullable=False)
-
-
-class ExchangePools(OracleBase):
-    __tablename__ = "exchange_pools"
-
-    pool_id = Column(String, primary_key=True)
-    token_0 = Column(String, nullable=False)
-    token_1 = Column(String, nullable=False)
-    protocol = Column(String, nullable=False)
-    initialization_block = Column(Integer, nullable=False)
-    pool_data = Column(JSON, nullable=True)
+    timestamp = Column(Integer, nullable=False)
 
 
 class TokenPrices(OracleBase):
@@ -83,6 +71,7 @@ class UniV3PoolCreations(OracleEventBase):
     token_1 = Column(String, nullable=False)
     pool_address = Column(String, nullable=False)
     fee = Column(Integer, nullable=False)
+
 
 # pylint-disable: unused-argument
 def _parse_pool_creation(data: EventData, **kwargs) -> UniV3PoolCreations:

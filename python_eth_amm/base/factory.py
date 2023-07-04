@@ -88,8 +88,10 @@ class PoolFactory:
         self._initialized_classes = []
 
         if exact_math:
-            # pylint: disable=import-outside-toplevel,no-name-in-module
+            # pylint: disable=import-outside-toplevel,no-name-in-module,attr-defined
             from pyrevm import EVM
+
+            # pylint: enable=import-outside-toplevel,no-name-in-module,attr-defined
 
             getcontext().prec = 80
 
@@ -132,9 +134,10 @@ class PoolFactory:
                         self.logger.info(
                             "Exact Math Mode Enabled.  Deploying Uniswap V3 Math Modules to EVM."
                         )
-                        from pyrevm import (  # pylint: disable=import-outside-toplevel,no-name-in-module
-                            AccountInfo,
-                        )
+                        # pylint: disable=import-outside-toplevel,no-name-in-module, attr-defined
+                        from pyrevm import AccountInfo
+
+                        # pylint: enable=import-outside-toplevel,no-name-in-module, attr-defined
 
                         for name, model in exact_math_modules.items():
                             deploy_address, deploy_bin = model.deploy_params()
@@ -222,7 +225,7 @@ class PoolFactory:
                     self,
                     to_checksum_address(pool_address),
                     at_block=at_block,
-                    **initialization_args,
+                    **initialization_args if initialization_args else {},
                 )
             case _:
                 raise ValueError(f"Unknown pool type: {pool_type}")
@@ -231,7 +234,7 @@ class PoolFactory:
 
     def initialize_pricing_oracle(
         self,
-        timestamp_resolution: Optional[int] = 10_000,
+        timestamp_resolution: int = 10_000,
     ) -> PricingOracle:
         """
         Initializes Pricing Oracle Instance
@@ -243,9 +246,7 @@ class PoolFactory:
         :return:
             Pricing Oracle Instance
         """
-        return PricingOracle(
-            pool_factory=self, timestamp_resolution=timestamp_resolution
-        )
+        return PricingOracle(factory=self, timestamp_resolution=timestamp_resolution)
 
     def _get_math_module(self, module_name) -> ExactMathModule | TranslatedMathModule:
         return self.loaded_math_modules[module_name]

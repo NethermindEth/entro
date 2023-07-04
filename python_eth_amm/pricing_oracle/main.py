@@ -1,5 +1,6 @@
 import datetime
-from typing import List, Optional, Tuple, Union
+from bisect import bisect_right
+from typing import Dict, List, Optional, Tuple, Union
 
 import sqlalchemy
 from eth_typing import ChecksumAddress
@@ -66,21 +67,28 @@ POOL_CREATED_ABI = [
 
 
 class PricingOracle:
+    """
+    Pricing oracle for Arbitrary ERC20 Tokens.  Any ERC20 token that has a USDC or WETH UniswapV3 pool can
+    be priced easily.
+
+
+    """
+
     _weth_prices: Optional[DataFrame] = None
 
     def __init__(
         self,
-        pool_factory,
+        factory,
         timestamp_resolution: int,
     ):
-        self.factory = pool_factory
-        self.w3 = pool_factory.w3
-        self.db_session = pool_factory.create_db_session()
-        self.logger = pool_factory.logger
+        self.factory = factory
+        self.w3 = factory.w3
+        self.db_session = factory.create_db_session()
+        self.logger = factory.logger
         self.timestamp_resolution = timestamp_resolution
 
-        self._initialize_timestamp_converter()
         self._migrate_up()
+        self._initialize_timestamp_converter()
         self._generate_pool_list()
 
     def _initialize_timestamp_converter(self):
@@ -98,13 +106,12 @@ class PricingOracle:
             self.w3.eth.block_number,
             self.timestamp_resolution,
         ):
-            timestamp = self.w3.eth.get_block(block if block != 0 else 1).timestamp
             timestamps.append(
                 BlockTimestamps(
                     block_number=block,
-                    timestamp=datetime.datetime.fromtimestamp(
-                        timestamp, tz=datetime.timezone.utc
-                    ),
+                    timestamp=self.w3.eth.get_block(
+                        block if block != 0 else 1
+                    ).timestamp,
                 )
             )
 
@@ -113,7 +120,13 @@ class PricingOracle:
 
         self._timestamps = {}
         for row in self.db_session.query(BlockTimestamps).all():
-            self._timestamps.update({row.block_number: row.timestamp})
+            self._timestamps.update(
+                {
+                    row.block_number: datetime.datetime.fromtimestamp(
+                        row.timestamp, tz=datetime.timezone.utc
+                    )
+                }
+            )
 
     def _generate_pool_list(self):
         backfill_events(
@@ -134,7 +147,12 @@ class PricingOracle:
             [row.__dict__ for row in self.db_session.query(UniV3PoolCreations).all()]
         )
         self._v3_pools.drop(
-            columns=["_sa_instance_state", "transaction_hash", "log_index"],
+            columns=[
+                "_sa_instance_state",
+                "transaction_hash",
+                "log_index",
+                "contract_address",
+            ],
             inplace=True,
         )
 
@@ -151,6 +169,7 @@ class PricingOracle:
 
         OracleBase.metadata.create_all(bind=db_engine)
         OracleEventBase.metadata.create_all(bind=db_engine)
+        self.db_session.commit()
 
     def _compute_backfill_ranges(
         self,
@@ -160,13 +179,13 @@ class PricingOracle:
     ) -> List[Tuple[int, int]]:
         """
         Compute the backfill ranges for a given pool_id and block range.
-        :param pool_id: 
+        :param pool_id:
             Pool ID to backfill
-        :param from_block: 
+        :param from_block:
             Inclusive Start block for backfill
-        :param to_block: 
+        :param to_block:
             Exclusive End block for backfill
-        :return: 
+        :return:
             Tuple of backfill_start, backfill_end.  If backfill_end is None, then the backfill is not required and
             and can safely be skipped
         """
@@ -355,10 +374,108 @@ class PricingOracle:
 
         return self._timestamps[lower] + ((block_number - lower) * block_time)
 
-    def backfill_prices(self, token_id: ChecksumAddress, start_block: int):
-        pass
+    def datetime_to_block(self, dt: Union[datetime.datetime, datetime.date]) -> int:
+        if type(dt) == datetime.date:
+            dt = datetime.datetime(
+                dt.year, dt.month, dt.day, 0, 0, 0, tzinfo=datetime.timezone.utc
+            )
+
+        if dt.tzinfo is None:
+            dt = dt.replace(tzinfo=datetime.timezone.utc)
+
+        # TODO: Optimize
+        timestamps = list(sorted(self._timestamps.items()))
+        timestamp_index = bisect_right(
+            timestamps, dt.timestamp(), key=lambda x: x[1].timestamp()
+        )
+        lower_block, lower_timestamp = timestamps[timestamp_index - 1]
+        upper_block, upper_timestamp = timestamps[timestamp_index]
+
+        block_time = (upper_timestamp - lower_timestamp) / self.timestamp_resolution
+
+        return lower_block + int((dt - lower_timestamp) / block_time)
+
+    def backfill_prices(
+        self,
+        token_id: ChecksumAddress,
+        start: Optional[Union[int, datetime.date]] = None,
+        end: Optional[Union[int, datetime.date]] = None,
+    ):
+        """
+        Backfill prices for a given token.
+        :param token_id: Hex Address of Token to be Priced
+        :param start_block:
+
+        :param end_block:
+        :return:
+        """
+        if isinstance(start, datetime.date):
+            start = self.datetime_to_block(start)
+
+        if isinstance(end, datetime.date):
+            end = self.datetime_to_block(end)
+
+        usdc_pools = (
+            self.db_session.query(UniswapV3Pool)
+            .filter(
+                (
+                    UniswapV3Pool.immutables.token_0.address == USDC_ADDRESS
+                    and UniswapV3Pool.immutables.token_1.address == token_id
+                )
+                or (
+                    UniswapV3Pool.immutables.token_1.address == USDC_ADDRESS
+                    and UniswapV3Pool.immutables.token_0.address == token_id
+                )
+            )
+            .all()
+        )
+
+        if usdc_pools:
+            self._fetch_price_from_pool(
+                self._filter_pools(usdc_pools), USDC_ADDRESS, start, end
+            )
+            return
+
+        weth_pools = (
+            self.db_session.query(UniswapV3Pool)
+            .filter(
+                (
+                    UniswapV3Pool.immutables.token_0.address == WETH_ADDRESS
+                    and UniswapV3Pool.immutables.token_1.address == token_id
+                )
+                or (
+                    UniswapV3Pool.immutables.token_1.address == WETH_ADDRESS
+                    and UniswapV3Pool.immutables.token_0.address == token_id
+                )
+            )
+            .all()
+        )
+
+        if weth_pools:
+            # TODO: Add checks to ensure WETH Prices are backfilled correctly
+            self._fetch_price_from_pool(
+                self._filter_pools(weth_pools), WETH_ADDRESS, start, end
+            )
+        else:
+            raise ValueError(
+                f"Token {token_id} does not have a USDC or WETH Uniswap Pair"
+            )
 
     def get_price_at_block(self, block_number: int, token_id: ChecksumAddress):
+        """
+        Returns the precise price of a token at a given block number.  Spot prices represent the pool's state at the
+        end of a block.
+
+        ..warning::
+            This function performs a single database query, and returns the result without performing
+            any safety checks.  If a price is backfilled to block 14m, and you query the price at block 15m, it will
+            return the last price stored in the database (block 14m) and wont raise any warnings that the requested
+            block is not backfilled.  For a safer way to query prices, use :py:func:`python_eth_amm.Pricing.get_price_over_time`
+
+        :param block_number: Block Number to query price at
+        :param token_id: Address of ERC20 Token that is being priced
+        :return:
+        """
         return (
             self.db_session.query(TokenPrices.spot_price)
             .filter(
@@ -370,7 +487,39 @@ class PricingOracle:
         )
 
     def get_price_over_time(self, token_id: ChecksumAddress) -> DataFrame:
-        data_dict = {"timestamp": [], "block_number": [], "spot_price": []}
+        """
+        Returns a dataframe of the token price over time with the following schema:
+
+        .. list-table:: Price Over Time Schema
+            :header-rows: 1
+
+            * - Column Name
+              - DataType
+              - Description
+
+            * - timestamp
+              - UTC datetime
+              - Timestamp Estimate for block.  This estimate is generated from
+                  :py:func:`python_eth_amm.PricingOracle.block_to_datetime`
+                  and is only as accurate as the timestamp
+
+            * - block_number
+              - integer
+              - Precise Block number the price was extracted at
+
+            * - spot_price
+              - float
+              - Spot Price of the token in USDC at the given block number.
+
+
+        :param token_id:
+        :return:
+        """
+        data_dict: Dict[str, list] = {
+            "timestamp": [],
+            "block_number": [],
+            "spot_price": [],
+        }
         price_data = (
             self.db_session.query(TokenPrices.block_number, TokenPrices.spot_price)
             .filter(TokenPrices.token_id == token_id)
@@ -384,3 +533,17 @@ class PricingOracle:
             data_dict["spot_price"].append(float(spot_price))
 
         return DataFrame(data_dict)
+
+    def _filter_pools(self, pools: List[UniV3PoolCreations]) -> ChecksumAddress:
+        """
+        If there are multiple pools for a token pair, returns the pool that the price should be queries from.
+
+        Currently this checks for a 30 bips pool, then checks for a 10 bips, then a 200.  This process should be
+        refined in a future update to get the price from the pool with the most liquidity and activity
+
+        :param usdc_pools: List of UniV3PoolCreations events to filter
+        :return: address of pool to extract price from
+        """
+        pools_tiers = {pool.fee: pool.pool_address for pool in pools}
+
+        return pools_tiers.get(3000, pools_tiers.get(500, pools_tiers.get(10000)))

@@ -5,7 +5,9 @@ import pytest
 from eth_utils import to_checksum_address
 from sqlalchemy import create_engine
 from sqlalchemy.orm import create_session
+from web3 import Web3
 
+from python_eth_amm import PoolFactory
 from python_eth_amm.events import backfill_events, query_events_from_db
 from python_eth_amm.pricing_oracle.db import BackfilledPools, TokenPrices
 from python_eth_amm.uniswap_v3 import UniswapV3Pool
@@ -16,6 +18,11 @@ WETH_ADDRESS = to_checksum_address("0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2")
 
 class TestComputeBackfillRanges:
     UNI_WETH_POOL = to_checksum_address("0x1d42064fc4beb5f8aaf85f4617ae8b3b5b8bd801")
+
+    FACTORY = PoolFactory(
+        sqlalchemy_uri=os.environ.get("SQLALCHEMY_DB_URI", "sqlite:///:memory:"),
+        w3=Web3(Web3.HTTPProvider(os.environ["ARCHIVE_NODE_RPC_URL"])),
+    )
 
     def setup_class(self):
         db_session = create_session(
@@ -37,7 +44,7 @@ class TestComputeBackfillRanges:
         db_session.commit()
 
     def test_start_inside_end_inside(self, initialize_empty_oracle):
-        oracle = initialize_empty_oracle()
+        oracle = initialize_empty_oracle(factory=self.FACTORY)
         backfills = oracle._compute_backfill_ranges(
             pool_id=self.UNI_WETH_POOL,
             from_block=14_500_000,
@@ -46,7 +53,7 @@ class TestComputeBackfillRanges:
         assert backfills == []
 
     def test_start_at_end_at(self, initialize_empty_oracle):
-        oracle = initialize_empty_oracle()
+        oracle = initialize_empty_oracle(factory=self.FACTORY)
         backfills = oracle._compute_backfill_ranges(
             pool_id=self.UNI_WETH_POOL,
             from_block=14_000_000,
@@ -55,7 +62,7 @@ class TestComputeBackfillRanges:
         assert backfills == []
 
     def test_start_inside_end_after(self, initialize_empty_oracle):
-        oracle = initialize_empty_oracle()
+        oracle = initialize_empty_oracle(factory=self.FACTORY)
         backfills = oracle._compute_backfill_ranges(
             pool_id=self.UNI_WETH_POOL,
             from_block=14_500_000,
@@ -67,7 +74,7 @@ class TestComputeBackfillRanges:
         assert backfills[0][1] == 15_500_000
 
     def test_start_before_end_inside(self, initialize_empty_oracle):
-        oracle = initialize_empty_oracle()
+        oracle = initialize_empty_oracle(factory=self.FACTORY)
         backfills = oracle._compute_backfill_ranges(
             pool_id=self.UNI_WETH_POOL,
             from_block=13_500_000,
@@ -78,7 +85,7 @@ class TestComputeBackfillRanges:
         assert backfills[0][1] == 14_000_000
 
     def test_start_before_end_after(self, initialize_empty_oracle):
-        oracle = initialize_empty_oracle()
+        oracle = initialize_empty_oracle(factory=self.FACTORY)
         backfills = oracle._compute_backfill_ranges(
             pool_id=self.UNI_WETH_POOL,
             from_block=13_500_000,
@@ -96,7 +103,7 @@ class TestComputeBackfillRanges:
         self,
         initialize_empty_oracle,
     ):
-        oracle = initialize_empty_oracle()
+        oracle = initialize_empty_oracle(factory=self.FACTORY)
 
         backfills = oracle._compute_backfill_ranges(
             pool_id=self.UNI_WETH_POOL,
@@ -209,13 +216,13 @@ class TestGetPrices:
         self, initialize_empty_oracle, delete_prices_for_token
     ):
         oracle = initialize_empty_oracle()
-        # delete_prices_for_token(WETH_ADDRESS)
+        delete_prices_for_token(WETH_ADDRESS)
 
-        # usdc_weth_100_bps_pool = to_checksum_address(
-        #     "0x7bea39867e4169dbe237d55c8242a8f2fcdcc387"
-        # )
+        usdc_weth_100_bps_pool = to_checksum_address(
+            "0x7bea39867e4169dbe237d55c8242a8f2fcdcc387"
+        )
 
-        # oracle._fetch_price_from_pool(usdc_weth_100_bps_pool, 12_500_000)
+        oracle._fetch_price_from_pool(usdc_weth_100_bps_pool, 12_500_000)
 
         prices = oracle.get_price_over_time(WETH_ADDRESS)
         print(prices)
