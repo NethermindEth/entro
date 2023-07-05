@@ -21,7 +21,19 @@ from python_eth_amm.uniswap_v3 import UniswapV3Pool
 
 
 class PoolFactory:
-    """Factory Class for Initializing Pools"""
+    """
+    Pool Factory class for initializing pools.
+
+    :param Optional[web3.Web3] w3:
+        Web3 RPC Connection
+    :param Optional[bool] exact_math = False:
+        If True, initializes test evm & deploys math modules
+    :param str sqlalchemy_uri:
+        URI for sqlalchemy database.
+        Database is used for caching on-chain events, and logging pool state for anaytics purposes
+    :param Optional[Logger] logger:
+        Logger instance
+    """
 
     w3: Optional[Web3]  # pylint: disable=invalid-name
     """
@@ -58,7 +70,8 @@ class PoolFactory:
 
     """
     List of all pools initialized by this factory instance.
-    :return: List of :class:`~python_eth_amm.base.pool.Pool` Subclasses
+    
+    :return: List of Pools initialized by the factory
     """
 
     _initialized_classes: List[str]
@@ -70,28 +83,15 @@ class PoolFactory:
         exact_math: Optional[bool] = False,
         logger: Optional[Logger] = None,
     ):
-        """
-        Pool Factory class for initializing pools.
-
-        :param Optional[web3.Web3] w3:
-            Web3 RPC Connection
-        :param Optional[bool] exact_math = False:
-            If True, initializes test evm & deploys math modules
-        :param str sqlalchemy_uri:
-            URI for sqlalchemy database.
-            Database is used for caching on-chain events, and logging pool state for anaytics purposes
-        :param Optional[Logger] logger:
-            Logger instance
-        """
         self.loaded_math_modules = {}
         self.w3 = w3  # pylint: disable=invalid-name
         self._initialized_classes = []
 
         if exact_math:
-            # pylint: disable=import-outside-toplevel,no-name-in-module,attr-defined
-            from pyrevm import EVM
+            # pylint: disable=import-outside-toplevel,no-name-in-module
+            from pyrevm import EVM  # type: ignore[attr-defined]
 
-            # pylint: enable=import-outside-toplevel,no-name-in-module,attr-defined
+            # pylint: enable=import-outside-toplevel,no-name-in-module
 
             getcontext().prec = 80
 
@@ -134,10 +134,10 @@ class PoolFactory:
                         self.logger.info(
                             "Exact Math Mode Enabled.  Deploying Uniswap V3 Math Modules to EVM."
                         )
-                        # pylint: disable=import-outside-toplevel,no-name-in-module, attr-defined
-                        from pyrevm import AccountInfo
+                        # pylint: disable=import-outside-toplevel,no-name-in-module
+                        from pyrevm import AccountInfo  # type: ignore[attr-defined]
 
-                        # pylint: enable=import-outside-toplevel,no-name-in-module, attr-defined
+                        # pylint: enable=import-outside-toplevel,no-name-in-module
 
                         for name, model in exact_math_modules.items():
                             deploy_address, deploy_bin = model.deploy_params()
@@ -159,14 +159,14 @@ class PoolFactory:
             self.logger.info(f"Successfully Initialized {pool_type} Pool Class")
 
     def initialize_empty_pool(
-        self, pool_type: Literal["uniswap_v3", "uniswap_v2"], initialization_args: dict
+        self, pool_type: Literal["uniswap_v3"], initialization_args: dict
     ):
         """
         Initializes Empty Pool Instance at 1 for 1 price with no liquidity.  Initial price, liquidity,
         and parameters are set using the initialization dict passed to the pool subclass through the
         initialization_args dictionary.
 
-        :param Literal[uniswap_v3, uniswap_v2] pool_type:
+        :param Literal[uniswap_v3] pool_type:
             Type of pool to intitialize
         :param initialization_args:
             Initialization kwargs for pool class
@@ -184,11 +184,13 @@ class PoolFactory:
             case _:
                 raise ValueError(f"Unknown pool type: {pool_type}")
 
+        self.initialized_pools.append(pool_instance)
+
         return pool_instance
 
     def initialize_from_chain(
         self,
-        pool_type: Literal["uniswap_v3", "uniswap_v2"],
+        pool_type: Literal["uniswap_v3"],
         pool_address: str,
         at_block: Optional[int] = None,
         initialization_args: Optional[dict] = None,
@@ -201,7 +203,7 @@ class PoolFactory:
             If initializing at current block, 256+ blocks af historical state is reccomended. If initializing
             at historical blocks, an archive node is likely necessary.
 
-        :param Literal[uniswap_v3, uniswap_v2] pool_type:
+        :param Literal[uniswap_v3] pool_type:
             Type of pool to intitalize
         :param pool_address:
             Address of pool to initialize
@@ -214,6 +216,9 @@ class PoolFactory:
         :return:
             Pool instance
         """
+        if self.w3 is None:
+            raise ValueError("Web3 Instance Required for initialize_from_chain")
+
         self.pool_pre_init(pool_type)
 
         if at_block is None:
@@ -229,6 +234,8 @@ class PoolFactory:
                 )
             case _:
                 raise ValueError(f"Unknown pool type: {pool_type}")
+
+        self.initialized_pools.append(pool_instance)
 
         return pool_instance
 
@@ -265,7 +272,8 @@ class PoolFactory:
         :param str to_address: deployment address of the contract
         :param bytes data: call data to pass to EVM
         :param exception_class: Exception to raise if EVM call fails.  Defaults to RuntimeError
-        :return:
+
+        :return: Response bytes formatted as HexString
         """
         try:
             tx_result = self.evm_state.call_raw(
@@ -280,6 +288,7 @@ class PoolFactory:
     def create_db_session(self) -> Session:
         """
         Creates a new sqlalchemy session from the factory's engine URI
+
         :return: sqlalchemy session
 
         """
