@@ -1,6 +1,6 @@
 import json
 from pathlib import Path
-from typing import Any, Dict, Optional, Union
+from typing import Any, Dict, Optional, Type, Union
 
 from eth_typing import ChecksumAddress
 from eth_utils import is_checksum_address, to_checksum_address
@@ -36,7 +36,7 @@ class ERC20Token(BaseModel):
         Checksum Address of the Token Contract
     """
 
-    contract: Optional[object] = None
+    contract: Any
     """
         Returns :class:`~web3.eth.Contract if token was initialized from on-chain token`
     """
@@ -88,20 +88,6 @@ class ERC20Token(BaseModel):
             return json.dumps(abi)
         return abi
 
-    @classmethod
-    def default_token(cls, token_number) -> "ERC20Token":
-        """
-        Returns an empty token with default values.  Used when initializing an empty test pool.
-        :param token_number: 0-9 integer that is used in the token name, symbol, and address
-        :return:
-        """
-        return ERC20Token(
-            name=f"Default Token {token_number}",
-            symbol=f"TKN{token_number}",
-            decimals=18,
-            address=to_checksum_address("0x" + str(token_number) * 40),
-        )
-
     def convert_decimals(self, raw_token_amount: int) -> float:
         """
         Divides raw token amounts by token decimals.
@@ -124,3 +110,12 @@ class ERC20Token(BaseModel):
         """
 
         return f"{self.convert_decimals(raw_token_amount)} {self.symbol}"
+
+
+NULL_TOKEN = ERC20Token(
+    name="Empty Test Token",
+    symbol="NULL",
+    decimals=18,
+    address="0x0000000000000000000000000000000000000000",
+    contract=None,
+)
