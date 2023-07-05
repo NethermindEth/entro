@@ -73,7 +73,6 @@ py_version='310'
 [tool.pylint.main]
 max-line-length = 120
 jobs = 0
-ignore-patterns=[ "tests\\.*.py$" ]
 
 [tool.pylint.MASTER]
 ignore-paths = [ "^tests\\.*$", "^docs\\.*$" ]
@@ -97,3 +96,9 @@ min-public-methods = 2  # Minimum number of public methods for a class (see R090
 
 [tool.pylint.imports]
 known-third-party = ["sqlalchemy", "py-evm"]
+
+[tool.mypy]
+exclude = [
+    "^docs\\.py$",
+    "^tests\\.py$",
+]
