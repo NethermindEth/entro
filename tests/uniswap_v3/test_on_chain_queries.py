@@ -1,14 +1,14 @@
-import logging
-
 import pytest
 from eth_utils import to_checksum_address
 
 from python_eth_amm.events import backfill_events, query_events_from_db
 from python_eth_amm.exceptions import UniswapV3Revert
+from python_eth_amm.math import TickMathModule
 from python_eth_amm.uniswap_v3.chain_interface import (
     _get_pos_from_bitmap,
     fetch_initialization_block,
     fetch_liquidity,
+    fetch_pool_immutables,
     fetch_pool_state,
     fetch_positions,
     fetch_slot_0,
@@ -22,7 +22,7 @@ class TestPoolInitialization:
 
     def test_querying_old_pool_raises(self, exact_math_factory, w3_archive_node):
         with pytest.raises(UniswapV3Revert):
-            usdc_weth_pool = exact_math_factory.initialize_from_chain(
+            exact_math_factory.initialize_from_chain(
                 pool_type="uniswap_v3",
                 pool_address=to_checksum_address(
                     "0x8ad599c3a0ff1de082011efddc58f1908eb6e6d8"
@@ -30,22 +30,13 @@ class TestPoolInitialization:
                 at_block=12370000,
             )
 
-    def test_querying_new_pool_succeeds(self, exact_math_factory, w3_archive_node):
-        usdc_weth_pool = exact_math_factory.initialize_from_chain(
-            pool_type="uniswap_v3",
-            pool_address=to_checksum_address(
-                "0x8ad599c3a0ff1de082011efddc58f1908eb6e6d8"
-            ),
-            at_block=12400000,
-        )
-
     def test_position_owners_match_mint_events(
         self, exact_math_factory, w3_archive_node, db_session
     ):
         db_session.query(UniV3MintEvent).filter(
             UniV3MintEvent.contract_address
-            == "0x8ad599c3a0ff1de082011efddc58f1908eb6e6d8",
-            UniV3MintEvent.block_number <= 12_400_000,
+            == "0x8ad599c3a0ff1de082011efddc58f1908eb6e6d8"
+            and UniV3MintEvent.block_number <= 12_400_000
         ).delete()
 
         usdc_weth_pool = exact_math_factory.initialize_from_chain(
@@ -56,20 +47,14 @@ class TestPoolInitialization:
             at_block=12400000,
         )
 
-        backfill_events(
-            contract=usdc_weth_pool.pool_contract,
+        mint_events = query_events_from_db(
             db_session=db_session,
             db_model=UniV3MintEvent,
-            model_parsing_func=_parse_uniswap_events,
-            event_name="Mint",
-            from_block=12370624,
             to_block=12400000,
-            logger=usdc_weth_pool.logger,
+            contract_address=usdc_weth_pool.immutables.pool_address
         )
-        mint_events = query_events_from_db(
-            db_session, UniV3MintEvent, 12400000, 12600000
-        )
-        minting_lp_addresses = set([event["args"]["owner"] for event in mint_events])
+
+        minting_lp_addresses = set([event.owner for event in mint_events])
         for key, data in usdc_weth_pool.positions.items():
             assert key[0] in minting_lp_addresses
 
@@ -83,6 +68,18 @@ class TestPoolInitialization:
             ),
             at_block=12400000,
         )
+
+        position_keys = usdc_weth_pool.positions.keys()
+        active_ticks = set(
+            [key[1] for key in position_keys] + [key[2] for key in position_keys]
+        )
+
+        for tick_num in usdc_weth_pool.ticks.keys():
+            assert tick_num in active_ticks
+
+            assert tick_num % usdc_weth_pool.immutables.tick_spacing == 0
+            assert tick_num >= TickMathModule.MIN_TICK
+            assert tick_num <= TickMathModule.MAX_TICK
 
 
 class TestFetchOnChainLiquidity:
@@ -178,25 +175,13 @@ class TestFetchPositions:
 
 
 class TestFetchPoolState:
-    def test_fetch_pool_immutables_raises_for_uninitialize_pool(
-        self, w3_archive_node, usdc_weth_contract, test_logger
-    ):
-        with pytest.raises(UniswapV3Revert):
-            fetch_pool_state(
-                w3=w3_archive_node,
-                contract=usdc_weth_contract,
-                logger=test_logger,
-                at_block=12370000,
-            )
-
     def test_fetch_pool_immutables_usdc_weth(
         self, w3_archive_node, usdc_weth_contract, test_logger
     ):
-        immutables, state = fetch_pool_state(
+        immutables = fetch_pool_immutables(
             w3=w3_archive_node,
             contract=usdc_weth_contract,
             logger=test_logger,
-            at_block=15000000,
         )
         assert immutables.fee == 3000
         assert immutables.tick_spacing == 60
@@ -218,6 +203,20 @@ class TestFetchPoolState:
         assert immutables.token_1.symbol == "WETH"
         assert immutables.token_1.decimals == 18
 
+    def test_fetch_pool_state(self, w3_archive_node, usdc_weth_contract, test_logger):
+        immutables = fetch_pool_immutables(
+            w3=w3_archive_node,
+            contract=usdc_weth_contract,
+            logger=test_logger,
+        )
+
+        state = fetch_pool_state(
+            contract=usdc_weth_contract,
+            token_0=immutables.token_0,
+            token_1=immutables.token_1,
+            logger=test_logger,
+            at_block=15_000_000,
+        )
         assert state.balance_0 == 63321438203194
         assert state.balance_1 == 125957720212193473568385
         assert state.liquidity == 17783115650573390796
@@ -264,40 +263,3 @@ class TestFetchSlot0:
             at_block=15000000,
         )
         assert slot_0_1 != slot_0_2
-
-
-class TestEventQuery:
-    def test_query_swap_events_doesnt_loose_edge_events(
-        self, w3_archive_node, usdc_weth_contract, test_logger
-    ):
-        pass
-
-    def test_query_swap_events_less_than_50_000_returns_single(
-        self, w3_archive_node, usdc_weth_contract, test_logger, caplog
-    ):
-        pass
-
-    def test_swap_events_saved_to_db(
-        self, w3_archive_node, usdc_weth_contract, test_logger, db_session
-    ):
-        pass
-
-    def test_flash_events_saved_to_db(
-        self, w3_archive_node, usdc_weth_contract, test_logger, db_session
-    ):
-        pass
-
-    def test_mint_events_saved_to_db(
-        self, w3_archive_node, usdc_weth_contract, test_logger, db_session
-    ):
-        pass
-
-    def test_burn_events_saved_to_db(
-        self, w3_archive_node, usdc_weth_contract, test_logger, db_session
-    ):
-        pass
-
-    def test_collect_events_saved_to_db(
-        self, w3_archive_node, usdc_weth_contract, test_logger, db_session
-    ):
-        pass

@@ -6,7 +6,7 @@ import pytest
 
 from python_eth_amm import PoolFactory
 from python_eth_amm.exceptions import TickMathRevert, UniswapV3Revert
-from python_eth_amm.lib.math.tick_math import TickMathModule
+from python_eth_amm.math import TickMathModule
 from python_eth_amm.uniswap_v3 import UniswapV3Pool
 from python_eth_amm.uniswap_v3.types import Tick
 
@@ -94,7 +94,6 @@ class TestGetFeeGrowthInside:
             tick_cumulative_outside=0,
             seconds_per_liquidity_outside=0,
             seconds_outside=0,
-            initialized=True,
         )
         pool._set_tick(2, tick_data)
 
@@ -112,7 +111,6 @@ class TestGetFeeGrowthInside:
             tick_cumulative_outside=0,
             seconds_per_liquidity_outside=0,
             seconds_outside=0,
-            initialized=True,
         )
         pool._set_tick(-2, tick_data)
 
@@ -130,7 +128,6 @@ class TestGetFeeGrowthInside:
             tick_cumulative_outside=0,
             seconds_per_liquidity_outside=0,
             seconds_outside=0,
-            initialized=True,
         )
         upper_tick_data = Tick(
             liquidity_gross=0,
@@ -140,7 +137,6 @@ class TestGetFeeGrowthInside:
             tick_cumulative_outside=0,
             seconds_per_liquidity_outside=0,
             seconds_outside=0,
-            initialized=True,
         )
         pool._set_tick(-2, lower_tick_data)
         pool._set_tick(2, upper_tick_data)
@@ -159,7 +155,6 @@ class TestGetFeeGrowthInside:
             tick_cumulative_outside=0,
             seconds_per_liquidity_outside=0,
             seconds_outside=0,
-            initialized=True,
         )
         upper_tick_data = Tick(
             liquidity_gross=0,
@@ -169,7 +164,6 @@ class TestGetFeeGrowthInside:
             tick_cumulative_outside=0,
             seconds_per_liquidity_outside=0,
             seconds_outside=0,
-            initialized=True,
         )
         pool._set_tick(-2, lower_tick_data)
         pool._set_tick(2, upper_tick_data)
@@ -381,7 +375,6 @@ def test_clear_tick_deletes_all_tick_data(initialize_empty_pool):
         tick_cumulative_outside=6,
         seconds_per_liquidity_outside=5,
         seconds_outside=7,
-        initialized=True,
     )
     pool._set_tick(2, tick_data)
     pool._clear_tick(2)
@@ -651,7 +644,6 @@ class TestGetNextInitializedTick:
         tick_cumulative_outside=0,
         seconds_per_liquidity_outside=0,
         seconds_outside=0,
-        initialized=True,
     )
     pool: UniswapV3Pool
 
