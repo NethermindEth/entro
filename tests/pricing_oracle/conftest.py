@@ -1,3 +1,4 @@
+# pylint: skip-file
 import os
 from typing import Optional
 
@@ -5,14 +6,18 @@ import pytest
 
 from python_eth_amm import PoolFactory
 from python_eth_amm.pricing_oracle import PricingOracle
-from python_eth_amm.pricing_oracle.db import BlockTimestamps, TokenPrices
+from python_eth_amm.pricing_oracle.db import (
+    BackfilledPools,
+    BlockTimestamps,
+    TokenPrices,
+)
 
 
 @pytest.fixture(name="initialize_empty_oracle")
 def fixture_initialize_empty_oracle(w3_archive_node, db_session, test_logger):
     def _initialize_empty_oracle(
         factory: Optional[PoolFactory] = None,
-        timestamp_resolution: Optional[int] = 10_000,
+        timestamp_resolution: int = 10_000,
     ) -> PricingOracle:
         if factory is None:
             factory = PoolFactory(
@@ -47,3 +52,14 @@ def fixture_delete_prices_for_token(db_session):
         db_session.commit()
 
     return _delete_prices_for_token
+
+
+@pytest.fixture(name="delete_backfill_for_pool")
+def fixture_delete_backfill_for_pool(db_session):
+    def _delete_backfill_for_pool(pool_address: str):
+        db_session.query(BackfilledPools).filter(
+            BackfilledPools.pool_id == pool_address
+        ).delete()
+        db_session.commit()
+
+    return _delete_backfill_for_pool

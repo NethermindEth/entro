@@ -1,129 +1,21 @@
-import os
 from decimal import Decimal
 
 import pytest
-from eth_utils import to_checksum_address
-from sqlalchemy import create_engine
-from sqlalchemy.orm import create_session
-from web3 import Web3
+from eth_utils import to_checksum_address as tca
 
-from python_eth_amm import PoolFactory
 from python_eth_amm.events import backfill_events, query_events_from_db
+from python_eth_amm.exceptions import OracleError
 from python_eth_amm.pricing_oracle.db import BackfilledPools, TokenPrices
 from python_eth_amm.uniswap_v3 import UniswapV3Pool
 from python_eth_amm.uniswap_v3.db import UniV3SwapEvent, _parse_uniswap_events
 
-WETH_ADDRESS = to_checksum_address("0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2")
-
-
-class TestComputeBackfillRanges:
-    UNI_WETH_POOL = to_checksum_address("0x1d42064fc4beb5f8aaf85f4617ae8b3b5b8bd801")
-
-    FACTORY = PoolFactory(
-        sqlalchemy_uri=os.environ.get("SQLALCHEMY_DB_URI", "sqlite:///:memory:"),
-        w3=Web3(Web3.HTTPProvider(os.environ["ARCHIVE_NODE_RPC_URL"])),
-    )
-
-    def setup_class(self):
-        db_session = create_session(
-            bind=create_engine(
-                os.environ.get("SQLALCHEMY_DB_URI", "sqlite:///:memory:")
-            )
-        )
-
-        db_session.query(BackfilledPools).filter(
-            BackfilledPools.pool_id == self.UNI_WETH_POOL
-        ).delete()
-
-        uni_weth_pool_backfill = BackfilledPools(
-            pool_id=self.UNI_WETH_POOL,
-            backfill_start=14_000_000,
-            backfill_end=15_000_000,
-        )
-        db_session.add(uni_weth_pool_backfill)
-        db_session.commit()
-
-    def test_start_inside_end_inside(self, initialize_empty_oracle):
-        oracle = initialize_empty_oracle(factory=self.FACTORY)
-        backfills = oracle._compute_backfill_ranges(
-            pool_id=self.UNI_WETH_POOL,
-            from_block=14_500_000,
-            to_block=14_600_000,
-        )
-        assert backfills == []
-
-    def test_start_at_end_at(self, initialize_empty_oracle):
-        oracle = initialize_empty_oracle(factory=self.FACTORY)
-        backfills = oracle._compute_backfill_ranges(
-            pool_id=self.UNI_WETH_POOL,
-            from_block=14_000_000,
-            to_block=15_000_000,
-        )
-        assert backfills == []
-
-    def test_start_inside_end_after(self, initialize_empty_oracle):
-        oracle = initialize_empty_oracle(factory=self.FACTORY)
-        backfills = oracle._compute_backfill_ranges(
-            pool_id=self.UNI_WETH_POOL,
-            from_block=14_500_000,
-            to_block=15_500_000,
-        )
-
-        assert len(backfills) == 1
-        assert backfills[0][0] == 15_000_000
-        assert backfills[0][1] == 15_500_000
-
-    def test_start_before_end_inside(self, initialize_empty_oracle):
-        oracle = initialize_empty_oracle(factory=self.FACTORY)
-        backfills = oracle._compute_backfill_ranges(
-            pool_id=self.UNI_WETH_POOL,
-            from_block=13_500_000,
-            to_block=14_500_000,
-        )
-        assert len(backfills) == 1
-        assert backfills[0][0] == 13_500_000
-        assert backfills[0][1] == 14_000_000
-
-    def test_start_before_end_after(self, initialize_empty_oracle):
-        oracle = initialize_empty_oracle(factory=self.FACTORY)
-        backfills = oracle._compute_backfill_ranges(
-            pool_id=self.UNI_WETH_POOL,
-            from_block=13_500_000,
-            to_block=15_500_000,
-        )
-        assert len(backfills) == 2
-
-        assert backfills[0][0] == 13_500_000
-        assert backfills[0][1] == 14_000_000
-
-        assert backfills[1][0] == 15_000_000
-        assert backfills[1][1] == 15_500_000
-
-    def test_start_at_0_end_above_current_block(
-        self,
-        initialize_empty_oracle,
-    ):
-        oracle = initialize_empty_oracle(factory=self.FACTORY)
-
-        backfills = oracle._compute_backfill_ranges(
-            pool_id=self.UNI_WETH_POOL,
-            from_block=0,
-            to_block=oracle.w3.eth.block_number * 2,
-        )
-
-        assert len(backfills) == 2
-
-        assert backfills[0][0] == 12369739
-        assert backfills[0][1] == 14_000_000
-
-        assert backfills[1][0] == 15_000_000
-        assert abs(backfills[1][1] - oracle.w3.eth.block_number) < 10
+WETH_ADDRESS = tca("0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2")
 
 
 class TestFetchPriceForPool:
     def test_fetch_last_event_per_block(self, w3_archive_node, initialize_empty_oracle):
         oracle = initialize_empty_oracle()
-        DAI_ETH_POOL = to_checksum_address("0x60594a405d53811d3bc4766596efd80fd545a270")
+        DAI_ETH_POOL = tca("0x60594a405d53811d3bc4766596efd80fd545a270")
 
         dai_eth_pool = w3_archive_node.eth.contract(
             address=DAI_ETH_POOL, abi=UniswapV3Pool.get_abi()
@@ -164,10 +56,8 @@ class TestFetchPriceForPool:
         assert events_by_blocks[-1][1] == Decimal("1269440327112981924293855287")
 
     def test_fetch_price_for_wbtc_weth_pool(self, initialize_empty_oracle):
-        wbtc_usdc_pool = to_checksum_address(
-            "0x99ac8ca7087fa4a2a1fb6357269965a2014abc35"
-        )
-        wbtc_address = to_checksum_address("0x2260fac5e5542a773aa44fbcfedf7c193bc2c599")
+        wbtc_usdc_pool = tca("0x99ac8ca7087fa4a2a1fb6357269965a2014abc35")
+        wbtc_address = tca("0x2260fac5e5542a773aa44fbcfedf7c193bc2c599")
         oracle = initialize_empty_oracle()
 
         oracle.db_session.query(BackfilledPools).filter(
@@ -197,9 +87,7 @@ class TestFetchPriceForPool:
             print(data.spot_price)
 
     def test_querying_non_usdc_pool_raises(self, initialize_empty_oracle):
-        wbtc_weth_pool = to_checksum_address(
-            "0xcbcdf9626bc03e24f779434178a73a0b4bad62ed"
-        )
+        wbtc_weth_pool = tca("0xcbcdf9626bc03e24f779434178a73a0b4bad62ed")
 
         oracle = initialize_empty_oracle()
         with pytest.raises(ValueError) as exc:
@@ -211,18 +99,48 @@ class TestFetchPriceForPool:
             assert exc == "Pool must be USDC denominated"
 
 
-class TestGetPrices:
-    def test_get_price_over_time_returns_valid_dataframe(
-        self, initialize_empty_oracle, delete_prices_for_token
+class TestBackfillPrices:
+    def test_querying_weth_pool_raises_already_backfilled(
+        self, initialize_empty_oracle
     ):
+        usdc_weth_100_bps_pool = tca("0x7bea39867e4169dbe237d55c8242a8f2fcdcc387")
+
         oracle = initialize_empty_oracle()
-        delete_prices_for_token(WETH_ADDRESS)
+        with pytest.raises(OracleError) as exc:
+            oracle._fetch_price_from_pool(usdc_weth_100_bps_pool, 12_500_000)
 
-        usdc_weth_100_bps_pool = to_checksum_address(
-            "0x7bea39867e4169dbe237d55c8242a8f2fcdcc387"
-        )
+            assert str(exc) == "Token Price already backfilled"
 
-        oracle._fetch_price_from_pool(usdc_weth_100_bps_pool, 12_500_000)
+    def test_fetch_weth_price_dataframe(self, initialize_empty_oracle):
+        oracle = initialize_empty_oracle()
+
+        oracle.backfill_prices(WETH_ADDRESS, end=13_000_000)
 
         prices = oracle.get_price_over_time(WETH_ADDRESS)
         print(prices)
+
+        assert False
+
+    def test_fetch_uni_price(self, initialize_empty_oracle):
+        UNI_TOKEN = tca("0x1f9840a85d5af5bf1d1762f925bdaddc4201f984")
+
+        oracle = initialize_empty_oracle()
+
+        oracle.backfill_prices(UNI_TOKEN, end=13_000_000)
+
+        prices = oracle.get_price_over_time()
+
+        assert True
+
+        pool_backfill = (
+            oracle.db_session.query(BackfilledPools)
+            .filter(
+                BackfilledPools.pool_id == "0x1d42064Fc4Beb5F8aAF85F4617AE8b3b5B8Bd801"
+            )
+            .scalar()
+        )
+
+        assert pool_backfill is not None
+
+        assert pool_backfill.backfill_start == 12369739
+        assert pool_backfill.backfill_end == 13000000

@@ -59,4 +59,4 @@ class TestTimestampInitialization:
             datetime.datetime(2022, 12, 18, 8, 21, 35, tzinfo=datetime.timezone.utc)
         )
 
-        assert abs(result - 16210345) <= 200  # Within 200 blocks of the correct answer
+        assert abs(result - 16210345) <= 5  # Within 200 blocks of the correct answer
