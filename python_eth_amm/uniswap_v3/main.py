@@ -17,7 +17,7 @@ from sqlalchemy import desc
 from sqlalchemy.engine import Engine
 from web3.contract import Contract
 
-from python_eth_amm.base.token import ERC20Token
+from python_eth_amm.base.token import NULL_TOKEN, ERC20Token
 from python_eth_amm.events import backfill_events
 from python_eth_amm.exceptions import UniswapV3Revert
 from python_eth_amm.math import UniswapV3SwapMath
@@ -33,9 +33,9 @@ from .chain_interface import (
     fetch_slot_0,
 )
 from .db import (
+    EVENT_MODELS,
     UniswapV3Base,
     UniV3EventBase,
-    UniV3MintEvent,
     UniV3PositionLogs,
     UniV3SwapLogs,
     _parse_uniswap_events,
@@ -148,43 +148,42 @@ class UniswapV3Pool:
         """
         Initializes an empty pool with default values
         """
-        pool_instance = UniswapV3Pool(factory=factory)
+        pool = UniswapV3Pool(factory=factory)
 
-        pool_instance.ticks = {}
-        pool_instance.observations = []
-        pool_instance.positions = {}
+        pool.ticks = {}
+        pool.observations = []
+        pool.positions = {}
 
-        pool_instance.immutables = PoolImmutables(
+        fee, tick_spacing = pool.math.get_fee_and_spacing(kwargs)
+
+        pool.immutables = PoolImmutables(
             pool_address=random_address(),
-            token_0=kwargs.get("token_0", ERC20Token.default_token(0)),
-            token_1=kwargs.get("token_1", ERC20Token.default_token(1)),
-            fee=kwargs.get("fee", 3000),
-            tick_spacing=(tick_spacing := kwargs.get("tick_spacing", 10)),
-            max_liquidity_per_tick=pool_instance.math.get_max_liquidity_per_tick(
-                tick_spacing
-            ),
+            token_0=kwargs.get("token_0", NULL_TOKEN),
+            token_1=kwargs.get("token_1", NULL_TOKEN),
+            fee=fee,
+            tick_spacing=tick_spacing,
+            max_liquidity_per_tick=pool.math.get_max_liquidity_per_tick(tick_spacing),
         )
 
-        pool_instance.state = PoolState.uninitialized()
-        pool_instance.slot0 = Slot0.uninitialized()
+        pool.state = PoolState.uninitialized()
+        pool.slot0 = Slot0.uninitialized()
 
         if "initial_price" in kwargs:
-            pool_instance.slot0.sqrt_price = kwargs["initial_price"]
-            pool_instance.slot0.tick = (
-                pool_instance.math.tick_math.get_tick_at_sqrt_ratio(
-                    pool_instance.slot0.sqrt_price, pool_instance._rounding_mode
-                )
+            pool.math.check_sqrt_price(kwargs["initial_price"])
+            pool.slot0.sqrt_price = kwargs["initial_price"]
+            pool.slot0.tick = pool.math.tick_math.get_tick_at_sqrt_ratio(
+                pool.slot0.sqrt_price, pool._rounding_mode
             )
 
-        pool_instance.block_timestamp = kwargs.get(
+        pool.block_timestamp = kwargs.get(
             "initial_timestamp", int(datetime.datetime.now().timestamp())
         )
         if "initial_block" in kwargs:
-            pool_instance.block_number = kwargs["initial_block"]
+            pool.block_number = kwargs["initial_block"]
         else:
-            pool_instance.block_number = factory.w3.eth.block_number
+            pool.block_number = 0
 
-        return pool_instance
+        return pool
 
     @classmethod
     def from_chain(
@@ -330,7 +329,7 @@ class UniswapV3Pool:
         )
 
     def get_price_at_tick(
-        self, tick: int, reverse_tokens: bool = False, string_description: bool = False
+        self, tick: int, reverse_tokens: bool = False
     ) -> Union[float, str]:
         """
         Converts a tick to a human-readable price.
@@ -341,14 +340,10 @@ class UniswapV3Pool:
             Whether to reverse the tokens in the price.  The sqrt_price represents the
             :math:`\\frac{ Token 1 }{ Token 0}`.  If reverse_tokens is True, the price will be represented as
             :math:`\\frac{ Token 0 }{ Token 1}`.
-        :param string_description:
-            If True, returns a string description of the price in the Format: [WETH: 3,456.23 USDC].
-            Otherwise, returns a float.
+
         """
         sqrt_price = self.math.tick_math.get_sqrt_ratio_at_tick(tick)
-        return self.get_price_at_sqrt_ratio(
-            sqrt_price, reverse_tokens, string_description
-        )
+        return self.get_price_at_sqrt_ratio(sqrt_price, reverse_tokens)
 
     def __repr__(self):
         return (
@@ -476,7 +471,7 @@ class UniswapV3Pool:
     def save_events(
         self,
         event_name: Literal["Mint", "Burn", "Collect", "Swap", "Flash"],
-        chunk_size: Optional[int] = 1_000,
+        chunk_size: int = 1_000,
         from_block: Optional[int] = None,
         to_block: Optional[int] = None,
     ):
@@ -494,11 +489,14 @@ class UniswapV3Pool:
         :param to_block:
             Block number to stop backfilling at.  Defaults to the current block number
         """
+        if self.initialization_block is None:
+            raise UniswapV3Revert("Events Cannot be backfilled for Test Pool")
+
         backfill_events(
             contract=self.pool_contract,
             event_name=event_name,
             db_session=self.pool_factory.create_db_session(),
-            db_model=UniV3MintEvent,
+            db_model=EVENT_MODELS[event_name],
             model_parsing_func=_parse_uniswap_events,
             logger=self.logger,
             from_block=from_block if from_block else self.initialization_block,
@@ -507,7 +505,7 @@ class UniswapV3Pool:
         )
         self.logger.info(f"Finished saving {event_name} events to database")
 
-    def save_position_snapshot(self):
+    def save_position_snapshot(self) -> None:
         """
         Saves the current state of the pool to the database
 
@@ -680,7 +678,7 @@ class UniswapV3Pool:
         """
         current_liquidity = 0
         last_liquidity = 1
-        liquidity = {"price": [], "active_liquidity": []}
+        liquidity: Dict[str, List] = {"price": [], "active_liquidity": []}
         for tick_index, tick_data in sorted(
             self.ticks.items(), key=lambda t: int(t[0])
         ):
@@ -777,7 +775,7 @@ class UniswapV3Pool:
         tick_lower: int,
         tick_upper: int,
         amount: int,
-        committing: Optional[bool] = True,
+        committing: bool = True,
     ) -> Tuple[int, int]:
         """
 
@@ -810,6 +808,8 @@ class UniswapV3Pool:
 
         return amount_0_int, amount_1_int
 
+    # Disable branch & statement checks.  This implementation will be complex regardless
+    # pylint: disable=too-many-locals,too-many-branches,too-many-statements
     def swap(
         self,
         zero_for_one: bool,
@@ -835,8 +835,7 @@ class UniswapV3Pool:
             If False, does not log the swap to the database & returns None.  Default: False
 
         """
-        # Disable branch & statement checks.  This implementation will be complex regardless
-        # pylint: disable=too-many-locals,too-many-branches,too-many-statements
+
         self.logger.debug(
             f"------ Swapping Token {0 if zero_for_one else 1} for Token {1 if zero_for_one else 0} -------"
         )
@@ -1073,7 +1072,6 @@ class UniswapV3Pool:
                 amount_specified - state.amount_specified_remaining,
             )
 
-        # pylint: enable=no-member,too-many-locals,too-many-branches,too-many-statements
         self.logger.debug("--- Swap Complete ---")
         self.logger.debug(f"Token 0 Delta: {amount_0} \t Token 1 Delta: {amount_1}")
         self.logger.debug(f"Current Tick: {self.slot0.tick}")
@@ -1091,6 +1089,8 @@ class UniswapV3Pool:
             )
 
         return None
+
+    # pylint: enable=no-member,too-many-locals,too-many-branches,too-many-statements
 
     # -----------------------------------------------------------------------------------------------------------
     # Internal Uniswap Methods

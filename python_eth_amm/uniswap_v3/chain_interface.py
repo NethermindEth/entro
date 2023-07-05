@@ -27,6 +27,8 @@ from python_eth_amm.uniswap_v3.types import (
     Tick,
 )
 
+# pylint: disable=invalid-name
+
 
 def fetch_initialization_block(contract: Contract) -> int:
     """
@@ -39,7 +41,6 @@ def fetch_initialization_block(contract: Contract) -> int:
 
 
 def fetch_pool_immutables(
-    # pylint-disable: invalid-name
     w3: Web3,
     contract: Contract,
     logger: Logger,
