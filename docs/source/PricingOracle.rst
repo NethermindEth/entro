@@ -2,7 +2,7 @@ Pricing Oracle
 ==============
 
 .. autoclass:: python_eth_amm.PricingOracle
-   :undoc-members: __init__
+   :exclude-members: __init__
    :members:
 
 
