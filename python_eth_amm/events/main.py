@@ -1,11 +1,12 @@
 from logging import Logger
-from typing import List, Optional, Type
+from typing import Any, Callable, Dict, List, Optional, Type
 
 from eth_typing import ChecksumAddress
+from sqlalchemy import delete, insert
 from sqlalchemy.orm import Session
 from tqdm import tqdm
 from web3.eth import Contract
-from web3.types import LogReceipt
+from web3.types import EventData
 
 from .db import EventBase
 
@@ -31,7 +32,7 @@ def query_events_from_db(
     to_block: int,
     from_block: Optional[int] = 0,
     contract_address: Optional[ChecksumAddress] = None,
-) -> List[Type[EventBase]]:
+) -> List[Any]:
     """
     Retrieves events from the database using a Sqlalchemy model and a database session.
 
@@ -61,8 +62,8 @@ def fetch_events_from_chain(
     event_name: str,
     from_block: int,
     to_block: Optional[int] = None,
-    chunk_size: Optional[int] = 10_000,
-) -> List[LogReceipt]:
+    chunk_size: int = 10_000,
+) -> List[EventData]:
     """
     Fetch Event Data Between Two Blocks.
 
@@ -109,11 +110,11 @@ def backfill_events(
     event_name: str,
     db_session: Session,
     db_model: Type[EventBase],
-    model_parsing_func: callable,
+    model_parsing_func: Callable[[EventData, str], Dict[str, Any]],
     from_block: int,
     to_block: int,
     logger: Logger,
-    chunk_size: Optional[int] = 10_000,
+    chunk_size: int = 10_000,
 ):
     """
     Backfills events for a contract between two blocks.  First checks the database session for events, and if they
@@ -149,8 +150,16 @@ def backfill_events(
             fromBlock=start_block,
             toBlock=min(start_block + chunk_size - 1, to_block - 1),
         )
+        insert_values = [model_parsing_func(event, event_name) for event in events]
 
-        db_session.bulk_save_objects(
-            [model_parsing_func(data=event, event_name=event_name) for event in events]
-        )
-        db_session.commit()
+        if len(insert_values) >= 1:
+            db_session.execute(
+                delete(db_model).where(
+                    db_model.contract_address == contract.address,
+                    db_model.block_number >= start_block,
+                    db_model.block_number
+                    <= min(start_block + chunk_size - 1, to_block - 1),
+                )
+            )
+            db_session.execute(insert(db_model), insert_values)
+            db_session.commit()

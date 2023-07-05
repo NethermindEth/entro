@@ -8,7 +8,7 @@ from eth_utils import to_checksum_address
 from pandas import DataFrame
 
 from python_eth_amm.events import backfill_events
-from python_eth_amm.exceptions import PriceBackfillError
+from python_eth_amm.exceptions import OracleError
 from python_eth_amm.uniswap_v3 import UniswapV3Pool
 
 from .db import (
@@ -20,7 +20,7 @@ from .db import (
     _parse_pool_creation,
 )
 
-# pylint-disable: invalid-name
+# pylint: disable=invalid-name
 
 WETH_ADDRESS = to_checksum_address("0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2")
 USDC_ADDRESS = to_checksum_address("0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48")
@@ -189,46 +189,48 @@ class PricingOracle:
             Tuple of backfill_start, backfill_end.  If backfill_end is None, then the backfill is not required and
             and can safely be skipped
         """
-        old_backfill = (
+        old_backfill: BackfilledPools = (
             self.db_session.query(BackfilledPools)
             .filter(BackfilledPools.pool_id == pool_id)
             .scalar()
         )
 
-        pool_init_block = (
+        init_block = (
             self.db_session.query(UniV3PoolCreations)
             .filter(UniV3PoolCreations.pool_address == pool_id)
             .first()
             .block_number
         )
+        if init_block is None:
+            raise ValueError(
+                f"Pool {pool_id} does not exist in Uniswap V3 Pool Database"
+            )
         current_block = self.w3.eth.block_number
-        if from_block is None or from_block < pool_init_block:
-            from_block = pool_init_block
 
-        if to_block is None or to_block > current_block:
-            to_block = current_block
+        start_block: int = max(from_block if from_block else init_block, init_block)
+        end_block: int = min(to_block if to_block else current_block, current_block)
 
-        if from_block >= to_block:
+        if start_block >= end_block:
             return []
 
         if old_backfill is None:
-            return [(from_block, to_block)]
+            return [(start_block, end_block)]
 
         if (
-            from_block >= old_backfill.backfill_start
-            and to_block <= old_backfill.backfill_end
+            start_block >= old_backfill.backfill_start
+            and end_block <= old_backfill.backfill_end
         ):
             return []
 
-        if from_block < old_backfill.backfill_start:
-            if to_block <= old_backfill.backfill_end:
-                return [(from_block, old_backfill.backfill_start)]
+        if start_block < old_backfill.backfill_start:
+            if end_block <= old_backfill.backfill_end:
+                return [(start_block, old_backfill.backfill_start)]
 
             return [
-                (from_block, old_backfill.backfill_start),
-                (old_backfill.backfill_end, to_block),
+                (start_block, old_backfill.backfill_start),
+                (old_backfill.backfill_end, end_block),
             ]
-        return [(old_backfill.backfill_end, to_block)]
+        return [(old_backfill.backfill_end, end_block)]
 
     def _update_backfill(
         self, pool_id: ChecksumAddress, from_block: int, to_block: int
@@ -303,9 +305,7 @@ class PricingOracle:
             self._weth_prices = self.get_price_over_time(WETH_ADDRESS)
 
         if self._weth_prices.tail(1).block_number < block_number:
-            raise PriceBackfillError(
-                f"WETH price not backfilled for block {block_number}"
-            )
+            raise OracleError(f"WETH price not backfilled for block {block_number}")
         return self._weth_prices.iloc[
             self._weth_prices.index.get_loc(block_number, method="ffill")
         ].spot_price
@@ -375,21 +375,22 @@ class PricingOracle:
         return self._timestamps[lower] + ((block_number - lower) * block_time)
 
     def datetime_to_block(self, dt: Union[datetime.datetime, datetime.date]) -> int:
+        # pylint: disable=unidiomatic-typecheck
         if type(dt) == datetime.date:
             dt = datetime.datetime(
                 dt.year, dt.month, dt.day, 0, 0, 0, tzinfo=datetime.timezone.utc
             )
-
-        if dt.tzinfo is None:
-            dt = dt.replace(tzinfo=datetime.timezone.utc)
+        # pylint: enable=unidiomatic-typecheck
+        elif dt.tzinfo is None:  # type: ignore[union-attr]
+            dt.replace(tzinfo=datetime.timezone.utc)  # type: ignore[call-arg]
 
         # TODO: Optimize
         timestamps = list(sorted(self._timestamps.items()))
         timestamp_index = bisect_right(
-            timestamps, dt.timestamp(), key=lambda x: x[1].timestamp()
+            timestamps, dt.timestamp(), key=lambda x: x[1].timestamp()  # type: ignore[union-attr]
         )
         lower_block, lower_timestamp = timestamps[timestamp_index - 1]
-        upper_block, upper_timestamp = timestamps[timestamp_index]
+        _, upper_timestamp = timestamps[timestamp_index]
 
         block_time = (upper_timestamp - lower_timestamp) / self.timestamp_resolution
 
@@ -403,11 +404,16 @@ class PricingOracle:
     ):
         """
         Backfill prices for a given token.
-        :param token_id: Hex Address of Token to be Priced
-        :param start_block:
 
-        :param end_block:
-        :return:
+        :param token_id:
+            Hex Address of Token to be Priced
+        :param start:
+            Start point for backfill operation.  Can be input as a blocknumber, or a datetime.date object.
+            If no start point is provided, it will backfill from the contract initialization block.
+        :param end:
+            End point for backfill operation.  Can be input as a blocknumber, or a datetime.date object.
+            If no end point is provided, it will backfill to the current block.
+
         """
         if isinstance(start, datetime.date):
             start = self.datetime_to_block(start)
@@ -470,7 +476,8 @@ class PricingOracle:
             This function performs a single database query, and returns the result without performing
             any safety checks.  If a price is backfilled to block 14m, and you query the price at block 15m, it will
             return the last price stored in the database (block 14m) and wont raise any warnings that the requested
-            block is not backfilled.  For a safer way to query prices, use :py:func:`python_eth_amm.Pricing.get_price_over_time`
+            block is not backfilled.  For a safer way to query prices, use
+            :py:func:`python_eth_amm.Pricing.get_price_over_time`
 
         :param block_number: Block Number to query price at
         :param token_id: Address of ERC20 Token that is being priced

@@ -1,19 +1,14 @@
-from sqlalchemy import (
-    Column,
-    DateTime,
-    Integer,
-    MetaData,
-    Numeric,
-    PrimaryKeyConstraint,
-    String,
-)
+from typing import Any, Dict
+
+from sqlalchemy import Column, Integer, MetaData, Numeric, PrimaryKeyConstraint, String
 from sqlalchemy.orm import declarative_base
+from sqlalchemy.orm.decl_api import DeclarativeMeta
 from web3.types import EventData
 
 from python_eth_amm.events import EventBase
 
 oracle_metadata = MetaData(schema="pricing_oracle")
-OracleBase = declarative_base(metadata=oracle_metadata)
+OracleBase: DeclarativeMeta = declarative_base(metadata=oracle_metadata)
 
 OracleEventBase = EventBase
 OracleEventBase.metadata = oracle_metadata
@@ -73,15 +68,14 @@ class UniV3PoolCreations(OracleEventBase):
     fee = Column(Integer, nullable=False)
 
 
-# pylint-disable: unused-argument
-def _parse_pool_creation(data: EventData, **kwargs) -> UniV3PoolCreations:
-    return UniV3PoolCreations(
-        block_number=data["blockNumber"],
-        log_index=data["logIndex"],
-        transaction_hash=data["transactionHash"].hex(),
-        contract_address=data["address"],
-        token_0=data["args"]["token0"],
-        token_1=data["args"]["token1"],
-        pool_address=data["args"]["pool"],
-        fee=data["args"]["fee"],
-    )
+def _parse_pool_creation(data: EventData, _) -> Dict[str, Any]:
+    return {
+        "block_number": data["blockNumber"],
+        "log_index": data["logIndex"],
+        "transaction_hash": data["transactionHash"].hex(),
+        "contract_address": data["address"],
+        "token_0": data["args"]["token0"],
+        "token_1": data["args"]["token1"],
+        "pool_address": data["args"]["pool"],
+        "fee": data["args"]["fee"],
+    }
