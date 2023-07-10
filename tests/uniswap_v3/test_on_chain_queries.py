@@ -51,7 +51,7 @@ class TestPoolInitialization:
             db_session=db_session,
             db_model=UniV3MintEvent,
             to_block=12400000,
-            contract_address=usdc_weth_pool.immutables.pool_address
+            contract_address=usdc_weth_pool.immutables.pool_address,
         )
 
         minting_lp_addresses = set([event.owner for event in mint_events])
