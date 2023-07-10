@@ -33,6 +33,8 @@ FROM added_row_number WHERE row_number=1
 ORDER BY block_number;
 """
 
+# pylint: disable=missing-class-docstring
+
 
 class BlockTimestamps(OracleBase):
     __tablename__ = "block_timestamps"

@@ -74,6 +74,13 @@ class PoolFactory:
     :return: List of Pools initialized by the factory
     """
 
+    oracle: Optional[PricingOracle] = None
+    """ 
+    Pricing oracle to be used for converting token prices to USD.  
+    
+    Initialized by calling :meth:`initialize_pricing_oracle`
+    """
+
     _initialized_classes: List[str]
 
     def __init__(
@@ -253,7 +260,10 @@ class PoolFactory:
         :return:
             Pricing Oracle Instance
         """
-        return PricingOracle(factory=self, timestamp_resolution=timestamp_resolution)
+        self.oracle = PricingOracle(
+            factory=self, timestamp_resolution=timestamp_resolution
+        )
+        return self.oracle
 
     def _get_math_module(self, module_name) -> ExactMathModule | TranslatedMathModule:
         return self.loaded_math_modules[module_name]
@@ -293,3 +303,14 @@ class PoolFactory:
 
         """
         return sessionmaker(bind=self.sqlalchemy_engine)()
+
+    def get_oracle(self) -> PricingOracle:
+        """
+        Returns an initialized pricing oracle
+
+        :return: PricingOracle
+        """
+        if self.oracle is None:
+            raise ValueError("Oracle Not Initialized")
+
+        return self.oracle

@@ -6,6 +6,7 @@ import sqlalchemy
 from eth_typing import ChecksumAddress
 from eth_utils import to_checksum_address
 from pandas import DataFrame
+from tqdm import tqdm
 
 from python_eth_amm.events import backfill_events
 from python_eth_amm.exceptions import OracleError
@@ -24,6 +25,7 @@ from .db import (
 
 WETH_ADDRESS = to_checksum_address("0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2")
 USDC_ADDRESS = to_checksum_address("0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48")
+WETH_USDC_POOL = to_checksum_address("0x8ad599c3a0ff1de082011efddc58f1908eb6e6d8")
 
 POOL_CREATED_ABI = [
     {
@@ -76,6 +78,10 @@ class PricingOracle:
 
     _weth_prices: Optional[DataFrame] = None
 
+    _timestamps: Dict[int, datetime.datetime] = {}
+    _timestamp_tuple_count: int = 0
+    _timestamp_tuples: List[Tuple[int, datetime.datetime]] = []
+
     def __init__(
         self,
         factory,
@@ -99,12 +105,15 @@ class PricingOracle:
         )
 
         timestamps = []
-        for block in range(
-            last_db_block.block_number + self.timestamp_resolution
-            if last_db_block
-            else 0,
-            self.w3.eth.block_number,
-            self.timestamp_resolution,
+        for block in tqdm(
+            range(
+                last_db_block.block_number + self.timestamp_resolution
+                if last_db_block
+                else 0,
+                self.w3.eth.block_number,
+                self.timestamp_resolution,
+            ),
+            desc="Fetching block_timestamps",
         ):
             timestamps.append(
                 BlockTimestamps(
@@ -171,6 +180,15 @@ class PricingOracle:
         OracleEventBase.metadata.create_all(bind=db_engine)
         self.db_session.commit()
 
+    def _fetch_backfill_for_pool(
+        self, pool_id: ChecksumAddress
+    ) -> Optional[BackfilledPools]:
+        return (
+            self.db_session.query(BackfilledPools)
+            .filter(BackfilledPools.pool_id == pool_id)
+            .scalar()
+        )
+
     def _compute_backfill_ranges(
         self,
         pool_id: ChecksumAddress,
@@ -189,11 +207,7 @@ class PricingOracle:
             Tuple of backfill_start, backfill_end.  If backfill_end is None, then the backfill is not required and
             and can safely be skipped
         """
-        old_backfill: BackfilledPools = (
-            self.db_session.query(BackfilledPools)
-            .filter(BackfilledPools.pool_id == pool_id)
-            .scalar()
-        )
+        old_backfill = self._fetch_backfill_for_pool(pool_id)
 
         init_block = (
             self.db_session.query(UniV3PoolCreations)
@@ -272,7 +286,7 @@ class PricingOracle:
     def _fetch_price_from_pool(
         self,
         pool_id: ChecksumAddress,
-        reference_token: Optional[ChecksumAddress] = USDC_ADDRESS,
+        reference_token: ChecksumAddress = USDC_ADDRESS,
         from_block: Optional[int] = None,
         to_block: Optional[int] = None,
     ):
@@ -320,7 +334,7 @@ class PricingOracle:
         pricing_token, base_token = (
             (v3_pool.immutables.token_1, v3_pool.immutables.token_0)
             if reference_token_num == 0
-            else (v3_pool.immutables.token_1, v3_pool.immutables.token_0)
+            else (v3_pool.immutables.token_0, v3_pool.immutables.token_1)
         )
 
         weth_conversion = True if base_token.address == WETH_ADDRESS else False
@@ -362,6 +376,14 @@ class PricingOracle:
         )
 
     def block_to_datetime(self, block_number: int) -> datetime.datetime:
+        """
+        Converts a block number to an approximate datetime.  The accuracy of this method is determined the
+        timestamp_resolution parameter when initializing an oracle.  By default, this value is 10k, which gives
+        the block to datetime conversion an accuracy of += 10 mins.
+
+        :param block_number: Block number to convert to datetime
+        :return: datetime.datetime object in UTC timezone
+        """
         floor_num = block_number // self.timestamp_resolution
         if block_number % self.timestamp_resolution == 0:
             return self._timestamps[floor_num * self.timestamp_resolution]
@@ -375,6 +397,16 @@ class PricingOracle:
         return self._timestamps[lower] + ((block_number - lower) * block_time)
 
     def datetime_to_block(self, dt: Union[datetime.datetime, datetime.date]) -> int:
+        """
+        Converts a datetime object to a block number.  Just like block_to_datetime, the accuracy of this method is
+        determined by the timestamp_resolution parameter when initializing an oracle.  With the default value of 10k,
+        the prescision of this method is +- 50 blocks
+
+        :param dt:
+            Date to convert to approximate block number.  If a datetime.date object is passed, it will get the block at
+            UTC midnight of that date.
+        :return:
+        """
         # pylint: disable=unidiomatic-typecheck
         if type(dt) == datetime.date:
             dt = datetime.datetime(
@@ -384,13 +416,15 @@ class PricingOracle:
         elif dt.tzinfo is None:  # type: ignore[union-attr]
             dt.replace(tzinfo=datetime.timezone.utc)  # type: ignore[call-arg]
 
-        # TODO: Optimize
-        timestamps = list(sorted(self._timestamps.items()))
+        if len(self._timestamps) != self._timestamp_tuple_count:
+            self._timestamp_tuples = list(sorted(self._timestamps.items()))
+            self._timestamp_tuple_count = len(self._timestamps)
+
         timestamp_index = bisect_right(
-            timestamps, dt.timestamp(), key=lambda x: x[1].timestamp()  # type: ignore[union-attr]
+            self._timestamp_tuples, dt, key=lambda x: x[1]  # type: ignore[union-attr]
         )
-        lower_block, lower_timestamp = timestamps[timestamp_index - 1]
-        _, upper_timestamp = timestamps[timestamp_index]
+        lower_block, lower_timestamp = self._timestamp_tuples[timestamp_index - 1]
+        _, upper_timestamp = self._timestamp_tuples[timestamp_index]
 
         block_time = (upper_timestamp - lower_timestamp) / self.timestamp_resolution
 
@@ -422,15 +456,15 @@ class PricingOracle:
             end = self.datetime_to_block(end)
 
         usdc_pools = (
-            self.db_session.query(UniswapV3Pool)
+            self.db_session.query(UniV3PoolCreations)
             .filter(
                 (
-                    UniswapV3Pool.immutables.token_0.address == USDC_ADDRESS
-                    and UniswapV3Pool.immutables.token_1.address == token_id
+                    UniV3PoolCreations.token_0 == USDC_ADDRESS
+                    and UniV3PoolCreations.token_1 == token_id
                 )
                 or (
-                    UniswapV3Pool.immutables.token_1.address == USDC_ADDRESS
-                    and UniswapV3Pool.immutables.token_0.address == token_id
+                    UniV3PoolCreations.token_1 == USDC_ADDRESS
+                    and UniV3PoolCreations.token_0 == token_id
                 )
             )
             .all()
@@ -443,22 +477,32 @@ class PricingOracle:
             return
 
         weth_pools = (
-            self.db_session.query(UniswapV3Pool)
+            self.db_session.query(UniV3PoolCreations)
             .filter(
                 (
-                    UniswapV3Pool.immutables.token_0.address == WETH_ADDRESS
-                    and UniswapV3Pool.immutables.token_1.address == token_id
+                    UniV3PoolCreations.token_0 == WETH_ADDRESS
+                    and UniV3PoolCreations.token_1 == token_id
                 )
                 or (
-                    UniswapV3Pool.immutables.token_1.address == WETH_ADDRESS
-                    and UniswapV3Pool.immutables.token_0.address == token_id
+                    UniV3PoolCreations.token_1 == WETH_ADDRESS
+                    and UniV3PoolCreations.token_0 == token_id
                 )
             )
             .all()
         )
 
         if weth_pools:
-            # TODO: Add checks to ensure WETH Prices are backfilled correctly
+            eth_price = self._fetch_backfill_for_pool(WETH_USDC_POOL)
+            if (
+                eth_price is None
+                or eth_price.backfill_end < end
+                or eth_price.backfill_start > start
+            ):
+                raise OracleError(
+                    f"Token {token_id} does not have any USDC Pairs, but does have a WETH Pair to backfill the "
+                    f"token prices, first backfill the ETH price"
+                )
+
             self._fetch_price_from_pool(
                 self._filter_pools(weth_pools), WETH_ADDRESS, start, end
             )
@@ -554,3 +598,19 @@ class PricingOracle:
         pools_tiers = {pool.fee: pool.pool_address for pool in pools}
 
         return pools_tiers.get(3000, pools_tiers.get(500, pools_tiers.get(10000)))
+
+    def update_price_feeds(self) -> None:
+        """
+        Updates all backfilled price feeds in the database to the latest block.  This function is intended to be run
+        as a cron job to keep the price feeds up to date.
+
+        It will update the WETH price, as well as any other token that has been backfilled in the database.
+
+        ..warning::
+            If the last backfilled price for a token is more than 1 week behind the latest block, the price will
+            not be updated, and a warning will be logged.   Utilize the `backfill_prices()` method to extract
+            historical price data.
+
+        """
+        # TODO: Write update_price_feeds
+        pass

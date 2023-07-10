@@ -22,8 +22,6 @@ class SwapComputation(BaseModel):
 
 # pylint: disable=missing-function-docstring
 
-# TODO: Document Math Module
-
 
 def overflow_check(number, max_value):
     if number >= max_value:

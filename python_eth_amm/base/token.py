@@ -1,6 +1,6 @@
 import json
 from pathlib import Path
-from typing import Any, Dict, Optional, Type, Union
+from typing import Any, Dict, Optional, Union
 
 from eth_typing import ChecksumAddress
 from eth_utils import is_checksum_address, to_checksum_address
@@ -65,6 +65,30 @@ class ERC20Token(BaseModel):
             name=token_contract.functions.name().call(),
             symbol=token_contract.functions.symbol().call(),
             decimals=token_contract.functions.decimals().call(),
+            address=token_address,
+            contract=token_contract,
+        )
+
+    @classmethod
+    def from_dict(
+        cls, w3: Web3, token_params: Dict[str, Any]  # pylint: disable=invalid-name
+    ) -> "ERC20Token":
+        """
+        Initialize ERC20Token from dictionary.  Dictionary must contain keys: name, symbol, decimals, and address.
+
+        :param w3:
+            :class:`~web3.Web3` RPC connection to EVM node for performing token queries
+        :param dict token_params:
+            Dictionary containing token parameters
+        :return: :class:`~python_eth_amm.base.token.ERC20Token`
+        """
+        token_address = to_checksum_address(token_params["address"])
+        token_contract = w3.eth.contract(token_address, abi=cls.get_abi())
+
+        return ERC20Token(
+            name=token_params["name"],
+            symbol=token_params["symbol"],
+            decimals=token_params["decimals"],
             address=token_address,
             contract=token_contract,
         )
