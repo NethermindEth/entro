@@ -1,6 +1,13 @@
 Pricing Oracle
 ==============
 
+Initializing Pricing Oracle
+---------------------------
+
+
+Class Documentation
+-------------------
+
 .. autoclass:: python_eth_amm.PricingOracle
    :exclude-members: __init__
    :members:
@@ -105,11 +112,3 @@ _________________________
     * - block_number
       - integer
       - Block Number the Pool was created at
-
-
-
-Usage Guide
------------
-
-Initializing Pricing Oracle
-___________________________
