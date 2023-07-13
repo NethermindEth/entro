@@ -20,30 +20,6 @@ Setup
     )
 
 
-Pricing Oracle
---------------
-
-.. note:
-
-   Initialization process for the oracle is described in :ref:`Oracle <oracle>` section.
-
-.. code-block:: python
-
-    price_oracle = factory.initialize_oracle()
-
-
- Backfilling USD price for ERC20 token
-______________________________________
-
-
-Querying Price Data
-___________________
-
-
-Updating Prices with new Blocks
-_______________________________
-
-
 Uniswap V3
 ----------
 

@@ -129,7 +129,6 @@ def backfill_events(
     :param logger: Logger object
     :param chunk_size: Number of blocks to backfill at a time if events are not found in the database
     """
-    logger.info(f"Backfilling {event_name} Events from {from_block} to {to_block}")
     last_db_block = _get_last_backfilled_block(
         db_session=db_session,
         db_model=db_model,
@@ -137,11 +136,16 @@ def backfill_events(
     )
     logger.debug(f"Last block in DB: {last_db_block}")
     if last_db_block and to_block <= last_db_block:
-        logger.info("Events already saved to DB, loading from sqlalchemy")
+        logger.info(
+            "Skipping Backfill for {event_name} Events.  Events already Backfilled"
+        )
         return
 
-    if last_db_block:
-        from_block = last_db_block + 1
+    # Need to Improve backfill logic to handle missing blocks & inconsistent backfill ranges
+    # if last_db_block:
+    #     from_block = last_db_block + 1
+
+    logger.info(f"Backfilling {event_name} Events from {from_block} to {to_block}")
 
     for start_block in tqdm(
         range(from_block, to_block, chunk_size), desc=f"Backfilling {event_name} Events"
@@ -163,3 +167,7 @@ def backfill_events(
             )
             db_session.execute(insert(db_model), insert_values)
             db_session.commit()
+            logger.debug(
+                f"Committed {len(insert_values)} {event_name} Events to Database between"
+                f" {start_block} and {min(start_block + chunk_size - 1, to_block - 1)}"
+            )

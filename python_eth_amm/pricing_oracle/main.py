@@ -14,6 +14,7 @@ from python_eth_amm.uniswap_v3 import UniswapV3Pool
 
 from .db import (
     LAST_EVENT_PER_BLOCK_QUERY,
+    POOL_TOKEN_QUERY,
     BackfilledPools,
     BlockTimestamps,
     TokenPrices,
@@ -207,7 +208,15 @@ class PricingOracle:
             Tuple of backfill_start, backfill_end.  If backfill_end is None, then the backfill is not required and
             and can safely be skipped
         """
+        if to_block and from_block and from_block >= to_block:
+            raise ValueError(
+                f"Cannot backfill between {from_block} and {to_block}. start block must be less than end block"
+            )
+
         old_backfill = self._fetch_backfill_for_pool(pool_id)
+        self.logger.debug(
+            f"Backfilling between {from_block} and {to_block} with existing backfill: {old_backfill}"
+        )
 
         init_block = (
             self.db_session.query(UniV3PoolCreations)
@@ -215,14 +224,20 @@ class PricingOracle:
             .first()
             .block_number
         )
+        if to_block and to_block <= init_block:
+            raise ValueError(
+                f"Pool {pool_id} was created at block {init_block} and backfill end is configured at block {to_block}."
+                f"  Cannot backfill before pool creation"
+            )
+
         if init_block is None:
             raise ValueError(
                 f"Pool {pool_id} does not exist in Uniswap V3 Pool Database"
             )
         current_block = self.w3.eth.block_number
 
-        start_block: int = max(from_block if from_block else init_block, init_block)
-        end_block: int = min(to_block if to_block else current_block, current_block)
+        start_block: int = max(from_block, init_block) if from_block else init_block
+        end_block: int = min(to_block, current_block) if to_block else current_block
 
         if start_block >= end_block:
             return []
@@ -247,7 +262,12 @@ class PricingOracle:
         return [(old_backfill.backfill_end, end_block)]
 
     def _update_backfill(
-        self, pool_id: ChecksumAddress, from_block: int, to_block: int
+        self,
+        pool_id: ChecksumAddress,
+        priced_token: ChecksumAddress,
+        reference_token: ChecksumAddress,
+        from_block: int,
+        to_block: int,
     ):
         backfill = (
             self.db_session.query(BackfilledPools)
@@ -257,7 +277,11 @@ class PricingOracle:
 
         if backfill is None:
             backfill = BackfilledPools(
-                pool_id=pool_id, backfill_start=from_block, backfill_end=to_block
+                pool_id=pool_id,
+                priced_token=priced_token,
+                reference_token=reference_token,
+                backfill_start=from_block,
+                backfill_end=to_block,
             )
             self.db_session.add(backfill)
 
@@ -290,6 +314,9 @@ class PricingOracle:
         from_block: Optional[int] = None,
         to_block: Optional[int] = None,
     ):
+        self.logger.info(
+            f"Fetching Price from pool {pool_id} between blocks {from_block} and {to_block}"
+        )
         backfills = self._compute_backfill_ranges(pool_id, from_block, to_block)
 
         self.logger.debug(f"Backfill Ranges: {backfills}")
@@ -301,6 +328,7 @@ class PricingOracle:
         pool: UniswapV3Pool = self.factory.initialize_from_chain(
             pool_type="uniswap_v3",
             pool_address=pool_id,
+            init_mode="chain_translation",
             initialization_args={"load_pool_state": False},
         )
 
@@ -372,8 +400,36 @@ class PricingOracle:
             self.db_session.bulk_save_objects(db_models)
             self.db_session.commit()
         self._update_backfill(
-            v3_pool.immutables.pool_address, backfill_start, backfill_end
+            v3_pool.immutables.pool_address,
+            pricing_token.address,
+            base_token.address,
+            backfill_start,
+            backfill_end,
         )
+
+    def _fetch_token_pool(
+        self,
+        token_id: ChecksumAddress,
+    ) -> Tuple[ChecksumAddress, bool]:
+        usdc_pools = self.db_session.execute(
+            sqlalchemy.text(POOL_TOKEN_QUERY),
+            {"reference_token": USDC_ADDRESS, "priced_token": token_id},
+        ).fetchall()
+
+        if usdc_pools:
+            return self._filter_pools(usdc_pools), False
+
+        weth_pools = self.db_session.execute(
+            sqlalchemy.text(POOL_TOKEN_QUERY),
+            {"reference_token": WETH_ADDRESS, "priced_token": token_id},
+        ).fetchall()
+
+        if weth_pools is None:
+            raise OracleError(
+                f"Token {token_id} does not have any USDC Pairs or WETH pairs"
+            )
+
+        return self._filter_pools(weth_pools), True
 
     def block_to_datetime(self, block_number: int) -> datetime.datetime:
         """
@@ -395,6 +451,85 @@ class PricingOracle:
         ) / self.timestamp_resolution
 
         return self._timestamps[lower] + ((block_number - lower) * block_time)
+
+    def get_price_at_block(self, block_number: int, token_id: ChecksumAddress):
+        """
+        Returns the precise price of a token at a given block number.  Spot prices represent the pool's state at the
+        end of a block.
+
+        ..warning::
+            This function performs a single database query, and returns the result without performing
+            any safety checks.  If a price is backfilled to block 14m, and you query the price at block 15m, it will
+            return the last price stored in the database (block 14m) and wont raise any warnings that the requested
+            block is not backfilled.  For a safer way to query prices, use
+            :py:func:`python_eth_amm.Pricing.get_price_over_time`
+
+        :param block_number: Block Number to query price at
+        :param token_id: Address of ERC20 Token that is being priced
+        :return:
+        """
+        return (
+            self.db_session.query(TokenPrices.spot_price)
+            .filter(
+                TokenPrices.token_id == token_id,
+                TokenPrices.block_number <= block_number,
+            )
+            .order_by(TokenPrices.block_number.desc())
+            .first()
+        )
+
+    def backfill_prices(
+        self,
+        token_id: ChecksumAddress,
+        start: Optional[Union[int, datetime.date]] = None,
+        end: Optional[Union[int, datetime.date]] = None,
+    ):
+        """
+        Backfill prices for a given token from the spot price on Uniswap V3 pools.  This data is extracted from Swap
+        events, and is highly granular.  To backfill a price, convert the ERC20 token address to a checksummed address,\
+        and then specify a start and end point.  The start and end bounds can be input as either a block number, or a
+        datetime.date object.  If no start or end point is provided, it will backfill from the contract initialization
+        block to the current block.
+
+        .. warning::
+            This function queries all swap events within a price range to generate the spot price.  On large pools
+            like USDC/WETH, this backfill process can take hours depending on the speed of the RPC node.
+            It is best to specify a start and end point for backfilling, and only backfill the price range needed.
+
+        :param token_id:
+            Hex Address of Token to be Priced
+        :param start:
+            Start point for backfill operation.  Can be input as a blocknumber, or a datetime.date object.
+            If no start point is provided, it will backfill from the contract initialization block.
+        :param end:
+            End point for backfill operation.  Can be input as a blocknumber, or a datetime.date object.
+            If no end point is provided, it will backfill to the current block.
+
+        """
+        if isinstance(start, datetime.date):
+            start = self.datetime_to_block(start)
+
+        if isinstance(end, datetime.date):
+            end = self.datetime_to_block(end)
+
+        pool_contract, weth_conversion = self._fetch_token_pool(token_id)
+
+        if not weth_conversion:
+            self._fetch_price_from_pool(pool_contract, USDC_ADDRESS, start, end)
+
+        else:
+            eth_price = self._fetch_backfill_for_pool(WETH_USDC_POOL)
+            if (
+                eth_price is None
+                or eth_price.backfill_end < end
+                or eth_price.backfill_start > start
+            ):
+                raise OracleError(
+                    f"Token {token_id} does not have any USDC Pairs, but does have a WETH Pair.  First backfill the "
+                    f"WETH price, then re-backfill the {token_id} price"
+                )
+
+            self._fetch_price_from_pool(pool_contract, WETH_ADDRESS, start, end)
 
     def datetime_to_block(self, dt: Union[datetime.datetime, datetime.date]) -> int:
         """
@@ -429,113 +564,6 @@ class PricingOracle:
         block_time = (upper_timestamp - lower_timestamp) / self.timestamp_resolution
 
         return lower_block + int((dt - lower_timestamp) / block_time)
-
-    def backfill_prices(
-        self,
-        token_id: ChecksumAddress,
-        start: Optional[Union[int, datetime.date]] = None,
-        end: Optional[Union[int, datetime.date]] = None,
-    ):
-        """
-        Backfill prices for a given token.
-
-        :param token_id:
-            Hex Address of Token to be Priced
-        :param start:
-            Start point for backfill operation.  Can be input as a blocknumber, or a datetime.date object.
-            If no start point is provided, it will backfill from the contract initialization block.
-        :param end:
-            End point for backfill operation.  Can be input as a blocknumber, or a datetime.date object.
-            If no end point is provided, it will backfill to the current block.
-
-        """
-        if isinstance(start, datetime.date):
-            start = self.datetime_to_block(start)
-
-        if isinstance(end, datetime.date):
-            end = self.datetime_to_block(end)
-
-        usdc_pools = (
-            self.db_session.query(UniV3PoolCreations)
-            .filter(
-                (
-                    UniV3PoolCreations.token_0 == USDC_ADDRESS
-                    and UniV3PoolCreations.token_1 == token_id
-                )
-                or (
-                    UniV3PoolCreations.token_1 == USDC_ADDRESS
-                    and UniV3PoolCreations.token_0 == token_id
-                )
-            )
-            .all()
-        )
-
-        if usdc_pools:
-            self._fetch_price_from_pool(
-                self._filter_pools(usdc_pools), USDC_ADDRESS, start, end
-            )
-            return
-
-        weth_pools = (
-            self.db_session.query(UniV3PoolCreations)
-            .filter(
-                (
-                    UniV3PoolCreations.token_0 == WETH_ADDRESS
-                    and UniV3PoolCreations.token_1 == token_id
-                )
-                or (
-                    UniV3PoolCreations.token_1 == WETH_ADDRESS
-                    and UniV3PoolCreations.token_0 == token_id
-                )
-            )
-            .all()
-        )
-
-        if weth_pools:
-            eth_price = self._fetch_backfill_for_pool(WETH_USDC_POOL)
-            if (
-                eth_price is None
-                or eth_price.backfill_end < end
-                or eth_price.backfill_start > start
-            ):
-                raise OracleError(
-                    f"Token {token_id} does not have any USDC Pairs, but does have a WETH Pair to backfill the "
-                    f"token prices, first backfill the ETH price"
-                )
-
-            self._fetch_price_from_pool(
-                self._filter_pools(weth_pools), WETH_ADDRESS, start, end
-            )
-        else:
-            raise ValueError(
-                f"Token {token_id} does not have a USDC or WETH Uniswap Pair"
-            )
-
-    def get_price_at_block(self, block_number: int, token_id: ChecksumAddress):
-        """
-        Returns the precise price of a token at a given block number.  Spot prices represent the pool's state at the
-        end of a block.
-
-        ..warning::
-            This function performs a single database query, and returns the result without performing
-            any safety checks.  If a price is backfilled to block 14m, and you query the price at block 15m, it will
-            return the last price stored in the database (block 14m) and wont raise any warnings that the requested
-            block is not backfilled.  For a safer way to query prices, use
-            :py:func:`python_eth_amm.Pricing.get_price_over_time`
-
-        :param block_number: Block Number to query price at
-        :param token_id: Address of ERC20 Token that is being priced
-        :return:
-        """
-        return (
-            self.db_session.query(TokenPrices.spot_price)
-            .filter(
-                TokenPrices.token_id == token_id,
-                TokenPrices.block_number <= block_number,
-            )
-            .order_by(TokenPrices.block_number.desc())
-            .first()
-        )
 
     def get_price_over_time(self, token_id: ChecksumAddress) -> DataFrame:
         """
@@ -577,6 +605,9 @@ class PricingOracle:
             .order_by(TokenPrices.block_number)
             .all()
         )
+        self.logger.info(
+            f"Found Prices for token {token_id} between block {price_data[0][0]} and {price_data[-1][0]}"
+        )
 
         for block_number, spot_price in price_data:
             data_dict["timestamp"].append(self.block_to_datetime(block_number))
@@ -612,5 +643,26 @@ class PricingOracle:
             historical price data.
 
         """
-        # TODO: Write update_price_feeds
-        pass
+        latest_block = self.w3.eth.block_number
+        backfilled_pools = self.db_session.query(BackfilledPools).all()
+
+        for pool in backfilled_pools:
+            if latest_block - pool.backfill_end > 50_000:  # approx 1 week
+                self.logger.warning(
+                    f"Skipping price update for {pool.priced_token} as the last backfill was more than 1 week ago."
+                    f"To update the price, run the backfill_prices() method for the token before attempting to update"
+                )
+                continue
+
+            self.logger.info(
+                f"Updating price for {pool.priced_token} to block {latest_block}"
+            )
+            self._fetch_price_from_pool(
+                pool_id=pool.pool_id,
+                reference_token=pool.reference_token,
+                from_block=pool.backfill_end,
+                to_block=latest_block,
+            )
+            pool.backfill_end = latest_block
+
+        self.db_session.commit()

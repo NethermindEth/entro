@@ -3,6 +3,7 @@ import os
 from typing import Optional
 
 import pytest
+from eth_utils import to_checksum_address as tca
 
 from python_eth_amm import PoolFactory
 from python_eth_amm.pricing_oracle import PricingOracle
@@ -11,6 +12,14 @@ from python_eth_amm.pricing_oracle.db import (
     BlockTimestamps,
     TokenPrices,
 )
+
+
+@pytest.fixture(autouse=True)
+def db_teardown(db_session):
+    yield
+    db_session.query(TokenPrices).delete()
+    db_session.query(BackfilledPools).delete()
+    db_session.commit()
 
 
 @pytest.fixture(name="initialize_empty_oracle")
@@ -32,6 +41,23 @@ def fixture_initialize_empty_oracle(w3_archive_node, db_session, test_logger):
         )
 
     return _initialize_empty_oracle
+
+
+@pytest.fixture(name="add_test_backfill")
+def fixture_add_test_backfill(db_session):
+    def _add_test_backfill():
+        db_session.add(
+            BackfilledPools(
+                pool_id=tca("0xfad57d2039c21811c8f2b5d5b65308aa99d31559"),
+                priced_token=tca("0x514910771af9ca656af840dff83e8264ecf986ca"),
+                reference_token=tca("0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2"),
+                backfill_start=14_000_000,
+                backfill_end=15_000_000,
+            )
+        )
+        db_session.commit()
+
+    return _add_test_backfill
 
 
 @pytest.fixture(name="delete_timestamps")

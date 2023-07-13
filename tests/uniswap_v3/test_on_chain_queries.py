@@ -1,7 +1,12 @@
+import logging
+import os
+
 import pytest
 from eth_utils import to_checksum_address
+from web3 import Web3
 
-from python_eth_amm.events import backfill_events, query_events_from_db
+from python_eth_amm import PoolFactory
+from python_eth_amm.events import query_events_from_db
 from python_eth_amm.exceptions import UniswapV3Revert
 from python_eth_amm.math import TickMathModule
 from python_eth_amm.uniswap_v3.chain_interface import (
@@ -13,7 +18,47 @@ from python_eth_amm.uniswap_v3.chain_interface import (
     fetch_positions,
     fetch_slot_0,
 )
-from python_eth_amm.uniswap_v3.db import UniV3MintEvent, _parse_uniswap_events
+from python_eth_amm.uniswap_v3.db import UniV3MintEvent
+
+
+class TestPoolInitModes:
+    FACTORY = PoolFactory(
+        exact_math=True,
+        logger=logging.Logger("test"),
+        sqlalchemy_uri=os.environ["SQLALCHEMY_DB_URI"],
+        w3=Web3(Web3.HTTPProvider(os.environ["ARCHIVE_NODE_RPC_URL"])),
+    )
+
+    def test_sqrt_price_converters_fail_empty_init(self):
+        pool = self.FACTORY.initialize_empty_pool("uniswap_v3")
+
+        with pytest.raises(
+            UniswapV3Revert,
+            match="Method get_price_at_sqrt_ratio can only be called if pool is initialized from chain",
+        ):
+            pool.get_price_at_sqrt_ratio(79228162514264337593543950336)
+
+        with pytest.raises(
+            UniswapV3Revert,
+            match="Method get_price_at_tick can only be called if pool is initialized from chain",
+        ):
+            pool.get_price_at_tick(0)
+
+    def test_load_liquidity_mode(self):
+        liquidity_pool = self.FACTORY.initialize_from_chain(
+            "uniswap_v3",
+            "0x8ad599c3a0ff1de082011efddc58f1908eb6e6d8",
+            "load_liquidity",
+            12380000,
+        )
+
+        assert abs(liquidity_pool.get_price_at_tick(0)) < 0.00000000001
+
+        with pytest.raises(
+            UniswapV3Revert,
+            match="Method save_position_snapshot can only be called in simulation mode",
+        ):
+            liquidity_pool.save_position_snapshot()
 
 
 class TestPoolInitialization:

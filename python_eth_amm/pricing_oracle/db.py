@@ -33,6 +33,12 @@ FROM added_row_number WHERE row_number=1
 ORDER BY block_number;
 """
 
+POOL_TOKEN_QUERY = """
+SELECT * FROM pricing_oracle.uni_v3_pool_creations
+WHERE (token_1 = :reference_token AND token_0 = :priced_token) OR
+        (token_0 = :reference_token AND token_1 = :priced_token);
+"""
+
 # pylint: disable=missing-class-docstring
 
 
@@ -57,6 +63,8 @@ class BackfilledPools(OracleBase):
     __tablename__ = "backfilled_pools"
 
     pool_id = Column(String, primary_key=True)
+    priced_token = Column(String, unique=True, nullable=False)
+    reference_token = Column(String, nullable=False)
     backfill_start = Column(Integer, nullable=False)
     backfill_end = Column(Integer, nullable=False)
 

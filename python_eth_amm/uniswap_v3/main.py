@@ -55,9 +55,48 @@ from .types import (
 Q128 = 0x100000000000000000000000000000000
 
 
+def simulation(method):
+    """Decorator that restricts method to simulation init mode"""
+
+    def inner(ref, *args, **kwargs):
+        if ref.init_mode != "simulation":
+            raise UniswapV3Revert(
+                f"Method {method.__name__} can only be called in simulation mode"
+            )
+        return method(ref, *args, **kwargs)
+
+    return inner
+
+
+def load_liquidity(method):
+    """Decorator that restricts method to simulation and load_liquidity init modes"""
+
+    def inner(ref, *args, **kwargs):
+        if ref.init_mode not in ["simulation", "load_liquidity"]:
+            raise UniswapV3Revert(
+                f"Method {method.__name__} can only be called if pool is initialized in "
+                f"simulation or load_liquidity mode"
+            )
+        return method(ref, *args, **kwargs)
+
+    return inner
+
+
+def chain_translation(method):
+    """Decorator that requires pool immutables to be initialized from chain"""
+
+    def inner(ref, *args, **kwargs):
+        if ref.init_mode not in ["simulation", "load_liquidity", "chain_translation"]:
+            raise UniswapV3Revert(
+                f"Method {method.__name__} can only be called if pool is initialized from chain"
+            )
+        return method(ref, *args, **kwargs)
+
+    return inner
+
+
 # pylint: disable=too-many-instance-attributes, too-many-public-methods, too-many-lines
 class UniswapV3Pool:
-    # TODO: Add init-mode decorators to methods
 
     """
     Class to simulate behavior of Uniswap V3 pools in python.
@@ -65,6 +104,14 @@ class UniswapV3Pool:
 
     Re-Implements all functions of UniswapV3 pools in python, and provides research functionality.
 
+    """
+
+    init_mode: Optional[
+        Literal["simulation", "load_liquidity", "chain_translation"]
+    ] = None
+    """
+    Parameter to describe what data to load from chain.  If None, pool is not initialized from chain, and
+    is a testing pool instead.  See :ref:pool_factory.initialize_from_chain() for more details.    
     """
 
     pool_contract: Optional[Contract] = None
@@ -192,12 +239,14 @@ class UniswapV3Pool:
         cls,
         factory,
         pool_address: str,
+        init_mode: Literal["simulation", "load_liquidity", "chain_translation"],
         at_block: Optional[int] = None,
-        load_pool_state: bool = True,
+        **kwargs,  # pylint: disable=unused-argument
     ) -> "UniswapV3Pool":
         """Loads a pool from the chain at a given block number"""
 
         pool = UniswapV3Pool(factory)
+        pool.init_mode = init_mode
 
         if at_block is None:
             at_block = factory.w3.eth.block_number
@@ -218,7 +267,7 @@ class UniswapV3Pool:
             w3=factory.w3, contract=contract, logger=factory.logger
         )
 
-        if load_pool_state:
+        if init_mode in ["simulation", "load_liquidity"]:
             pool.state = fetch_pool_state(
                 contract=contract,
                 token_0=pool.immutables.token_0,
@@ -237,7 +286,7 @@ class UniswapV3Pool:
                 logger=factory.logger,
                 at_block=at_block,
             )
-
+        if init_mode == "simulation":
             pool.positions = fetch_positions(
                 contract=contract,
                 logger=factory.logger,
@@ -251,7 +300,10 @@ class UniswapV3Pool:
                 logger=factory.logger,
                 at_block=at_block,
             )
-        pool.logger.info(f"Pool initialized at block {pool.initialization_block}")
+
+        pool.logger.info(
+            f"Pool initialized at block {pool.initialization_block} at {init_mode} level"
+        )
 
         return pool
 
@@ -273,6 +325,7 @@ class UniswapV3Pool:
     #  Utility Functions
     # -----------------------------------------------------------------------------------------------------------
 
+    @chain_translation
     def get_price_at_sqrt_ratio(
         self,
         sqrt_price: int,
@@ -298,6 +351,7 @@ class UniswapV3Pool:
 
         return adjusted_price
 
+    @chain_translation
     def get_formatted_price_at_sqrt_ratio(
         self,
         sqrt_price: int,
@@ -330,9 +384,8 @@ class UniswapV3Pool:
             else f"{token_1.symbol}: {rounded_price} {token_0.symbol}"
         )
 
-    def get_price_at_tick(
-        self, tick: int, reverse_tokens: bool = False
-    ) -> Union[float, str]:
+    @chain_translation
+    def get_price_at_tick(self, tick: int, reverse_tokens: bool = False) -> float:
         """
         Converts a tick to a human-readable price.
 
@@ -367,6 +420,7 @@ class UniswapV3Pool:
         self.logger.info("Json Encoding Pool State")
 
         pool_state_dict = {
+            "init_mode": self.init_mode,
             "initialization_block": self.initialization_block,
             "block_timestamp": self.block_timestamp,
             "block_number": self.block_number,
@@ -405,6 +459,7 @@ class UniswapV3Pool:
 
         pool = UniswapV3Pool(factory=pool_factory)
 
+        pool.init_mode = pool_params["init_mode"]
         pool.block_timestamp = pool_params["block_timestamp"]
         pool.block_number = pool_params["block_number"]
         pool.initialization_block = pool_params["initialization_block"]
@@ -465,6 +520,7 @@ class UniswapV3Pool:
         self.block_number += blocks
         self.block_timestamp += 12 * blocks
 
+    @chain_translation
     def save_events(
         self,
         event_name: Literal["Mint", "Burn", "Collect", "Swap", "Flash"],
@@ -502,6 +558,7 @@ class UniswapV3Pool:
         )
         self.logger.info(f"Finished saving {event_name} events to database")
 
+    @simulation
     def save_position_snapshot(self) -> None:
         """
         Saves the current state of the pool to the database
@@ -533,8 +590,15 @@ class UniswapV3Pool:
                 -position.liquidity,
                 False,
             )
-            token_0_adjusted = self.immutables.token_0.convert_decimals(token_0_value)
-            token_1_adjusted = self.immutables.token_1.convert_decimals(token_1_value)
+            # fmt: off
+            token_0, token_1 = self.immutables.token_0, self.immutables.token_1
+            token_0_adj = token_0.convert_decimals(token_0_value)
+            token_1_adj = token_1.convert_decimals(token_1_value)
+            oracle = self.pool_factory.get_oracle(self.immutables.pool_address)
+
+            token_0_usd = oracle.get_price_at_block(self.block_number, token_0.address) * token_0_adj
+            token_1_usd = oracle.get_price_at_block(self.block_number, token_1.address) * token_1_adj
+            # fmt: on
 
             db_models.append(
                 UniV3PositionLogs(
@@ -546,10 +610,10 @@ class UniswapV3Pool:
                     currently_active=position_key[1]
                     < self.slot0.tick
                     <= position_key[2],
-                    token_0_value=token_0_adjusted,
-                    token_1_value=token_1_adjusted,
-                    token_0_value_usd=None,  # TODO: Add Pricing queries from swap logs
-                    token_1_value_usd=None,
+                    token_0_value=token_0_adj,
+                    token_1_value=token_1_adj,
+                    token_0_value_usd=token_0_usd,
+                    token_1_value_usd=token_1_usd,
                 )
             )
 
@@ -559,6 +623,7 @@ class UniswapV3Pool:
         db_session.commit()
         db_session.close()
 
+    @simulation
     def get_position_valuation(
         self, lp_address: ChecksumAddress, tick_lower: int, tick_upper: int
     ) -> DataFrame:
@@ -614,6 +679,7 @@ class UniswapV3Pool:
         db_session.close()
         return dataframe
 
+    @simulation
     def get_position_valuations_at_block(
         self, block_number: int
     ) -> Dict[Tuple[ChecksumAddress, int, int], Dict[str, Any]]:
@@ -663,6 +729,7 @@ class UniswapV3Pool:
             for position in position_valuations
         }
 
+    @load_liquidity
     def compute_liquidity_at_price(
         self, reverse_tokens: bool = False, compress: bool = False
     ) -> DataFrame:

@@ -166,7 +166,9 @@ class PoolFactory:
             self.logger.info(f"Successfully Initialized {pool_type} Pool Class")
 
     def initialize_empty_pool(
-        self, pool_type: Literal["uniswap_v3"], initialization_args: dict
+        self,
+        pool_type: Literal["uniswap_v3"],
+        initialization_args: Optional[dict] = None,
     ):
         """
         Initializes Empty Pool Instance at 1 for 1 price with no liquidity.  Initial price, liquidity,
@@ -186,7 +188,7 @@ class PoolFactory:
         match pool_type:
             case "uniswap_v3":
                 pool_instance = UniswapV3Pool.initialize_empty_pool(
-                    factory=self, **initialization_args
+                    factory=self, **initialization_args if initialization_args else {}
                 )
             case _:
                 raise ValueError(f"Unknown pool type: {pool_type}")
@@ -199,6 +201,7 @@ class PoolFactory:
         self,
         pool_type: Literal["uniswap_v3"],
         pool_address: str,
+        init_mode: Literal["simulation", "load_liquidity", "chain_translation"],
         at_block: Optional[int] = None,
         initialization_args: Optional[dict] = None,
     ):
@@ -211,9 +214,14 @@ class PoolFactory:
             at historical blocks, an archive node is likely necessary.
 
         :param Literal[uniswap_v3] pool_type:
-            Type of pool to intitalize
+            Type of pool to initialize
         :param pool_address:
             Address of pool to initialize
+        :param Literal[simulation, load_liquidity, chain_translation] init_mode:
+            Initialization mode for loading pool from chain
+
+            # TODO: Document init modes
+
         :param Optional[int] at_block:
             Block number to pull on-chain state from.  If None, w3.eth.block_number is used.
             block_number='latest' is rarely used in this library due to inaccuracies if the 'latest' block at the
@@ -236,6 +244,7 @@ class PoolFactory:
                 pool_instance = UniswapV3Pool.from_chain(
                     self,
                     to_checksum_address(pool_address),
+                    init_mode=init_mode,
                     at_block=at_block,
                     **initialization_args if initialization_args else {},
                 )
