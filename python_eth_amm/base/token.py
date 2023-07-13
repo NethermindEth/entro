@@ -36,7 +36,7 @@ class ERC20Token(BaseModel):
         Checksum Address of the Token Contract
     """
 
-    contract: Optional[object] = None
+    contract: Any
     """
         Returns :class:`~web3.eth.Contract if token was initialized from on-chain token`
     """
@@ -70,6 +70,30 @@ class ERC20Token(BaseModel):
         )
 
     @classmethod
+    def from_dict(
+        cls, w3: Web3, token_params: Dict[str, Any]  # pylint: disable=invalid-name
+    ) -> "ERC20Token":
+        """
+        Initialize ERC20Token from dictionary.  Dictionary must contain keys: name, symbol, decimals, and address.
+
+        :param w3:
+            :class:`~web3.Web3` RPC connection to EVM node for performing token queries
+        :param dict token_params:
+            Dictionary containing token parameters
+        :return: :class:`~python_eth_amm.base.token.ERC20Token`
+        """
+        token_address = to_checksum_address(token_params["address"])
+        token_contract = w3.eth.contract(token_address, abi=cls.get_abi())
+
+        return ERC20Token(
+            name=token_params["name"],
+            symbol=token_params["symbol"],
+            decimals=token_params["decimals"],
+            address=token_address,
+            contract=token_contract,
+        )
+
+    @classmethod
     def get_abi(cls, json_string: Optional[bool] = False) -> Union[Dict[str, Any], str]:
         """
         Returns ABI for ERC20 Token Contract.
@@ -87,20 +111,6 @@ class ERC20Token(BaseModel):
         if json_string:
             return json.dumps(abi)
         return abi
-
-    @classmethod
-    def default_token(cls, token_number) -> "ERC20Token":
-        """
-        Returns an empty token with default values.  Used when initializing an empty test pool.
-        :param token_number: 0-9 integer that is used in the token name, symbol, and address
-        :return:
-        """
-        return ERC20Token(
-            name=f"Default Token {token_number}",
-            symbol=f"TKN{token_number}",
-            decimals=18,
-            address=to_checksum_address("0x" + str(token_number) * 40),
-        )
 
     def convert_decimals(self, raw_token_amount: int) -> float:
         """
@@ -124,3 +134,12 @@ class ERC20Token(BaseModel):
         """
 
         return f"{self.convert_decimals(raw_token_amount)} {self.symbol}"
+
+
+NULL_TOKEN = ERC20Token(
+    name="Empty Test Token",
+    symbol="NULL",
+    decimals=18,
+    address="0x0000000000000000000000000000000000000000",
+    contract=None,
+)

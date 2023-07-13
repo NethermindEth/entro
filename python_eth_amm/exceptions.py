@@ -40,3 +40,15 @@ class SqrtPriceMathRevert(Exception):
     Raised when a sqrt_price value is out of bounds, or the inputs to a price calculation are
     invalid, ie swapping with zero input or swapping with a sqrt_price limit in the opposite direction
     """
+
+
+class OracleError(Exception):
+    """
+    Raised when PricingOracle fails to return a valid price.  Typically caused when the oracle cannot
+    extract the prices for a token.  Troubleshooting steps:
+
+    * Verify that all addresses are checksummed with eth_utils.to_checksum_address
+    * Check the token address on etherscan to ensure it is a valid ERC20 token
+    * Double check that RPC connection is working & node is synced to correct chain
+
+    """

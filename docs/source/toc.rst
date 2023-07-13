@@ -11,8 +11,9 @@ Table of Contents
 
 .. toctree::
     :maxdepth: 1
-    :caption: Simulation & Research
+    :caption: Library Guides
 
+    Extracting Block-by-Block Price Data
     Valuing Uniswap V3 Positions
 
 
@@ -20,9 +21,10 @@ Table of Contents
     :maxdepth: 1
     :caption: Class Reference
 
+    ERC20Token
     Exceptions
     PoolFactory
-    ERC20Token
+    PricingOracle
     UniswapV3Pool
 
 Indices and tables

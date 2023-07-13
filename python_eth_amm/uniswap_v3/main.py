@@ -17,21 +17,29 @@ from sqlalchemy import desc
 from sqlalchemy.engine import Engine
 from web3.contract import Contract
 
-from python_eth_amm.base.token import ERC20Token
+from python_eth_amm.base.token import NULL_TOKEN, ERC20Token
+from python_eth_amm.events import backfill_events
 from python_eth_amm.exceptions import UniswapV3Revert
-from python_eth_amm.lib.math import UniswapV3SwapMath
-from python_eth_amm.lib.util import random_address, uint_over_under_flow
+from python_eth_amm.math import UniswapV3SwapMath
+from python_eth_amm.utils import random_address, uint_over_under_flow
 
 from .chain_interface import (
-    backfill_events,
     fetch_initialization_block,
     fetch_liquidity,
     fetch_observations,
+    fetch_pool_immutables,
     fetch_pool_state,
     fetch_positions,
     fetch_slot_0,
 )
-from .schema import UniswapV3Base, UniV3PositionLogs, UniV3SwapLogs
+from .db import (
+    EVENT_MODELS,
+    UniswapV3Base,
+    UniV3EventBase,
+    UniV3PositionLogs,
+    UniV3SwapLogs,
+    _parse_uniswap_events,
+)
 from .types import (
     OracleObservation,
     PoolImmutables,
@@ -47,14 +55,63 @@ from .types import (
 Q128 = 0x100000000000000000000000000000000
 
 
+def simulation(method):
+    """Decorator that restricts method to simulation init mode"""
+
+    def inner(ref, *args, **kwargs):
+        if ref.init_mode != "simulation":
+            raise UniswapV3Revert(
+                f"Method {method.__name__} can only be called in simulation mode"
+            )
+        return method(ref, *args, **kwargs)
+
+    return inner
+
+
+def load_liquidity(method):
+    """Decorator that restricts method to simulation and load_liquidity init modes"""
+
+    def inner(ref, *args, **kwargs):
+        if ref.init_mode not in ["simulation", "load_liquidity"]:
+            raise UniswapV3Revert(
+                f"Method {method.__name__} can only be called if pool is initialized in "
+                f"simulation or load_liquidity mode"
+            )
+        return method(ref, *args, **kwargs)
+
+    return inner
+
+
+def chain_translation(method):
+    """Decorator that requires pool immutables to be initialized from chain"""
+
+    def inner(ref, *args, **kwargs):
+        if ref.init_mode not in ["simulation", "load_liquidity", "chain_translation"]:
+            raise UniswapV3Revert(
+                f"Method {method.__name__} can only be called if pool is initialized from chain"
+            )
+        return method(ref, *args, **kwargs)
+
+    return inner
+
+
 # pylint: disable=too-many-instance-attributes, too-many-public-methods, too-many-lines
 class UniswapV3Pool:
+
     """
     Class to simulate behavior of Uniswap V3 pools in python.
     Reproduces solidity integer rounding behavior when exact math mode enabled.
 
     Re-Implements all functions of UniswapV3 pools in python, and provides research functionality.
 
+    """
+
+    init_mode: Optional[
+        Literal["simulation", "load_liquidity", "chain_translation"]
+    ] = None
+    """
+    Parameter to describe what data to load from chain.  If None, pool is not initialized from chain, and
+    is a testing pool instead.  See :ref:pool_factory.initialize_from_chain() for more details.    
     """
 
     pool_contract: Optional[Contract] = None
@@ -140,57 +197,56 @@ class UniswapV3Pool:
         """
         Initializes an empty pool with default values
         """
-        pool_instance = UniswapV3Pool(factory=factory)
+        pool = UniswapV3Pool(factory=factory)
 
-        pool_instance.ticks = {}
-        pool_instance.observations = []
-        pool_instance.positions = {}
+        pool.ticks = {}
+        pool.observations = []
+        pool.positions = {}
 
-        pool_instance.immutables = PoolImmutables(
+        fee, tick_spacing = pool.math.get_fee_and_spacing(kwargs)
+
+        pool.immutables = PoolImmutables(
             pool_address=random_address(),
-            token_0=kwargs.get("token_0", ERC20Token.default_token(0)),
-            token_1=kwargs.get("token_1", ERC20Token.default_token(1)),
-            fee=kwargs.get("fee", 3000),
-            tick_spacing=(tick_spacing := kwargs.get("tick_spacing", 10)),
-            max_liquidity_per_tick=pool_instance.math.get_max_liquidity_per_tick(
-                tick_spacing
-            ),
+            token_0=kwargs.get("token_0", NULL_TOKEN),
+            token_1=kwargs.get("token_1", NULL_TOKEN),
+            fee=fee,
+            tick_spacing=tick_spacing,
+            max_liquidity_per_tick=pool.math.get_max_liquidity_per_tick(tick_spacing),
         )
 
-        pool_instance.state = PoolState.uninitialized()
-        pool_instance.slot0 = Slot0.uninitialized()
+        pool.state = PoolState.uninitialized()
+        pool.slot0 = Slot0.uninitialized()
 
         if "initial_price" in kwargs:
-            pool_instance.slot0.sqrt_price = kwargs["initial_price"]
-            pool_instance.slot0.tick = (
-                pool_instance.math.tick_math.get_tick_at_sqrt_ratio(
-                    pool_instance.slot0.sqrt_price, pool_instance._rounding_mode
-                )
+            pool.math.check_sqrt_price(kwargs["initial_price"])
+            pool.slot0.sqrt_price = kwargs["initial_price"]
+            pool.slot0.tick = pool.math.tick_math.get_tick_at_sqrt_ratio(
+                pool.slot0.sqrt_price, pool._rounding_mode
             )
 
-        pool_instance.block_timestamp = kwargs.get(
+        pool.block_timestamp = kwargs.get(
             "initial_timestamp", int(datetime.datetime.now().timestamp())
         )
         if "initial_block" in kwargs:
-            pool_instance.block_number = kwargs["initial_block"]
+            pool.block_number = kwargs["initial_block"]
         else:
-            pool_instance.block_number = factory.w3.eth.block_number
+            pool.block_number = 0
 
-        return pool_instance
+        return pool
 
     @classmethod
     def from_chain(
         cls,
         factory,
-        pool_address: Union[ChecksumAddress, str],
+        pool_address: str,
+        init_mode: Literal["simulation", "load_liquidity", "chain_translation"],
         at_block: Optional[int] = None,
-        load_pool_state: bool = True,
+        **kwargs,  # pylint: disable=unused-argument
     ) -> "UniswapV3Pool":
         """Loads a pool from the chain at a given block number"""
-        if isinstance(pool_address, str):
-            pool_address = to_checksum_address(pool_address)
 
         pool = UniswapV3Pool(factory)
+        pool.init_mode = init_mode
 
         if at_block is None:
             at_block = factory.w3.eth.block_number
@@ -199,31 +255,38 @@ class UniswapV3Pool:
             )
 
         contract = factory.w3.eth.contract(
-            pool_address,
+            to_checksum_address(pool_address),
             abi=cls.get_abi(),
         )
         pool.pool_contract = contract
         pool.initialization_block = fetch_initialization_block(contract)
-        pool.block_number = pool.initialization_block
+        pool.block_number = at_block
         pool.block_timestamp = factory.w3.eth.get_block(at_block)["timestamp"]
-        pool.logger.info(f"Pool initialized at block {pool.initialization_block}")
 
-        pool.immutables, pool.state = fetch_pool_state(
-            w3=factory.w3, contract=contract, logger=factory.logger, at_block=at_block
+        pool.immutables = fetch_pool_immutables(
+            w3=factory.w3, contract=contract, logger=factory.logger
         )
 
-        pool.slot0 = fetch_slot_0(
-            contract=contract, logger=factory.logger, at_block=at_block
-        )
+        if init_mode in ["simulation", "load_liquidity"]:
+            pool.state = fetch_pool_state(
+                contract=contract,
+                token_0=pool.immutables.token_0,
+                token_1=pool.immutables.token_1,
+                logger=factory.logger,
+                at_block=at_block,
+            )
 
-        if load_pool_state:
+            pool.slot0 = fetch_slot_0(
+                contract=contract, logger=factory.logger, at_block=at_block
+            )
+
             pool.ticks = fetch_liquidity(
                 contract=contract,
                 tick_spacing=pool.immutables.tick_spacing,
                 logger=factory.logger,
                 at_block=at_block,
             )
-
+        if init_mode == "simulation":
             pool.positions = fetch_positions(
                 contract=contract,
                 logger=factory.logger,
@@ -237,6 +300,10 @@ class UniswapV3Pool:
                 logger=factory.logger,
                 at_block=at_block,
             )
+
+        pool.logger.info(
+            f"Pool initialized at block {pool.initialization_block} at {init_mode} level"
+        )
 
         return pool
 
@@ -258,12 +325,12 @@ class UniswapV3Pool:
     #  Utility Functions
     # -----------------------------------------------------------------------------------------------------------
 
+    @chain_translation
     def get_price_at_sqrt_ratio(
         self,
         sqrt_price: int,
         reverse_tokens: bool = False,
-        string_description: bool = False,
-    ) -> Union[float, str]:
+    ) -> float:
         """
         Converts a sqrt_price to a human-readable price.
 
@@ -273,10 +340,33 @@ class UniswapV3Pool:
             Whether to reverse the tokens in the price.  The sqrt_price represents the
             :math:`\\frac{ Token 1 }{ Token 0}`.  If reverse_tokens is True, the price will be represented as
             :math:`\\frac{ Token 0 }{ Token 1}`.
-        :param string_description:
-            If True, returns a string description of the price in the Format: [WETH: 3,456.23 USDC].
-            Otherwise, returns a float.
+        """
+        token_0, token_1 = self.immutables.token_0, self.immutables.token_1
 
+        raw_price_float = (sqrt_price / (2**96)) ** 2
+        adjusted_price = raw_price_float / (10 ** (token_1.decimals - token_0.decimals))
+
+        if reverse_tokens:
+            adjusted_price = 1 / adjusted_price
+
+        return adjusted_price
+
+    @chain_translation
+    def get_formatted_price_at_sqrt_ratio(
+        self,
+        sqrt_price: int,
+        reverse_tokens: bool = False,
+    ) -> str:
+        """
+        Converts a sqrt_price to a formatted price string.  Includes rounding to 6 significant figures, and listing
+        the Reference Asset, ie WETH: 2245.32 USDC.
+
+        :param sqrt_price:
+            sqrt_price encoded as fixed point Q64.96
+        :param reverse_tokens:
+            Whether to reverse the tokens in the price.  The sqrt_price represents the
+            :math:`\\frac{ Token 1 }{ Token 0}`.  If reverse_tokens is True, the price will be represented as
+            :math:`\\frac{ Token 0 }{ Token 1}`.
         """
 
         token_0, token_1 = self.immutables.token_0, self.immutables.token_1
@@ -287,9 +377,6 @@ class UniswapV3Pool:
         if reverse_tokens:
             adjusted_price = 1 / adjusted_price
 
-        if not string_description:
-            return adjusted_price
-
         rounded_price = np.format_float_positional(float(f"{adjusted_price:.6g}"))
         return (
             f"{token_0.symbol}: {rounded_price} {token_1.symbol}"
@@ -297,9 +384,8 @@ class UniswapV3Pool:
             else f"{token_1.symbol}: {rounded_price} {token_0.symbol}"
         )
 
-    def get_price_at_tick(
-        self, tick: int, reverse_tokens: bool = False, string_description: bool = False
-    ) -> Union[float, str]:
+    @chain_translation
+    def get_price_at_tick(self, tick: int, reverse_tokens: bool = False) -> float:
         """
         Converts a tick to a human-readable price.
 
@@ -309,14 +395,10 @@ class UniswapV3Pool:
             Whether to reverse the tokens in the price.  The sqrt_price represents the
             :math:`\\frac{ Token 1 }{ Token 0}`.  If reverse_tokens is True, the price will be represented as
             :math:`\\frac{ Token 0 }{ Token 1}`.
-        :param string_description:
-            If True, returns a string description of the price in the Format: [WETH: 3,456.23 USDC].
-            Otherwise, returns a float.
+
         """
         sqrt_price = self.math.tick_math.get_sqrt_ratio_at_tick(tick)
-        return self.get_price_at_sqrt_ratio(
-            sqrt_price, reverse_tokens, string_description
-        )
+        return self.get_price_at_sqrt_ratio(sqrt_price, reverse_tokens)
 
     def __repr__(self):
         return (
@@ -338,6 +420,7 @@ class UniswapV3Pool:
         self.logger.info("Json Encoding Pool State")
 
         pool_state_dict = {
+            "init_mode": self.init_mode,
             "initialization_block": self.initialization_block,
             "block_timestamp": self.block_timestamp,
             "block_number": self.block_number,
@@ -370,12 +453,13 @@ class UniswapV3Pool:
         :param pool_factory: Pool Factory
         :return:
         """
-
+        # fmt: off
         pool_factory.pool_pre_init("uniswap_v3")
         pool_params = json.load(file_path)
 
         pool = UniswapV3Pool(factory=pool_factory)
 
+        pool.init_mode = pool_params["init_mode"]
         pool.block_timestamp = pool_params["block_timestamp"]
         pool.block_number = pool_params["block_number"]
         pool.initialization_block = pool_params["initialization_block"]
@@ -384,18 +468,13 @@ class UniswapV3Pool:
 
         pool.immutables = parse_obj_as(PoolImmutables, pool_params["immutables"])
 
-        # TODO: This ERC20Token Initialization can be optimized
-        pool.immutables.token_0 = ERC20Token.from_chain(
-            pool_factory.w3,
-            to_checksum_address(pool_params["immutables"]["token_0"]["address"]),
-        )
-        pool.immutables.token_1 = ERC20Token.from_chain(
-            pool_factory.w3,
-            to_checksum_address(pool_params["immutables"]["token_1"]["address"]),
-        )
+        pool.immutables.token_0 = ERC20Token.from_dict(pool_factory.w3, pool_params["immutables"]["token_0"])
+        pool.immutables.token_1 = ERC20Token.from_dict(pool_factory.w3, pool_params["immutables"]["token_1"])
+
         pool.state = parse_obj_as(PoolState, pool_params["state"])
         pool.slot0 = parse_obj_as(Slot0, pool_params["slot0"])
 
+        # fmt: on
         pool.ticks = {
             int(index): parse_obj_as(Tick, tick)
             for index, tick in pool_params["ticks"].items()
@@ -431,6 +510,7 @@ class UniswapV3Pool:
             conn.commit()
 
         UniswapV3Base.metadata.create_all(bind=sqlalchemy_engine)
+        UniV3EventBase.metadata.create_all(bind=sqlalchemy_engine)
 
     def advance_block(self, blocks: int = 1):
         """
@@ -440,32 +520,46 @@ class UniswapV3Pool:
         self.block_number += blocks
         self.block_timestamp += 12 * blocks
 
+    @chain_translation
     def save_events(
         self,
         event_name: Literal["Mint", "Burn", "Collect", "Swap", "Flash"],
-        chunk_size: Optional[int] = 1000,
+        chunk_size: int = 1_000,
+        from_block: Optional[int] = None,
+        to_block: Optional[int] = None,
     ):
         """
         Saves events of a given type to the database.
 
         :param event_name:
+            Name of Event to save.  Must be one of "Mint", "Burn", "Collect", "Swap", "Flash"
         :param chunk_size:
+            Number of events to save per database commit.  When backfilling Mint, Burn, and Collect events, this value
+            can be set to 10-50k to speed up backfilling.  Swaps are much more frequent, and the chunk size should be
+            set to 5k on average pools, 1k on the largest pools.  Defaults to 1k
+        :param from_block:
+            Block number to start backfilling from.  Defaults to the pool's initialization block
+        :param to_block:
+            Block number to stop backfilling at.  Defaults to the current block number
         """
-        end_block = self.pool_contract.w3.eth.block_number
-        self.logger.info(
-            f"Saving {event_name} events to database up to block {end_block}"
-        )
+        if self.initialization_block is None:
+            raise UniswapV3Revert("Events Cannot be backfilled for Test Pool")
+
         backfill_events(
             contract=self.pool_contract,
             event_name=event_name,
             db_session=self.pool_factory.create_db_session(),
+            db_model=EVENT_MODELS[event_name],
+            model_parsing_func=_parse_uniswap_events,
             logger=self.logger,
-            contract_init_block=self.initialization_block,
+            from_block=from_block if from_block else self.initialization_block,
+            to_block=to_block if to_block else self.pool_factory.w3.eth.block_number,
             chunk_size=chunk_size,
         )
         self.logger.info(f"Finished saving {event_name} events to database")
 
-    def save_position_snapshot(self):
+    @simulation
+    def save_position_snapshot(self) -> None:
         """
         Saves the current state of the pool to the database
 
@@ -496,8 +590,15 @@ class UniswapV3Pool:
                 -position.liquidity,
                 False,
             )
-            token_0_adjusted = self.immutables.token_0.convert_decimals(token_0_value)
-            token_1_adjusted = self.immutables.token_1.convert_decimals(token_1_value)
+            # fmt: off
+            token_0, token_1 = self.immutables.token_0, self.immutables.token_1
+            token_0_adj = token_0.convert_decimals(token_0_value)
+            token_1_adj = token_1.convert_decimals(token_1_value)
+            oracle = self.pool_factory.get_oracle(self.immutables.pool_address)
+
+            token_0_usd = oracle.get_price_at_block(self.block_number, token_0.address) * token_0_adj
+            token_1_usd = oracle.get_price_at_block(self.block_number, token_1.address) * token_1_adj
+            # fmt: on
 
             db_models.append(
                 UniV3PositionLogs(
@@ -506,14 +607,13 @@ class UniswapV3Pool:
                     lp_address=position_key[0],
                     tick_lower=position_key[1],
                     tick_upper=position_key[2],
-                    # TODO Double check or equal conditions
                     currently_active=position_key[1]
                     < self.slot0.tick
                     <= position_key[2],
-                    token_0_value=token_0_adjusted,
-                    token_1_value=token_1_adjusted,
-                    token_0_value_usd=None,  # TODO: Add Pricing queries from swap logs
-                    token_1_value_usd=None,
+                    token_0_value=token_0_adj,
+                    token_1_value=token_1_adj,
+                    token_0_value_usd=token_0_usd,
+                    token_1_value_usd=token_1_usd,
                 )
             )
 
@@ -523,6 +623,7 @@ class UniswapV3Pool:
         db_session.commit()
         db_session.close()
 
+    @simulation
     def get_position_valuation(
         self, lp_address: ChecksumAddress, tick_lower: int, tick_upper: int
     ) -> DataFrame:
@@ -578,6 +679,7 @@ class UniswapV3Pool:
         db_session.close()
         return dataframe
 
+    @simulation
     def get_position_valuations_at_block(
         self, block_number: int
     ) -> Dict[Tuple[ChecksumAddress, int, int], Dict[str, Any]]:
@@ -587,42 +689,47 @@ class UniswapV3Pool:
         :param block_number: block number to query position valuations at.
         :return: Mapping of all positions: (lp_address, tick_lower, tick_upper) -> position_valuation
         """
-        # TODO: If block_number is not in the database, return the <= block_number
         db_session = self.pool_factory.create_db_session()
-        position_valuations = (
-            db_session.query(
-                UniV3PositionLogs.lp_address,
-                UniV3PositionLogs.tick_lower,
-                UniV3PositionLogs.tick_upper,
-                UniV3PositionLogs.token_0_value,
-                UniV3PositionLogs.token_1_value,
-                UniV3PositionLogs.token_0_value_usd,
-                UniV3PositionLogs.token_1_value_usd,
-                UniV3PositionLogs.token_0_value_usd
-                + UniV3PositionLogs.token_1_value_usd,
+        search_block = (
+            db_session.query(UniV3PositionLogs.block_number)
+            .filter(
+                UniV3PositionLogs.block_number <= block_number,
+                UniV3PositionLogs.pool_id == self.immutables.pool_address,
             )
+            .order_by(UniV3PositionLogs.block_number.desc())
+            .first()
+        )
+        if search_block is None:
+            raise UniswapV3Revert(
+                f"No position valuations found at or before block {block_number}"
+            )
+
+        position_valuations = (
+            db_session.query(UniV3PositionLogs)
             .filter(
                 UniV3PositionLogs.pool_id == self.immutables.pool_address,
-                UniV3PositionLogs.block_number == block_number,
+                UniV3PositionLogs.block_number == search_block,
             )
             .all()
         )
         db_session.close()
-        output_dict = {}
-        for position in position_valuations:
-            output_dict.update(
-                {
-                    (to_checksum_address(position[0]), position[1], position[2]): {
-                        "token_0_value": position[3],
-                        "token_1_value": position[4],
-                        "token_0_value_usd": position[5],
-                        "token_1_value_usd": position[6],
-                        "position_value_usd": position[7],
-                    }
-                }
-            )
-        return output_dict
+        return {
+            (
+                to_checksum_address(position.lp_address),
+                position.tick_lower,
+                position.tick_upper,
+            ): {
+                "token_0_value": position.token_0_value,
+                "token_1_value": position.token_1_value,
+                "token_0_value_usd": position.token_0_value_usd,
+                "token_1_value_usd": position.token_1_value_usd,
+                "position_value_usd": position.token_0_value_usd
+                + position.token_1_value_usd,
+            }
+            for position in position_valuations
+        }
 
+    @load_liquidity
     def compute_liquidity_at_price(
         self, reverse_tokens: bool = False, compress: bool = False
     ) -> DataFrame:
@@ -638,7 +745,7 @@ class UniswapV3Pool:
         """
         current_liquidity = 0
         last_liquidity = 1
-        liquidity = {"price": [], "active_liquidity": []}
+        liquidity: Dict[str, List] = {"price": [], "active_liquidity": []}
         for tick_index, tick_data in sorted(
             self.ticks.items(), key=lambda t: int(t[0])
         ):
@@ -663,7 +770,8 @@ class UniswapV3Pool:
         slot_0_start: Slot0,
     ) -> str:
         """Logs a swap to the database"""
-        # TODO: Add batching mode to accommodate pnl simulations
+
+        # Fix Token0, Token1 handling
 
         amount_0_adjusted = amount_out / self.immutables.token_0.decimals
         amount_1_adjusted = amount_in / self.immutables.token_1.decimals
@@ -681,7 +789,7 @@ class UniswapV3Pool:
             pool_end_price=self.get_price_at_sqrt_ratio(self.slot0.sqrt_price),
             fill_price_token_0=amount_1_adjusted / amount_0_adjusted,
             fill_price_token_1=amount_0_adjusted / amount_1_adjusted,
-            fee_token=0,
+            fee_token=self.immutables.token_0.symbol,
             fee_amount=0,
         )
         db_session = self.pool_factory.create_db_session()
@@ -735,7 +843,7 @@ class UniswapV3Pool:
         tick_lower: int,
         tick_upper: int,
         amount: int,
-        committing: Optional[bool] = True,
+        committing: bool = True,
     ) -> Tuple[int, int]:
         """
 
@@ -761,8 +869,14 @@ class UniswapV3Pool:
         position_info.tokens_owed_0 += -amount_0_int
         position_info.tokens_owed_1 += -amount_1_int
 
+        if committing:
+            self.state.balance_0 += amount_0_int
+            self.state.balance_1 += amount_1_int
+
         return amount_0_int, amount_1_int
 
+    # Disable branch & statement checks.  This implementation will be complex regardless
+    # pylint: disable=too-many-locals,too-many-branches,too-many-statements
     def swap(
         self,
         zero_for_one: bool,
@@ -788,7 +902,7 @@ class UniswapV3Pool:
             If False, does not log the swap to the database & returns None.  Default: False
 
         """
-        # pylint: disable=too-many-locals,too-many-branches,too-many-statements
+
         self.logger.debug(
             f"------ Swapping Token {0 if zero_for_one else 1} for Token {1 if zero_for_one else 0} -------"
         )
@@ -820,6 +934,9 @@ class UniswapV3Pool:
 
         slot_0_start = self.slot0.copy()
 
+        # Disable pylint no-member due to SwapState and SwapCache raising false positives
+        # pylint: disable=no-member
+
         swap_cache = SwapCache(
             liquidity_start=self.state.liquidity,
             block_timestamp=self.block_timestamp,
@@ -843,8 +960,7 @@ class UniswapV3Pool:
             protocol_fee=0,
             liquidity=swap_cache.liquidity_start,
         )
-        # Disable pylint no-member due to SwapState and SwapCache raising false positives
-        # pylint: disable=no-member
+
         while (
             state.amount_specified_remaining != 0
             and state.sqrt_price != sqrt_price_limit
@@ -1023,7 +1139,6 @@ class UniswapV3Pool:
                 amount_specified - state.amount_specified_remaining,
             )
 
-        # pylint: enable=no-member
         self.logger.debug("--- Swap Complete ---")
         self.logger.debug(f"Token 0 Delta: {amount_0} \t Token 1 Delta: {amount_1}")
         self.logger.debug(f"Current Tick: {self.slot0.tick}")
@@ -1041,6 +1156,8 @@ class UniswapV3Pool:
             )
 
         return None
+
+    # pylint: enable=no-member,too-many-locals,too-many-branches,too-many-statements
 
     # -----------------------------------------------------------------------------------------------------------
     # Internal Uniswap Methods
@@ -1435,7 +1552,6 @@ class UniswapV3Pool:
             position_info, liquidity_delta, fee_growth_inside_0, fee_growth_inside_1
         )
         if committing:
-            # TODO: Clean this up.  Popping unused ticks can be done with update_tick and set_tick
             if liquidity_delta < 0:
                 if flipped_lower:
                     self.ticks.pop(tick_lower)

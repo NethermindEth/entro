@@ -1,6 +1,7 @@
 from decimal import Decimal
 from logging import Logger
 from math import ceil, floor
+from typing import Optional, Tuple
 
 from pydantic import BaseModel
 
@@ -21,8 +22,6 @@ class SwapComputation(BaseModel):
 
 # pylint: disable=missing-function-docstring
 
-# TODO: Document Math Module
-
 
 def overflow_check(number, max_value):
     if number >= max_value:
@@ -31,7 +30,7 @@ def overflow_check(number, max_value):
     return number
 
 
-def input_check(tick: int = None, sqrt_price: float = None):
+def input_check(tick: Optional[int] = None, sqrt_price: Optional[float] = None):
     if tick:
         if tick > TickMathModule.MAX_TICK or tick < TickMathModule.MIN_TICK:
             raise UniswapV3Revert(f"Tick Index out of Bounds: {tick}")
@@ -61,6 +60,15 @@ class UniswapV3SwapMath(TranslatedMathModule):
     UINT_160_MAX = 2**160 - 1
     UINT_256_MAX = 2**256 - 1
 
+    FEES_TO_TICK_SPACINGS = {
+        100: 1,
+        500: 10,
+        3000: 60,
+        10000: 200,
+    }
+
+    TICK_SPACINGS_TO_FEES = {v: k for k, v in FEES_TO_TICK_SPACINGS.items()}
+
     def __new__(cls, factory):
         cls.factory = factory
         cls.full_math = factory._get_math_module("FullMathModule")
@@ -76,6 +84,51 @@ class UniswapV3SwapMath(TranslatedMathModule):
             raise UniswapV3Revert("tick_lower must be greater than MIN_TICK")
         if tick_upper > TickMathModule.MAX_TICK:
             raise UniswapV3Revert("tick_upper must be less than MAX_TICK")
+
+    @classmethod
+    def check_sqrt_price(cls, sqrt_price: int):
+        if (
+            not SqrtPriceMathModule.MIN_SQRT_RATIO
+            < sqrt_price
+            < SqrtPriceMathModule.MAX_SQRT_RATIO
+        ):
+            raise UniswapV3Revert(
+                "sqrt_price must be between MIN_SQRT_RATIO and MAX_SQRT_RATIO"
+            )
+
+    @classmethod
+    def get_fee_and_spacing(cls, init_kwargs: dict) -> Tuple[int, int]:
+        provided_fee = init_kwargs.get("fee")
+        provided_spacing = init_kwargs.get("tick_spacing")
+
+        if provided_fee is None and provided_spacing is None:
+            return 3000, 60
+
+        if (
+            provided_fee is None
+            and provided_spacing is not None
+            and cls.TICK_SPACINGS_TO_FEES.get(provided_spacing) is not None
+        ):
+            return cls.TICK_SPACINGS_TO_FEES[provided_spacing], provided_spacing
+
+        if (
+            provided_fee is not None
+            and provided_spacing is None
+            and cls.FEES_TO_TICK_SPACINGS.get(provided_fee) is not None
+        ):
+            return provided_fee, cls.FEES_TO_TICK_SPACINGS[provided_fee]
+
+        if provided_fee is not None and provided_spacing is not None:
+            cls.factory.logger.warning(
+                f"Tick spacing & Fee were both specified, but do not match typical values"
+                f"\tFee: {provided_fee}, Tick Spacing: {provided_spacing}"
+            )
+            return provided_fee, provided_spacing
+
+        raise UniswapV3Revert(
+            "Nonstandard tick spacing or fee provided. Please provide a standard value, "
+            "or both tick_spacing and fee when using nonstandard values"
+        )
 
     @classmethod
     def get_max_liquidity_per_tick(cls, tick_spacing: int) -> int:

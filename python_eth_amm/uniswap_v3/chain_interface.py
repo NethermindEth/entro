@@ -1,29 +1,23 @@
 from logging import Logger
 from math import ceil, floor
-from typing import Dict, List, Literal, Optional, Tuple, Union
+from typing import Dict, List, Tuple, Union
 
 from eth_abi.packed import encode_packed
 from eth_typing import ChecksumAddress
-from eth_utils import keccak, to_checksum_address
+from eth_utils import keccak
+from eth_utils import to_checksum_address as tca
 from sqlalchemy import tuple_
 from sqlalchemy.orm import Session
 from tqdm import tqdm
 from web3 import Web3
 from web3.contract import Contract
-from web3.contract.contract import EventData
 from web3.exceptions import BadFunctionCallOutput
 
 from python_eth_amm.base.token import ERC20Token
+from python_eth_amm.events import backfill_events
 from python_eth_amm.exceptions import UniswapV3Revert
-from python_eth_amm.lib.math import TickMathModule, UniswapV3SwapMath
-from python_eth_amm.uniswap_v3.schema import (
-    UniswapV3BurnEventsModel,
-    UniswapV3CollectEventsModel,
-    UniswapV3Events,
-    UniswapV3FlashEventsModel,
-    UniswapV3MintEventsModel,
-    UniswapV3SwapEventsModel,
-)
+from python_eth_amm.math import TickMathModule, UniswapV3SwapMath
+from python_eth_amm.uniswap_v3.db import UniV3MintEvent, _parse_uniswap_events
 from python_eth_amm.uniswap_v3.types import (
     OracleObservation,
     PoolImmutables,
@@ -33,13 +27,7 @@ from python_eth_amm.uniswap_v3.types import (
     Tick,
 )
 
-MODEL_MAPPING = {
-    "Mint": UniswapV3MintEventsModel,
-    "Burn": UniswapV3BurnEventsModel,
-    "Collect": UniswapV3CollectEventsModel,
-    "Swap": UniswapV3SwapEventsModel,
-    "Flash": UniswapV3FlashEventsModel,
-}
+# pylint: disable=invalid-name
 
 
 def fetch_initialization_block(contract: Contract) -> int:
@@ -52,63 +40,23 @@ def fetch_initialization_block(contract: Contract) -> int:
     return initialize_log[0]["blockNumber"]
 
 
-def fetch_pool_state(
-    w3: Web3,  # pylint: disable=invalid-name
+def fetch_pool_immutables(
+    w3: Web3,
     contract: Contract,
     logger: Logger,
-    at_block: Union[int, str] = "latest",
-) -> Tuple[PoolImmutables, PoolState]:
-    """Fetches the PoolImmutables, and then the PoolState at a given block"""
+) -> PoolImmutables:
+    """Fetches Immutable Parameters for a V3 Pool"""
+    token_0 = ERC20Token.from_chain(w3, tca(contract.functions.token0().call()))
+    token_1 = ERC20Token.from_chain(w3, tca(contract.functions.token1().call()))
+    fee = contract.functions.fee().call()
+    tick_spacing = contract.functions.tickSpacing().call()
 
-    # pylint: disable=too-many-locals
-    try:
-        token_0 = ERC20Token.from_chain(
-            w3,
-            to_checksum_address(contract.functions.token0().call()),
-        )
-        token_1 = ERC20Token.from_chain(
-            w3,
-            to_checksum_address(contract.functions.token1().call()),
-        )
-        fee = contract.functions.fee().call()
-        tick_spacing = contract.functions.tickSpacing().call()
+    logger.info("Queried Pool Immutables ------------------")
+    logger.info(f"\tToken 0:  {token_0.name}\t\tDecimals: {token_0.decimals}")
+    logger.info(f"\tToken 1:  {token_1.name}\t\tDecimals: {token_1.decimals}")
+    logger.info(f"\tPool Fee: {fee}\tQueried Tick Spacing: {tick_spacing}")
 
-        # Stateful Metrics
-        balance_0 = token_0.contract.functions.balanceOf(contract.address).call(
-            block_identifier=at_block
-        )
-        balance_1 = token_1.contract.functions.balanceOf(contract.address).call(
-            block_identifier=at_block
-        )
-        liquidity = contract.functions.liquidity().call(block_identifier=at_block)
-        fee_growth_global_0 = contract.functions.feeGrowthGlobal0X128().call(
-            block_identifier=at_block
-        )
-        fee_growth_global_1 = contract.functions.feeGrowthGlobal1X128().call(
-            block_identifier=at_block
-        )
-        prec_0, prec_1 = 10**token_0.decimals, 10**token_1.decimals
-
-        logger.info("Queried Pool Immutables ------------------")
-        logger.info(f"\tToken 0:  {token_0.name}\t\tDecimals: {token_0.decimals}")
-        logger.info(f"\tToken 1:  {token_1.name}\t\tDecimals: {token_1.decimals}")
-        logger.info(f"\tPool Fee: {fee}\tQueried Tick Spacing: {tick_spacing}")
-        logger.info("Queried Pool State ------------------")
-        logger.info(
-            f"\t{token_0.symbol} Balance: {balance_0 / prec_0}\t"
-            f"{token_1.symbol} Balance: {balance_1/ prec_1}"
-        )
-        logger.info(f"\tPool Liquidity: {liquidity}")
-        logger.info(
-            f"\tGlobal {token_0.symbol} Fees: {fee_growth_global_0 / prec_0}\t"
-            f"Global {token_1.symbol} Fees: {fee_growth_global_1 / prec_1}"
-        )
-
-    except BadFunctionCallOutput as exc:
-        raise UniswapV3Revert(
-            "Likely querying state prior to pool initialization"
-        ) from exc
-    immutables = PoolImmutables(
+    return PoolImmutables(
         pool_address=contract.address,
         token_0=token_0,
         token_1=token_1,
@@ -118,14 +66,46 @@ def fetch_pool_state(
             tick_spacing
         ),
     )
-    state = PoolState(
-        balance_0=balance_0,
-        balance_1=balance_1,
-        liquidity=liquidity,
-        fee_growth_global_0=fee_growth_global_0,
-        fee_growth_global_1=fee_growth_global_1,
-    )
-    return immutables, state
+
+
+def fetch_pool_state(
+    contract: Contract,
+    token_0: ERC20Token,
+    token_1: ERC20Token,
+    logger: Logger,
+    at_block: Union[int, str] = "latest",
+) -> PoolState:
+    """Fetches the PoolState at a given block"""
+
+    try:
+        # fmt: off
+        balance_0 = token_0.contract.functions.balanceOf(contract.address).call(block_identifier=at_block)
+        balance_1 = token_1.contract.functions.balanceOf(contract.address).call(block_identifier=at_block)
+        liquidity = contract.functions.liquidity().call(block_identifier=at_block)
+        fee_growth_global_0 = contract.functions.feeGrowthGlobal0X128().call(block_identifier=at_block)
+        fee_growth_global_1 = contract.functions.feeGrowthGlobal1X128().call(block_identifier=at_block)
+        prec_0, prec_1 = 10 ** token_0.decimals, 10 ** token_1.decimals
+        logger.info("Queried Pool State ------------------")
+        logger.info(f"\t{token_0.symbol} Balance: {balance_0 / prec_0}\t{token_1.symbol} Balance: {balance_1/ prec_1}")
+        logger.info(f"\tPool Liquidity: {liquidity}")
+        logger.info(
+            f"\tGlobal {token_0.symbol} Fees: {fee_growth_global_0 / prec_0}\t"
+            f"Global {token_1.symbol} Fees: {fee_growth_global_1 / prec_1}"
+        )
+
+        return PoolState(
+            balance_0=balance_0,
+            balance_1=balance_1,
+            liquidity=liquidity,
+            fee_growth_global_0=fee_growth_global_0,
+            fee_growth_global_1=fee_growth_global_1,
+        )
+        # fmt: on
+
+    except BadFunctionCallOutput as exc:
+        raise UniswapV3Revert(
+            "Likely querying state prior to pool initialization"
+        ) from exc
 
 
 def fetch_slot_0(
@@ -158,7 +138,6 @@ def fetch_slot_0(
         observation_cardinality=slot_0[3],
         observation_cardinality_next=slot_0[4],
         fee_protocol=slot_0[5],
-        unlocked=slot_0[6],
     )
 
 
@@ -195,7 +174,6 @@ def fetch_liquidity(
             tick_cumulative_outside=tick_data[4],
             seconds_per_liquidity_outside=tick_data[5],
             seconds_outside=tick_data[6],
-            initialized=True,
         )
     return liquidity_by_tick
 
@@ -231,28 +209,30 @@ def fetch_positions(
         contract=contract,
         event_name="Mint",
         db_session=db_session,
+        db_model=UniV3MintEvent,
+        model_parsing_func=_parse_uniswap_events,
         logger=logger,
-        contract_init_block=initialization_block,
+        from_block=initialization_block,
         to_block=at_block,
         chunk_size=100_000,
     )
 
     position_keys = (
         db_session.query(
-            UniswapV3MintEventsModel.owner,
-            UniswapV3MintEventsModel.tick_lower,
-            UniswapV3MintEventsModel.tick_upper,
+            UniV3MintEvent.owner,
+            UniV3MintEvent.tick_lower,
+            UniV3MintEvent.tick_upper,
         )
         .distinct(
             tuple_(
-                UniswapV3MintEventsModel.owner,
-                UniswapV3MintEventsModel.tick_lower,
-                UniswapV3MintEventsModel.tick_upper,
+                UniV3MintEvent.owner,
+                UniV3MintEvent.tick_lower,
+                UniV3MintEvent.tick_upper,
             )
         )
         .filter(
-            UniswapV3MintEventsModel.contract_address == str(contract.address),
-            UniswapV3MintEventsModel.block_number < at_block,
+            UniV3MintEvent.contract_address == str(contract.address),
+            UniV3MintEvent.block_number < at_block,
         )
         .all()
     )
@@ -260,7 +240,7 @@ def fetch_positions(
     all_positions: Dict[Tuple[ChecksumAddress, int, int], PositionInfo] = {}
 
     for key in tqdm(position_keys, desc="Fetching Position Data"):
-        key = (to_checksum_address(key[0]), key[1], key[2])
+        key = (tca(key[0]), key[1], key[2])
         keccak_key = keccak(encode_packed(["address", "int24", "int24"], key))
 
         position = contract.functions.positions(keccak_key).call(
@@ -317,7 +297,7 @@ def fetch_observations(
 
 
 def _generate_tick_queue(
-    contract: Contract, tick_spacing: int, logger: Logger, at_block: int
+    contract: Contract, tick_spacing: int, logger: Logger, at_block: Union[int, str]
 ) -> List[int]:
     lower_bound_key = floor(TickMathModule.MIN_TICK / (256 * tick_spacing))
     upper_bound_key = ceil(TickMathModule.MAX_TICK / (256 * tick_spacing)) + 1
@@ -352,234 +332,3 @@ def _get_pos_from_bitmap(bitmap: int):
         if k & 1:
             output.append(i)
     return output
-
-
-def _parse_liquidity_events(
-    event: EventData, event_name: Literal["Mint", "Burn", "Collect"]
-) -> Union[
-    UniswapV3MintEventsModel, UniswapV3BurnEventsModel, UniswapV3FlashEventsModel
-]:
-    shared_data = {
-        "block_number": event["blockNumber"],
-        "log_index": event["logIndex"],
-        "transaction_hash": event["transactionHash"],
-        "contract_address": event["address"],
-        "owner": event["args"]["owner"],
-        "tick_lower": event["args"]["tickLower"],
-        "tick_upper": event["args"]["tickUpper"],
-        "amount_0": event["args"]["amount0"],
-        "amount_1": event["args"]["amount1"],
-    }
-    match event_name:
-        case "Mint":
-            return UniswapV3MintEventsModel(
-                sender=event["args"]["sender"],
-                amount=event["args"]["amount"],
-                **shared_data,
-            )
-        case "Burn":
-            return UniswapV3BurnEventsModel(
-                amount=event["args"]["amount"], **shared_data
-            )
-        case "Collect":
-            return UniswapV3CollectEventsModel(
-                recipient=event["args"]["recipient"], **shared_data
-            )
-        case _:
-            raise ValueError(
-                f"Invalid event type {event_name} passed to _parse_liquidity_events"
-            )
-
-
-def _parse_swap_events(
-    event: EventData, event_name: Literal["Swap", "Flash"]
-) -> Union[UniswapV3SwapEventsModel, UniswapV3FlashEventsModel]:
-    shared_data = {
-        "block_number": event["blockNumber"],
-        "log_index": event["logIndex"],
-        "transaction_hash": event["transactionHash"],
-        "contract_address": event["address"],
-        "sender": event["args"]["sender"],
-        "recipient": event["args"]["recipient"],
-        "amount_0": event["args"]["amount0"],
-        "amount_1": event["args"]["amount1"],
-    }
-    match event_name:
-        case "Swap":
-            return UniswapV3SwapEventsModel(
-                sqrt_price=event["args"]["sqrtPriceX96"],
-                liquidity=event["args"]["liquidity"],
-                tick=event["args"]["tick"],
-                **shared_data,
-            )
-        case "Flash":
-            return UniswapV3FlashEventsModel(
-                paid_0=event["args"]["paid0"],
-                paid_1=event["args"]["paid1"],
-                **shared_data,
-            )
-        case _:
-            raise ValueError(
-                f"Invalid event type {event_name} passed to _parse_swap_events"
-            )
-
-
-def _backfill_uniwap_v3_events(
-    contract: Contract,
-    event_name: Literal["Mint", "Burn", "Collect", "Swap", "Flash"],
-    db_session: Session,
-    logger: Logger,
-    start_block: int,
-    end_block: int,
-):
-    logger.info(f"Querying {event_name} events between {start_block} and {end_block}")
-    events = contract.events[event_name].get_logs(
-        fromBlock=start_block, toBlock=end_block
-    )
-
-    db_events = []
-
-    for event in events:
-        match event_name:
-            case "Mint" | "Burn" | "Collect":
-                db_events.append(_parse_liquidity_events(event, event_name))
-            case "Swap" | "Flash":
-                db_events.append(_parse_swap_events(event, event_name))
-
-    db_session.bulk_save_objects(db_events)
-    db_session.commit()
-    logger.info(f"Saved {len(db_events)} {event_name} events to DB")
-    db_session.close()
-
-
-def _get_last_backfilled_block(
-    db_session: Session, pool_address: ChecksumAddress, event_name: str
-) -> Optional[int]:
-    last_db_block = (
-        db_session.query(MODEL_MAPPING[event_name])
-        .filter(MODEL_MAPPING[event_name].contract_address == str(pool_address))
-        .order_by(MODEL_MAPPING[event_name].block_number.desc())
-        .limit(1)
-        .scalar()
-    )
-    if last_db_block:
-        return last_db_block.block_number
-    return None
-
-
-def backfill_events(
-    contract: Contract,
-    event_name: str,
-    db_session: Session,
-    logger: Logger,
-    contract_init_block: Optional[int] = 0,
-    from_block: Optional[int] = None,
-    to_block: Optional[int] = None,
-    chunk_size: Optional[int] = 10_000,
-):
-    """
-    Backfill events from a contract between two blocks.
-    :param contract: web3.eth.contract object that events are fetched from
-    :param event_name: Name of the Event to backfill
-    :param db_session: sqlalchemy session object
-    :param logger: Logger object
-    :param contract_init_block: Initialization block of the contract.  Used to speed up query process
-    :param from_block: First block to query
-    :param to_block: end block to query
-    :param chunk_size:
-        Number of blocks to query at a time.  For frequent events like Transfer or Approve, this should be 1k-5k.
-        For semi-frequent events like Swaps, 10k usually works well.  Infrequent events on smaller contracts
-        can be queried in 100k block batches.
-    """
-
-    if from_block is None:
-        last_db_block = _get_last_backfilled_block(
-            db_session, contract.address, event_name
-        )
-        from_block = last_db_block + 1 if last_db_block else contract_init_block
-
-    if to_block is None:
-        to_block = contract.w3.eth.block_number
-
-    if to_block < from_block:
-        logger.info("Data Already Backfilled, continuing")
-        return
-
-    logger.info(
-        f"Backfilling {event_name} events from chain between blocks {from_block} and {to_block}"
-    )
-
-    for block_num in tqdm(
-        range(from_block, to_block, chunk_size), f"Backfilling {event_name} Events"
-    ):
-        _backfill_uniwap_v3_events(
-            contract=contract,
-            event_name=event_name,
-            db_session=db_session,
-            logger=logger,
-            start_block=block_num,
-            end_block=block_num + chunk_size - 1,
-        )
-
-
-def get_events(
-    contract: Contract,
-    db_session: Session,
-    event_name: str,
-    from_block: int,
-    to_block: int,
-    logger: Logger,
-    chunk_size: Optional[int] = 10_000,
-) -> List[UniswapV3Events]:
-    """
-    Get events from a contract between two blocks.  First checks the database session for events, and if they
-    do not exist, runs an event backfill before returning the data.
-    :param contract: web3.eth.contract object that events are fetched from
-    :param db_session: sqlalchemy session object
-    :param event_name: name of Event
-    :param from_block: starting block for event query
-    :param to_block: end block for event query
-    :param logger: Logger object
-    :param chunk_size: Number of blocks to backfill at a time if events are not found in the database
-    :return:
-    """
-    logger.info(f"Fetching {event_name} Events from {from_block} to {to_block}")
-    last_block = _get_last_backfilled_block(
-        db_session=db_session, pool_address=contract.address, event_name=event_name
-    )
-    logger.info(f"Last block in DB: {last_block}")
-    if last_block and to_block <= last_block:
-        logger.info("Events already saved to DB, loading from sqlalchemy")
-        return (
-            db_session.query(MODEL_MAPPING[event_name])
-            .filter(
-                MODEL_MAPPING[event_name].contract_address == str(contract.address),
-                MODEL_MAPPING[event_name].block_number >= from_block,
-                MODEL_MAPPING[event_name].block_number <= to_block,
-            )
-            .all()
-        )
-
-    if last_block:
-        from_block = last_block + 1
-
-    backfill_events(
-        contract=contract,
-        event_name=event_name,
-        db_session=db_session,
-        logger=logger,
-        from_block=from_block,
-        to_block=to_block,
-        chunk_size=chunk_size,
-        contract_init_block=from_block,
-    )
-
-    return (
-        db_session.query(MODEL_MAPPING[event_name])
-        .filter(
-            MODEL_MAPPING[event_name].contract_address == str(contract.address),
-            MODEL_MAPPING[event_name].block_number >= from_block,
-            MODEL_MAPPING[event_name].block_number <= to_block,
-        )
-        .all()
-    )
