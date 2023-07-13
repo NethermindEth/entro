@@ -95,10 +95,10 @@ class PoolFactory:
         self._initialized_classes = []
 
         if exact_math:
-            # pylint: disable=import-outside-toplevel,no-name-in-module
+            # pylint: disable=import-outside-toplevel,no-name-in-module,import-error
             from pyrevm import EVM  # type: ignore[attr-defined]
 
-            # pylint: enable=import-outside-toplevel,no-name-in-module
+            # pylint: enable=import-outside-toplevel,no-name-in-module,import-error
 
             getcontext().prec = 80
 
@@ -141,10 +141,10 @@ class PoolFactory:
                         self.logger.info(
                             "Exact Math Mode Enabled.  Deploying Uniswap V3 Math Modules to EVM."
                         )
-                        # pylint: disable=import-outside-toplevel,no-name-in-module
+                        # pylint: disable=import-outside-toplevel,no-name-in-module,import-error
                         from pyrevm import AccountInfo  # type: ignore[attr-defined]
 
-                        # pylint: enable=import-outside-toplevel,no-name-in-module
+                        # pylint: enable=import-outside-toplevel,no-name-in-module,import-error
 
                         for name, model in exact_math_modules.items():
                             deploy_address, deploy_bin = model.deploy_params()
