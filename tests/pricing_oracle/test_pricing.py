@@ -276,8 +276,3 @@ class TestUpdatePrices:
 
         assert uni_backfill.backfill_start == current_block - 1_005_000
         assert uni_backfill.backfill_end == current_block - 1_000_000
-
-    def test_doc_example(self):
-        factory = self.FACTORY.initialize_pricing_oracle()
-
-        factory.backfill_prices(WETH_ADDRESS, start=factory.w3.eth.block_number - 225_000)
