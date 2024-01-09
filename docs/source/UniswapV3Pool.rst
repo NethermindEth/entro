@@ -14,7 +14,7 @@ Creating Uniswap V3 Pools
 
 .. code-block:: python
 
-    from python_eth_amm import PoolFactory
+    from python_eth_amm.base import PoolFactory
 
     factory = PoolFactory(w3='https://', sqlalchemy_url='postgresql:db_uri')
 

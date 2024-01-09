@@ -7,6 +7,38 @@ class ArchivalNodeRequired(Exception):
     """
 
 
+class BackfillError(Exception):
+    """
+
+    Raised when issues occur with backfilling data
+
+    """
+
+
+class BackfillRateLimitError(BackfillError):
+    """Raised when gateway rate limits are implmented by the remote host"""
+
+
+class BackfillHostError(BackfillError):
+    """Raised when the remote host returns error, fails to provide correct data, or when timeout occurs"""
+
+
+class DatabaseError(Exception):
+    """
+
+    Raised when issues occur with database operations
+
+    """
+
+
+class DecodingError(Exception):
+    """
+
+    Raised when issues occur with input decoding during data backfills
+
+    """
+
+
 class UniswapV3Revert(Exception):
     """
     Uniswap V3 Revert Exception is thrown when a pool action causes behavior that would throw a revert on-chain.

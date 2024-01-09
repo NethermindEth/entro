@@ -13,7 +13,6 @@ __pycache__
 
 # environments
 env/
-
 pyrevm/
 
 # Documentation:
@@ -21,3 +20,6 @@ docs/build/
 _autosummary/
 _build/
 html/
+
+# Dist Files
+dist/

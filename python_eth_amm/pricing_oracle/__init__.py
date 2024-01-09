@@ -1,1 +1,1 @@
-from .main import PricingOracle
+from .main import PriceOracle

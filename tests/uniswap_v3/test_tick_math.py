@@ -1,91 +1,98 @@
-import logging
 import math
-import os
 
 import pytest
 
-from python_eth_amm import PoolFactory
 from python_eth_amm.exceptions import TickMathRevert, UniswapV3Revert
-from python_eth_amm.math import TickMathModule
+from python_eth_amm.types.uniswap_v3 import Tick
 from python_eth_amm.uniswap_v3 import UniswapV3Pool
-from python_eth_amm.uniswap_v3.types import Tick
+from python_eth_amm.uniswap_v3.math import UniswapV3Math
+from python_eth_amm.uniswap_v3.math.shared import (
+    MAX_SQRT_RATIO,
+    MAX_TICK,
+    MIN_SQRT_RATIO,
+    MIN_TICK,
+)
 
 from ..utils import uint_max
 from .utils import encode_sqrt_price
 
-TICK_MATH_FACTORY = PoolFactory(
-    exact_math=True,
-    logger=logging.Logger("test"),
-    sqlalchemy_uri=os.environ["SQLALCHEMY_DB_URI"],
-)
+UniV3Math = UniswapV3Math.__new__(UniswapV3Math)
+UniV3Math.initialize_exact_math()
 
 
 class TestTickSpacingToMaxLiquidityPerTick:
-    def test_returns_correct_value_for_low_fee(self, initialize_empty_pool):
-        pool = initialize_empty_pool(pool_factory=TICK_MATH_FACTORY)
+    def test_returns_correct_value_for_low_fee(
+        self,
+    ):
         assert (
-            pool.math.get_max_liquidity_per_tick(10)
+            UniV3Math.get_max_liquidity_per_tick(10)
             == 1917569901783203986719870431555990
         )
 
-    def test_returns_correct_value_for_medium_fee(self, initialize_empty_pool):
-        pool = initialize_empty_pool(pool_factory=TICK_MATH_FACTORY)
+    def test_returns_correct_value_for_medium_fee(
+        self,
+    ):
         assert (
-            pool.math.get_max_liquidity_per_tick(60)
+            UniV3Math.get_max_liquidity_per_tick(60)
             == 11505743598341114571880798222544994
         )
 
-    def test_returns_correct_value_for_high_fee(self, initialize_empty_pool):
-        pool = initialize_empty_pool(pool_factory=TICK_MATH_FACTORY)
+    def test_returns_correct_value_for_high_fee(
+        self,
+    ):
         assert (
-            pool.math.get_max_liquidity_per_tick(200)
+            UniV3Math.get_max_liquidity_per_tick(200)
             == 38350317471085141830651933667504588
         )
 
-    def test_returns_correct_value_for_full_range(self, initialize_empty_pool):
-        pool = initialize_empty_pool(pool_factory=TICK_MATH_FACTORY)
+    def test_returns_correct_value_for_full_range(
+        self,
+    ):
         assert (
-            pool.math.get_max_liquidity_per_tick(887272)
+            UniV3Math.get_max_liquidity_per_tick(887272)
             == 113427455640312821154458202477256070485
         )
 
-    def test_returns_correct_value_for_2032(self, initialize_empty_pool):
-        pool = initialize_empty_pool(pool_factory=TICK_MATH_FACTORY)
+    def test_returns_correct_value_for_2032(
+        self,
+    ):
         assert (
-            pool.math.get_max_liquidity_per_tick(2302)
+            UniV3Math.get_max_liquidity_per_tick(2302)
             == 441351967472034323558203122479595605
         )
 
 
 class TestGetFeeGrowthInside:
     def test_returns_all_for_two_uninitialized_ticks_if_tick_is_inside(
-        self, initialize_empty_pool
+        self,
     ):
-        pool = initialize_empty_pool(pool_factory=TICK_MATH_FACTORY)
+        pool = UniswapV3Pool()
         growth_inside_0, growth_inside_1 = pool._get_fee_growth_inside(-2, 2, 0, 15, 15)
         assert growth_inside_0 == 15
         assert growth_inside_1 == 15
 
     def test_returns_zero_for_two_uninitialized_ticks_if_tick_is_above(
-        self, initialize_empty_pool
+        self,
     ):
-        pool = initialize_empty_pool(pool_factory=TICK_MATH_FACTORY)
+        pool = UniswapV3Pool()
         growth_inside_0, growth_inside_1 = pool._get_fee_growth_inside(-2, 2, 4, 15, 15)
         assert growth_inside_0 == 0
         assert growth_inside_1 == 0
 
     def test_returns_zero_for_two_uninitialized_ticks_if_tick_is_below(
-        self, initialize_empty_pool
+        self,
     ):
-        pool = initialize_empty_pool(pool_factory=TICK_MATH_FACTORY)
+        pool = UniswapV3Pool()
         growth_inside_0, growth_inside_1 = pool._get_fee_growth_inside(
             -2, 2, -4, 15, 15
         )
         assert growth_inside_0 == 0
         assert growth_inside_1 == 0
 
-    def test_subtracts_upper_tick_if_below(self, initialize_empty_pool):
-        pool = initialize_empty_pool(pool_factory=TICK_MATH_FACTORY)
+    def test_subtracts_upper_tick_if_below(
+        self,
+    ):
+        pool = UniswapV3Pool()
         tick_data = Tick(
             liquidity_gross=0,
             liquidity_net=0,
@@ -101,8 +108,10 @@ class TestGetFeeGrowthInside:
         assert growth_inside == 13
         assert growth_outside == 12
 
-    def test_subtracts_lower_tick_if_above(self, initialize_empty_pool):
-        pool = initialize_empty_pool(pool_factory=TICK_MATH_FACTORY)
+    def test_subtracts_lower_tick_if_above(
+        self,
+    ):
+        pool = UniswapV3Pool()
         tick_data = Tick(
             liquidity_gross=0,
             liquidity_net=0,
@@ -118,8 +127,10 @@ class TestGetFeeGrowthInside:
         assert growth_inside_0 == 13
         assert growth_inside_1 == 12
 
-    def test_subtracts_lower_tick_if_inside(self, initialize_empty_pool):
-        pool = initialize_empty_pool(pool_factory=TICK_MATH_FACTORY)
+    def test_subtracts_lower_tick_if_inside(
+        self,
+    ):
+        pool = UniswapV3Pool()
         lower_tick_data = Tick(
             liquidity_gross=0,
             liquidity_net=0,
@@ -145,8 +156,10 @@ class TestGetFeeGrowthInside:
         assert growth_inside_0 == 9
         assert growth_inside_1 == 11
 
-    def test_overflow_with_inside_tick(self, initialize_empty_pool):
-        pool = initialize_empty_pool(pool_factory=TICK_MATH_FACTORY)
+    def test_overflow_with_inside_tick(
+        self,
+    ):
+        pool = UniswapV3Pool()
         lower_tick_data = Tick(
             liquidity_gross=0,
             liquidity_net=0,
@@ -184,8 +197,10 @@ class TestUpdateTick:
         "time": 0,
     }
 
-    def test_flips_from_zero_to_nonzero(self, initialize_empty_pool):
-        pool = initialize_empty_pool(pool_factory=TICK_MATH_FACTORY)
+    def test_flips_from_zero_to_nonzero(
+        self,
+    ):
+        pool = UniswapV3Pool()
         assert (
             pool._update_tick(
                 liquidity_delta=1, upper=False, max_liquidity=3, **self.ZERO_PARAMS
@@ -193,8 +208,10 @@ class TestUpdateTick:
             == True
         )
 
-    def test_does_not_flip_from_nonzero_to_greater_nonzero(self, initialize_empty_pool):
-        pool = initialize_empty_pool(pool_factory=TICK_MATH_FACTORY)
+    def test_does_not_flip_from_nonzero_to_greater_nonzero(
+        self,
+    ):
+        pool = UniswapV3Pool()
         pool._update_tick(
             liquidity_delta=1, upper=False, max_liquidity=3, **self.ZERO_PARAMS
         )
@@ -205,8 +222,10 @@ class TestUpdateTick:
             == False
         )
 
-    def test_flips_from_non_zero_to_zero(self, initialize_empty_pool):
-        pool = initialize_empty_pool(pool_factory=TICK_MATH_FACTORY)
+    def test_flips_from_non_zero_to_zero(
+        self,
+    ):
+        pool = UniswapV3Pool()
         pool._update_tick(
             liquidity_delta=1, upper=False, max_liquidity=3, **self.ZERO_PARAMS
         )
@@ -217,8 +236,10 @@ class TestUpdateTick:
             == True
         )
 
-    def test_does_not_flip_from_non_zero_to_negative(self, initialize_empty_pool):
-        pool = initialize_empty_pool(pool_factory=TICK_MATH_FACTORY)
+    def test_does_not_flip_from_non_zero_to_negative(
+        self,
+    ):
+        pool = UniswapV3Pool()
         pool._update_tick(
             liquidity_delta=2, upper=False, max_liquidity=3, **self.ZERO_PARAMS
         )
@@ -230,9 +251,9 @@ class TestUpdateTick:
         )
 
     def test_reverts_if_total_liquidity_gross_is_greater_than_max(
-        self, initialize_empty_pool
+        self,
     ):
-        pool = initialize_empty_pool(pool_factory=TICK_MATH_FACTORY)
+        pool = UniswapV3Pool()
         pool._update_tick(
             liquidity_delta=2, upper=False, max_liquidity=3, **self.ZERO_PARAMS
         )
@@ -244,8 +265,10 @@ class TestUpdateTick:
                 liquidity_delta=1, upper=False, max_liquidity=3, **self.ZERO_PARAMS
             )
 
-    def test_nets_the_liquidity_based_on_upper_flag(self, initialize_empty_pool):
-        pool = initialize_empty_pool(pool_factory=TICK_MATH_FACTORY)
+    def test_nets_the_liquidity_based_on_upper_flag(
+        self,
+    ):
+        pool = UniswapV3Pool()
         pool._update_tick(
             liquidity_delta=2, upper=False, max_liquidity=10, **self.ZERO_PARAMS
         )
@@ -262,8 +285,10 @@ class TestUpdateTick:
         assert tick.liquidity_gross == 2 + 1 + 3 + 1
         assert tick.liquidity_net == 2 - 1 - 3 + 1
 
-    def test_reverts_on_overflow_liqidity_gross(self, initialize_empty_pool):
-        pool = initialize_empty_pool(pool_factory=TICK_MATH_FACTORY)
+    def test_reverts_on_overflow_liqidity_gross(
+        self,
+    ):
+        pool = UniswapV3Pool()
         pool._update_tick(
             liquidity_delta=(uint_max(128) / 2) - 1,
             upper=False,
@@ -279,9 +304,9 @@ class TestUpdateTick:
             )
 
     def test_assumes_all_growth_happens_below_ticks_lte_current_tick(
-        self, initialize_empty_pool
+        self,
     ):
-        pool = initialize_empty_pool(pool_factory=TICK_MATH_FACTORY)
+        pool = UniswapV3Pool()
         pool._update_tick(
             tick=1,
             tick_current=1,
@@ -303,9 +328,9 @@ class TestUpdateTick:
         assert tick.seconds_outside == 5
 
     def test_does_not_set_growth_fields_if_tick_is_already_initialized(
-        self, initialize_empty_pool
+        self,
     ):
-        pool = initialize_empty_pool(pool_factory=TICK_MATH_FACTORY)
+        pool = UniswapV3Pool()
         pool._update_tick(
             tick=1,
             tick_current=1,
@@ -340,9 +365,9 @@ class TestUpdateTick:
         assert tick.seconds_outside == 5
 
     def test_does_not_set_any_growth_fields_for_ticks_gt_current_tick(
-        self, initialize_empty_pool
+        self,
     ):
-        pool = initialize_empty_pool(pool_factory=TICK_MATH_FACTORY)
+        pool = UniswapV3Pool()
         pool._update_tick(
             tick=2,
             tick_current=1,
@@ -365,8 +390,8 @@ class TestUpdateTick:
         assert tick.seconds_outside == 0
 
 
-def test_clear_tick_deletes_all_tick_data(initialize_empty_pool):
-    pool = initialize_empty_pool(pool_factory=TICK_MATH_FACTORY)
+def test_clear_tick_deletes_all_tick_data():
+    pool = UniswapV3Pool()
     tick_data = Tick(
         liquidity_gross=3,
         liquidity_net=4,
@@ -382,8 +407,8 @@ def test_clear_tick_deletes_all_tick_data(initialize_empty_pool):
     assert tick is None
 
 
-def test_cross_tick_flips_growth_variable(initialize_empty_pool):
-    pool = initialize_empty_pool(pool_factory=TICK_MATH_FACTORY)
+def test_cross_tick_flips_growth_variable():
+    pool = UniswapV3Pool()
     tick_data = Tick(
         liquidity_gross=3,
         liquidity_net=4,
@@ -411,8 +436,8 @@ def test_cross_tick_flips_growth_variable(initialize_empty_pool):
     assert tick.seconds_outside == 3
 
 
-def test_duplicate_cross_tick(initialize_empty_pool):
-    pool = initialize_empty_pool(pool_factory=TICK_MATH_FACTORY)
+def test_duplicate_cross_tick():
+    pool = UniswapV3Pool()
     tick_data = Tick(
         liquidity_gross=3,
         liquidity_net=4,
@@ -452,58 +477,65 @@ class TestGetSQRTRatioAtTick:
     MIN_TICK = -887272
     MAX_TICK = 887272
 
-    def test_raises_for_low_ticks(self, initialize_empty_pool):
-        pool = initialize_empty_pool(pool_factory=TICK_MATH_FACTORY)
+    def test_raises_for_low_ticks(
+        self,
+    ):
         with pytest.raises(TickMathRevert):
-            pool.math.tick_math.get_sqrt_ratio_at_tick(
-                self.MIN_TICK - 1, exact_rounding=True
+            UniV3Math.tick_math.get_sqrt_ratio_at_tick(
+                self.MIN_TICK - 1,
             )
 
-    def test_raises_for_high_ticks(self, initialize_empty_pool):
-        pool = initialize_empty_pool(pool_factory=TICK_MATH_FACTORY)
+    def test_raises_for_high_ticks(
+        self,
+    ):
         with pytest.raises(TickMathRevert):
-            pool.math.tick_math.get_sqrt_ratio_at_tick(
-                self.MAX_TICK + 1, exact_rounding=True
+            UniV3Math.tick_math.get_sqrt_ratio_at_tick(
+                self.MAX_TICK + 1,
             )
 
-    def test_min_tick(self, initialize_empty_pool):
-        pool = initialize_empty_pool(pool_factory=TICK_MATH_FACTORY)
+    def test_min_tick(
+        self,
+    ):
         assert (
-            pool.math.tick_math.get_sqrt_ratio_at_tick(
-                self.MIN_TICK, exact_rounding=True
+            UniV3Math.tick_math.get_sqrt_ratio_at_tick(
+                self.MIN_TICK,
             )
             == 4295128739
         )
 
-    def test_min_tick_plus_1(self, initialize_empty_pool):
-        pool = initialize_empty_pool(pool_factory=TICK_MATH_FACTORY)
+    def test_min_tick_plus_1(
+        self,
+    ):
         assert (
-            pool.math.tick_math.get_sqrt_ratio_at_tick(
-                self.MIN_TICK + 1, exact_rounding=True
+            UniV3Math.tick_math.get_sqrt_ratio_at_tick(
+                self.MIN_TICK + 1,
             )
             == 4295343490
         )
 
-    def test_max_tick_minus_1(self, initialize_empty_pool):
-        pool = initialize_empty_pool(pool_factory=TICK_MATH_FACTORY)
+    def test_max_tick_minus_1(
+        self,
+    ):
         assert (
-            pool.math.tick_math.get_sqrt_ratio_at_tick(
-                self.MAX_TICK - 1, exact_rounding=True
+            UniV3Math.tick_math.get_sqrt_ratio_at_tick(
+                self.MAX_TICK - 1,
             )
             == 1461373636630004318706518188784493106690254656249
         )
 
-    def test_max_tick(self, initialize_empty_pool):
-        pool = initialize_empty_pool(pool_factory=TICK_MATH_FACTORY)
+    def test_max_tick(
+        self,
+    ):
         assert (
-            pool.math.tick_math.get_sqrt_ratio_at_tick(
-                self.MAX_TICK, exact_rounding=True
+            UniV3Math.tick_math.get_sqrt_ratio_at_tick(
+                self.MAX_TICK,
             )
             == 1461446703485210103287273052203988822378723970342
         )
 
-    def test_implementation(self, initialize_empty_pool):
-        pool = initialize_empty_pool(pool_factory=TICK_MATH_FACTORY)
+    def test_implementation(
+        self,
+    ):
         for tick in [
             50,
             100,
@@ -520,89 +552,97 @@ class TestGetSQRTRatioAtTick:
             500000,
             738203,
         ]:
-            uni_lib_value = pool.math.tick_math.get_sqrt_ratio_at_tick(
-                tick, exact_rounding=True
+            uni_lib_value = UniV3Math.tick_math.get_sqrt_ratio_at_tick(
+                tick,
             )
             python_val = math.sqrt(1.0001**tick) * 2**96
             assert (
                 abs(uni_lib_value - python_val) / uni_lib_value < 0.000001
             )  # 1/100th of a bip
 
-    def test_min_sqrt_ratio(self, initialize_empty_pool):
-        pool = initialize_empty_pool(pool_factory=TICK_MATH_FACTORY)
+    def test_min_sqrt_ratio(
+        self,
+    ):
         assert (
-            pool.math.tick_math.get_sqrt_ratio_at_tick(
-                self.MIN_TICK, exact_rounding=True
+            UniV3Math.tick_math.get_sqrt_ratio_at_tick(
+                self.MIN_TICK,
             )
-            == pool.math.tick_math.MIN_SQRT_RATIO
+            == MIN_SQRT_RATIO
         )
 
-    def test_max_sqrt_ratio(self, initialize_empty_pool):
-        pool = initialize_empty_pool(pool_factory=TICK_MATH_FACTORY)
+    def test_max_sqrt_ratio(
+        self,
+    ):
         assert (
-            pool.math.tick_math.get_sqrt_ratio_at_tick(
-                self.MAX_TICK, exact_rounding=True
+            UniV3Math.tick_math.get_sqrt_ratio_at_tick(
+                self.MAX_TICK,
             )
-            == pool.math.tick_math.MAX_SQRT_RATIO
+            == MAX_SQRT_RATIO
         )
 
 
 class TestGetTickAtSQRTRation:
-    MIN_RATIO = TickMathModule.MIN_SQRT_RATIO
-    MAX_RATIO = TickMathModule.MAX_SQRT_RATIO
-
-    def test_raises_for_too_low(self, initialize_empty_pool):
-        pool = initialize_empty_pool(pool_factory=TICK_MATH_FACTORY)
+    def test_raises_for_too_low(
+        self,
+    ):
         with pytest.raises(TickMathRevert):
-            pool.math.tick_math.get_tick_at_sqrt_ratio(
-                self.MIN_RATIO - 1, exact_rounding=True
+            UniV3Math.tick_math.get_tick_at_sqrt_ratio(
+                MIN_SQRT_RATIO - 1,
             )
 
-    def test_raises_for_too_high(self, initialize_empty_pool):
-        pool = initialize_empty_pool(pool_factory=TICK_MATH_FACTORY)
+    def test_raises_for_too_high(
+        self,
+    ):
         with pytest.raises(TickMathRevert):
-            pool.math.tick_math.get_tick_at_sqrt_ratio(
-                self.MAX_RATIO, exact_rounding=True
+            UniV3Math.tick_math.get_tick_at_sqrt_ratio(
+                MAX_SQRT_RATIO,
             )
 
-    def test_ratio_of_min_tick(self, initialize_empty_pool):
-        pool = initialize_empty_pool(pool_factory=TICK_MATH_FACTORY)
+    def test_ratio_of_min_tick(
+        self,
+    ):
         assert (
-            pool.math.tick_math.get_tick_at_sqrt_ratio(
-                self.MIN_RATIO, exact_rounding=True
+            UniV3Math.tick_math.get_tick_at_sqrt_ratio(
+                MIN_SQRT_RATIO,
             )
-            == TickMathModule.MIN_TICK
+            == MIN_TICK
         )
 
-    def test_ratio_of_min_tick_plus_1(self, initialize_empty_pool):
-        pool = initialize_empty_pool(pool_factory=TICK_MATH_FACTORY)
+    def test_ratio_of_min_tick_plus_1(
+        self,
+    ):
         assert (
-            pool.math.tick_math.get_tick_at_sqrt_ratio(4295343490, exact_rounding=True)
-            == TickMathModule.MIN_TICK + 1
-        )
-
-    def test_ratio_of_max_tick_minus_1(self, initialize_empty_pool):
-        pool = initialize_empty_pool(pool_factory=TICK_MATH_FACTORY)
-        assert (
-            pool.math.tick_math.get_tick_at_sqrt_ratio(
-                1461373636630004318706518188784493106690254656249, exact_rounding=True
+            UniV3Math.tick_math.get_tick_at_sqrt_ratio(
+                4295343490,
             )
-            == pool.math.tick_math.MAX_TICK - 1
+            == MIN_TICK + 1
         )
 
-    def test_ratio_of_max_tick_closet_ratio(self, initialize_empty_pool):
-        pool = initialize_empty_pool(pool_factory=TICK_MATH_FACTORY)
+    def test_ratio_of_max_tick_minus_1(
+        self,
+    ):
         assert (
-            pool.math.tick_math.get_tick_at_sqrt_ratio(
-                self.MAX_RATIO - 1, exact_rounding=True
+            UniV3Math.tick_math.get_tick_at_sqrt_ratio(
+                1461373636630004318706518188784493106690254656249,
             )
-            == pool.math.tick_math.MAX_TICK - 1
+            == MAX_TICK - 1
         )
 
-    def test_implementation(self, initialize_empty_pool):
-        pool = initialize_empty_pool(pool_factory=TICK_MATH_FACTORY)
+    def test_ratio_of_max_tick_closet_ratio(
+        self,
+    ):
+        assert (
+            UniV3Math.tick_math.get_tick_at_sqrt_ratio(
+                MAX_SQRT_RATIO - 1,
+            )
+            == MAX_TICK - 1
+        )
+
+    def test_implementation(
+        self,
+    ):
         for ratio in [
-            self.MIN_RATIO,
+            MIN_SQRT_RATIO,
             encode_sqrt_price(10**12, 1),
             encode_sqrt_price(10**6, 1),
             encode_sqrt_price(1, 64),
@@ -614,22 +654,22 @@ class TestGetTickAtSQRTRation:
             encode_sqrt_price(64, 1),
             encode_sqrt_price(1, 10**6),
             encode_sqrt_price(1, 10**12),
-            self.MAX_RATIO - 1,
+            MAX_SQRT_RATIO - 1,
         ]:
-            uni_lib_result = pool.math.tick_math.get_tick_at_sqrt_ratio(
-                ratio, exact_rounding=True
+            uni_lib_result = UniV3Math.tick_math.get_tick_at_sqrt_ratio(
+                ratio,
             )
             python_result = math.log((ratio / 2**96) ** 2, 1.0001)
             assert abs(uni_lib_result - python_result) < 1.1
 
-            tick = pool.math.tick_math.get_tick_at_sqrt_ratio(
-                ratio, exact_rounding=True
+            tick = UniV3Math.tick_math.get_tick_at_sqrt_ratio(
+                ratio,
             )
-            tick_ratio = pool.math.tick_math.get_sqrt_ratio_at_tick(
-                tick, exact_rounding=True
+            tick_ratio = UniV3Math.tick_math.get_sqrt_ratio_at_tick(
+                tick,
             )
-            tick_plus_one_ratio = pool.math.tick_math.get_sqrt_ratio_at_tick(
-                tick + 1, exact_rounding=True
+            tick_plus_one_ratio = UniV3Math.tick_math.get_sqrt_ratio_at_tick(
+                tick + 1,
             )
 
             assert tick_ratio <= ratio < tick_plus_one_ratio
@@ -649,9 +689,7 @@ class TestGetNextInitializedTick:
 
     @classmethod
     def setup_class(cls):
-        cls.pool = TICK_MATH_FACTORY.initialize_empty_pool(
-            pool_type="uniswap_v3", initialization_args={"initial_block": 10_000_000}
-        )
+        cls.pool = UniswapV3Pool(initial_block=10_000_000)
 
         cls.pool._set_tick(-200, cls.zero_tick)
         cls.pool._set_tick(-55, cls.zero_tick)
@@ -689,8 +727,8 @@ class TestGetNextInitializedTick:
 
     def test_returns_min_tick_if_no_initialized_tick(self):
         tick = self.pool._get_next_initialized_tick_index(-205, True)
-        assert tick == self.pool.math.tick_math.MIN_TICK
+        assert tick == MIN_TICK
 
     def test_returns_max_tick_if_no_initialized_tick(self):
         tick = self.pool._get_next_initialized_tick_index(535, False)
-        assert tick == self.pool.math.tick_math.MAX_TICK
+        assert tick == MAX_TICK

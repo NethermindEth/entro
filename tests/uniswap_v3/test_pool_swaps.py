@@ -1,4 +1,5 @@
 # type: ignore
+import copy
 import json
 import logging
 import math
@@ -10,13 +11,20 @@ import pytest
 from eth_utils import to_checksum_address
 from pydantic import BaseModel
 
-from python_eth_amm import PoolFactory
 from python_eth_amm.exceptions import UniswapV3Revert
-from python_eth_amm.math import TickMathModule, UniswapV3SwapMath
+from python_eth_amm.types.uniswap_v3 import Slot0
 from python_eth_amm.uniswap_v3 import UniswapV3Pool
-from python_eth_amm.uniswap_v3.types import Slot0
+from python_eth_amm.uniswap_v3.math import UniswapV3Math
+from python_eth_amm.uniswap_v3.math.shared import (
+    MAX_SQRT_RATIO,
+    MAX_TICK,
+    MIN_SQRT_RATIO,
+    MIN_TICK,
+)
 from tests.uniswap_v3.utils import decode_sqrt_price, encode_sqrt_price
 from tests.utils import expand_to_decimals
+
+UniswapV3Math.initialize_exact_math()
 
 
 class TestArbitrages:
@@ -48,8 +56,8 @@ LIQUIDITY_PROVIDER_ADDRESS = to_checksum_address(
     "0xabcde12345abcde12345abcde12345abcde12345"
 )
 
-MID_FEE_MIN_TICK = math.ceil(TickMathModule.MIN_TICK / 60) * 60
-MID_FEE_MAX_TICK = math.floor(TickMathModule.MAX_TICK / 60) * 60
+MID_FEE_MIN_TICK = math.ceil(MIN_TICK / 60) * 60
+MID_FEE_MAX_TICK = math.floor(MAX_TICK / 60) * 60
 
 SWAP_CASES = {
     # Swap Large Amounts In <-> Out
@@ -146,8 +154,8 @@ TEST_POOLS = {
         starting_price=encode_sqrt_price(1, 1),
         positions=[
             Position(
-                tick_lower=math.ceil(TickMathModule.MIN_TICK / 10) * 10,
-                tick_upper=math.floor(TickMathModule.MAX_TICK / 10) * 10,
+                tick_lower=math.ceil(MIN_TICK / 10) * 10,
+                tick_upper=math.floor(MAX_TICK / 10) * 10,
                 liquidity=expand_to_decimals(2, 18),
             )
         ],
@@ -170,8 +178,8 @@ TEST_POOLS = {
         starting_price=encode_sqrt_price(1, 1),
         positions=[
             Position(
-                tick_lower=math.ceil(TickMathModule.MIN_TICK / 200) * 200,
-                tick_upper=math.floor(TickMathModule.MAX_TICK / 200) * 200,
+                tick_lower=math.ceil(MIN_TICK / 200) * 200,
+                tick_upper=math.floor(MAX_TICK / 200) * 200,
                 liquidity=expand_to_decimals(2, 18),
             )
         ],
@@ -303,14 +311,14 @@ TEST_POOLS = {
             Position(
                 tick_lower=MID_FEE_MIN_TICK,
                 tick_upper=MID_FEE_MAX_TICK,
-                liquidity=UniswapV3SwapMath.get_max_liquidity_per_tick(60),
+                liquidity=UniswapV3Math.get_max_liquidity_per_tick(60),
             )
         ],
     ),
     "initialized_at_max_ratio": PoolTestCase(
         fee_amount=3000,
         tick_spacing=60,
-        starting_price=TickMathModule.MAX_SQRT_RATIO - 1,
+        starting_price=MAX_SQRT_RATIO - 1,
         positions=[
             Position(
                 tick_lower=MID_FEE_MIN_TICK,
@@ -322,7 +330,7 @@ TEST_POOLS = {
     "initialized_at_min_ratio": PoolTestCase(
         fee_amount=3000,
         tick_spacing=60,
-        starting_price=TickMathModule.MIN_SQRT_RATIO,
+        starting_price=MIN_SQRT_RATIO,
         positions=[
             Position(
                 tick_lower=MID_FEE_MIN_TICK,
@@ -348,30 +356,25 @@ def pytest_assert_skip(val_1, val_2):
 
 
 class TestSwaps:
-    factory = PoolFactory(
-        exact_math=True,
-        logger=logging.Logger("test"),
-        sqlalchemy_uri=os.environ["SQLALCHEMY_DB_URI"],
-    )
-
     expected_swap_results = json.load(
         open(Path(__file__).parent.joinpath("swap_outputs.json"), "r")
     )
 
+    def setup_class(self):
+        UniswapV3Pool.enable_exact_math()
+
     def set_up_test_pool(
         self,
         pool_test_case: PoolTestCase,
-        initialize_empty_pool,
     ) -> UniswapV3Pool:
-        pool: UniswapV3Pool = initialize_empty_pool(
+        pool = UniswapV3Pool(
             tick_spacing=pool_test_case.tick_spacing,
             fee=pool_test_case.fee_amount,
-            pool_factory=self.factory,
         )
         pool.slot0 = Slot0(
             sqrt_price=pool_test_case.starting_price,
             tick=pool.math.tick_math.get_tick_at_sqrt_ratio(
-                pool_test_case.starting_price, exact_rounding=True
+                pool_test_case.starting_price
             ),
             observation_index=0,
             observation_cardinality=20,
@@ -397,9 +400,7 @@ class TestSwaps:
         max_tokens = 2**128
         if test_case.sqrt_price_limit is None:
             sqrt_price_limit = (
-                pool.math.tick_math.MIN_SQRT_RATIO + 1
-                if test_case.zero_for_one
-                else pool.math.tick_math.MAX_SQRT_RATIO - 1
+                MIN_SQRT_RATIO + 1 if test_case.zero_for_one else MAX_SQRT_RATIO - 1
             )
 
         else:
@@ -430,16 +431,12 @@ class TestSwaps:
     @pytest.mark.timeout(5)
     @pytest.mark.parametrize("swap_test_case", SWAP_CASES.keys())
     @pytest.mark.parametrize("pool_test_case", TEST_POOLS.keys())
-    def test_pool_swaps(
-        self, pool_test_case, swap_test_case, initialize_empty_pool, db_session
-    ):
+    def test_pool_swaps(self, pool_test_case, swap_test_case):
         test_fixture = self.expected_swap_results[
             f"{pool_test_case}___{swap_test_case}"
         ]
 
-        initialized_pool = self.set_up_test_pool(
-            TEST_POOLS[pool_test_case], initialize_empty_pool
-        )
+        initialized_pool = self.set_up_test_pool(TEST_POOLS[pool_test_case])
 
         pool_balance_0, pool_balance_1 = (
             initialized_pool.state.balance_0,
@@ -447,7 +444,7 @@ class TestSwaps:
         )
         fee_growth_global_0 = initialized_pool.state.fee_growth_global_0
         fee_growth_global_1 = initialized_pool.state.fee_growth_global_1
-        slot_0_before = initialized_pool.slot0.copy()
+        slot_0_before = copy.deepcopy(initialized_pool.slot0)
 
         if "swapError" in test_fixture:
             with pytest.raises(UniswapV3Revert):

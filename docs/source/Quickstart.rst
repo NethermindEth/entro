@@ -13,7 +13,7 @@ Setup
 
 .. code-block:: python
 
-    from python_eth_amm import PoolFactory
+    from python_eth_amm.base import PoolFactory
     pool_factory = PoolFactory(
         w3=Web3(Web3.HTTPProvider("http://localhost:8545"),
         sqlalchemy_url="sqlite:///test.db",

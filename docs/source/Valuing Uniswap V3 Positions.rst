@@ -16,7 +16,7 @@ Setting up Simulation
     from web3 import Web3
     from eth_utils import to_checksum_address
 
-    from python_eth_amm import PoolFactory
+    from python_eth_amm.base import PoolFactory
     from python_eth_amm.uniswap_v3 import UniswapV3Pool
 
     LIQUIDITY_SNAPSHOT_BLOCK = 14000000
