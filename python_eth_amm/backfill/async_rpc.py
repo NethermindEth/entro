@@ -80,7 +80,9 @@ def retry_enabled_batch_post(
             time.sleep(120)
             continue
 
-        if any(isinstance(item, ClientConnectionError) for item in response):
+        if any(
+            isinstance(item, (ClientConnectionError, TimeoutError)) for item in response
+        ):
             logger.error(
                 f"Could Not Connect to RPC {json_rpc}...  Potential IP Blacklist or Network Error. Exiting Backfill..."
             )
@@ -124,10 +126,12 @@ async def batch_post_request(
     """
     connector = aiohttp.TCPConnector(limit=max_concurrency)
     logger.debug(f"Sending {len(request_objects)} requests to {host_address}")
+    aiohttp_timeout = aiohttp.ClientTimeout(total=120)
 
     async with aiohttp.ClientSession(
         headers=request_headers or DEFAULT_HEADERS,
         connector=connector,
+        timeout=aiohttp_timeout,
     ) as session:
 
         async def query_rpc(request: dict[str, Any]):
@@ -152,7 +156,8 @@ async def batch_post_request(
                             logger.error(await response.text())
                             logger.error("-" * 40)
                             raise BackfillError("Unexpected Content Type AioHttp Error")
-
+                except TimeoutError:
+                    raise TimeoutError(f"Timeout Error for RPC Host {host_address}")
                 _handle_rpc_error(response_json)
                 return response_json["result"]
 

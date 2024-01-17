@@ -8,7 +8,7 @@ from sqlalchemy import Connection, Engine
 from sqlalchemy.orm import Session, sessionmaker
 from web3.types import ABI
 
-from python_eth_amm.database.models.base import query_abis
+from python_eth_amm.database.readers.python_eth_amm import query_abis
 from python_eth_amm.exceptions import DatabaseError, DecodingError
 from python_eth_amm.types.decoding import DecodedEvent, DecodedFunction, DecodedTrace
 from python_eth_amm.utils import pprint_list, to_bytes, to_hex

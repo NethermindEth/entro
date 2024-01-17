@@ -1,7 +1,7 @@
 from datetime import date, datetime, timedelta, timezone
 
 from python_eth_amm.backfill.utils import get_current_block_number
-from python_eth_amm.database.models.migrations import migrate_up
+from python_eth_amm.database.migrations import migrate_up
 from python_eth_amm.pricing_oracle.timestamp_converter import TimestampConverter
 from python_eth_amm.types.backfill import SupportedNetwork
 

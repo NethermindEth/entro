@@ -1,12 +1,12 @@
 import datetime
 from typing import Type
 
-import click
-import sqlalchemy
-from sqlalchemy import DateTime, Engine, MetaData, PrimaryKeyConstraint
-from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
+from sqlalchemy import DateTime, PrimaryKeyConstraint
+from sqlalchemy.orm import Mapped, mapped_column
 
-from .types import (
+from .base import (
+    AbstractEvent,
+    Base,
     Hash32PK,
     IndexedAddress,
     IndexedBlockNumber,
@@ -15,13 +15,10 @@ from .types import (
     UInt256,
 )
 
-
 # pylint: disable=missing-class-docstring
-class UniswapBase(DeclarativeBase):
-    metadata = MetaData(schema="uniswap")
 
 
-class UniV3SimSwapLogs(UniswapBase):
+class UniV3SimSwapLogs(Base):
     __tablename__ = "v3_simulator_swap_logs"
     swap_id: Mapped[Hash32PK]
     pool_id: Mapped[IndexedAddress]
@@ -40,8 +37,10 @@ class UniV3SimSwapLogs(UniswapBase):
     fee_token: Mapped[str]
     fee_amount: Mapped[UInt128]
 
+    __table_args__ = {"schema": "uniswap"}
 
-class UniV3SimPositionLogs(UniswapBase):
+
+class UniV3SimPositionLogs(Base):
     __tablename__ = "v3_simulator_position_logs"
 
     pool_id: Mapped[IndexedAddress]
@@ -59,16 +58,12 @@ class UniV3SimPositionLogs(UniswapBase):
         PrimaryKeyConstraint(
             "pool_id", "block_number", "lp_address", "tick_lower", "tick_upper"
         ),
+        {"schema": "uniswap"},
     )
 
 
-class UniV3MintEvent(UniswapBase):
+class UniV3MintEvent(AbstractEvent):
     __tablename__ = "v3_mint_events"
-
-    block_number: Mapped[IndexedBlockNumber]
-    log_index: Mapped[int]
-    transaction_index: Mapped[int]
-    contract_address: Mapped[IndexedAddress]
 
     sender: Mapped[IndexedAddress]
     owner: Mapped[IndexedAddress]
@@ -78,16 +73,14 @@ class UniV3MintEvent(UniswapBase):
     amount_0: Mapped[UInt256]
     amount_1: Mapped[UInt256]
 
-    __table_args__ = (PrimaryKeyConstraint("block_number", "log_index"),)
+    __table_args__ = (
+        PrimaryKeyConstraint("block_number", "log_index"),
+        {"schema": "uniswap"},
+    )
 
 
-class UniV3CollectEvent(UniswapBase):
+class UniV3CollectEvent(AbstractEvent):
     __tablename__ = "v3_collect_events"
-
-    block_number: Mapped[IndexedBlockNumber]
-    log_index: Mapped[int]
-    transaction_index: Mapped[int]
-    contract_address: Mapped[IndexedAddress]
 
     owner: Mapped[IndexedAddress]
     recipient: Mapped[IndexedAddress]
@@ -96,16 +89,14 @@ class UniV3CollectEvent(UniswapBase):
     amount_0: Mapped[UInt256]
     amount_1: Mapped[UInt256]
 
-    __table_args__ = (PrimaryKeyConstraint("block_number", "log_index"),)
+    __table_args__ = (
+        PrimaryKeyConstraint("block_number", "log_index"),
+        {"schema": "uniswap"},
+    )
 
 
-class UniV3BurnEvent(UniswapBase):
+class UniV3BurnEvent(AbstractEvent):
     __tablename__ = "v3_burn_events"
-
-    block_number: Mapped[IndexedBlockNumber]
-    log_index: Mapped[int]
-    transaction_index: Mapped[int]
-    contract_address: Mapped[IndexedAddress]
 
     owner: Mapped[IndexedAddress]
     tick_lower: Mapped[int]
@@ -114,16 +105,14 @@ class UniV3BurnEvent(UniswapBase):
     amount_0: Mapped[UInt256]
     amount_1: Mapped[UInt256]
 
-    __table_args__ = (PrimaryKeyConstraint("block_number", "log_index"),)
+    __table_args__ = (
+        PrimaryKeyConstraint("block_number", "log_index"),
+        {"schema": "uniswap"},
+    )
 
 
-class UniV3SwapEvent(UniswapBase):
+class UniV3SwapEvent(AbstractEvent):
     __tablename__ = "v3_swap_events"
-
-    block_number: Mapped[IndexedBlockNumber]
-    log_index: Mapped[int]
-    transaction_index: Mapped[int]
-    contract_address: Mapped[IndexedAddress]
 
     sender: Mapped[IndexedAddress]
     recipient: Mapped[IndexedAddress]
@@ -133,16 +122,14 @@ class UniV3SwapEvent(UniswapBase):
     liquidity: Mapped[UInt128]
     tick: Mapped[int]
 
-    __table_args__ = (PrimaryKeyConstraint("block_number", "log_index"),)
+    __table_args__ = (
+        PrimaryKeyConstraint("block_number", "log_index"),
+        {"schema": "uniswap"},
+    )
 
 
-class UniV3FlashEvent(UniswapBase):
+class UniV3FlashEvent(AbstractEvent):
     __tablename__ = "v3_flash_events"
-
-    block_number: Mapped[IndexedBlockNumber]
-    log_index: Mapped[int]
-    transaction_index: Mapped[int]
-    contract_address: Mapped[IndexedAddress]
 
     sender: Mapped[IndexedAddress]
     recipient: Mapped[IndexedAddress]
@@ -151,45 +138,30 @@ class UniV3FlashEvent(UniswapBase):
     paid_0: Mapped[UInt256]
     paid_1: Mapped[UInt256]
 
-    __table_args__ = (PrimaryKeyConstraint("block_number", "log_index"),)
+    __table_args__ = (
+        PrimaryKeyConstraint("block_number", "log_index"),
+        {"schema": "uniswap"},
+    )
 
 
-class UniV3PoolCreationEvent(UniswapBase):
+class UniV3PoolCreationEvent(AbstractEvent):
     __tablename__ = "v3_pool_creation_events"
-
-    block_number: Mapped[IndexedBlockNumber]
-    log_index: Mapped[int]
-    transaction_index: Mapped[int]
-    contract_address: Mapped[IndexedAddress]
 
     token_0: Mapped[IndexedAddress]
     token_1: Mapped[IndexedAddress]
     pool_address: Mapped[IndexedAddress]
     fee: Mapped[int]
 
-    __table_args__ = (PrimaryKeyConstraint("block_number", "log_index"),)
+    __table_args__ = (
+        PrimaryKeyConstraint("block_number", "log_index"),
+        {"schema": "uniswap"},
+    )
 
 
-UNI_EVENT_MODELS: dict[str, Type[UniswapBase]] = {
+UNI_EVENT_MODELS: dict[str, Type[AbstractEvent]] = {
     "Mint(address,address,int24,int24,uint128,uint256,uint256)": UniV3MintEvent,
     "Collect(address,address,int24,int24,uint128,uint128)": UniV3CollectEvent,
     "Burn(address,int24,int24,uint128,uint256,uint256)": UniV3BurnEvent,
     "Swap(address,address,int256,int256,uint160,uint128,int24)": UniV3SwapEvent,
     "Flash(address,address,uint256,uint256,uint256,uint256)": UniV3FlashEvent,
 }
-
-
-def migrate_uniswap_tables(db_engine: Engine):
-    """
-    Creates the uniswap schema and tables in the database provided
-
-    :param db_engine:
-    :return:
-    """
-    conn = db_engine.connect()
-    if not conn.dialect.has_schema(conn, "uniswap"):
-        click.echo("Creating schema uniswap")
-        conn.execute(sqlalchemy.schema.CreateSchema("uniswap"))
-        conn.commit()
-
-    UniswapBase.metadata.create_all(bind=db_engine)

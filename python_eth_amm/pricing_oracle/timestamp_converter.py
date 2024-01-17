@@ -12,7 +12,7 @@ from python_eth_amm.backfill.utils import (
     get_current_block_number,
     rpc_response_to_block_model,
 )
-from python_eth_amm.database.models import AllBlocks, block_model_for_network
+from python_eth_amm.database.models import AbstractBlock, block_model_for_network
 from python_eth_amm.exceptions import BackfillError
 from python_eth_amm.types import BlockIdentifier
 from python_eth_amm.types.backfill import SupportedNetwork
@@ -41,7 +41,7 @@ def _get_timestamps_from_db(
     :param from_block: Inclusive Block number to search from
     :return: List of BlockTimestamps
     """
-    network_block: AllBlocks = block_model_for_network(network)  # type: ignore
+    network_block: AbstractBlock = block_model_for_network(network)  # type: ignore
     select_stmt = (
         select(network_block.block_number, network_block.timestamp)  # type: ignore
         .filter(

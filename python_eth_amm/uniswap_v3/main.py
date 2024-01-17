@@ -16,7 +16,6 @@ import web3
 from eth_typing import ChecksumAddress
 from eth_utils import to_checksum_address
 from pandas import DataFrame
-from pydantic import parse_obj_as
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 from web3.contract import Contract
@@ -225,7 +224,7 @@ class UniswapV3Pool:
         fee, tick_spacing = self.math.get_fee_and_spacing(kwargs)
 
         self.immutables = PoolImmutables(
-            pool_address=random_address(),
+            pool_address=kwargs.get("pool_address", random_address()),
             token_0=kwargs.get("token_0", NULL_TOKEN),
             token_1=kwargs.get("token_1", NULL_TOKEN),
             fee=fee,
@@ -477,7 +476,7 @@ class UniswapV3Pool:
         pool_params = json.load(file_path)
         # fmt: on
 
-        immutables = parse_obj_as(PoolImmutables, pool_params["immutables"])
+        immutables = PoolImmutables(**pool_params["immutables"])
 
         immutables.token_0 = ERC20Token.from_dict(
             w3, pool_params["immutables"]["token_0"]
@@ -487,30 +486,28 @@ class UniswapV3Pool:
         )
 
         ticks = {
-            int(index): parse_obj_as(Tick, tick)
-            for index, tick in pool_params["ticks"].items()
+            int(index): Tick(**tick) for index, tick in pool_params["ticks"].items()
         }
         positions = {
             (
                 to_checksum_address((keys := key.split("_"))[0]),
                 int(keys[1]),
                 int(keys[2]),
-            ): parse_obj_as(PositionInfo, position)
+            ): PositionInfo(**position)
             for key, position in pool_params["positions"].items()
         }
-        observations = parse_obj_as(
-            list[OracleObservation], pool_params["observations"]
-        )
+        observations = [OracleObservation(**obs) for obs in pool_params["observations"]]
 
         return UniswapV3Pool(
+            pool_address=pool_params["immutables"]["pool_address"],
             init_mode=pool_params["init_mode"],
             block_timestamp=pool_params["block_timestamp"],
             block_number=pool_params["block_number"],
             protocol_fee_0=pool_params["protocol_fee_0"],
             protocol_fee_1=pool_params["protocol_fee_1"],
             immutables=immutables,
-            state=parse_obj_as(PoolState, pool_params["state"]),
-            slot0=parse_obj_as(Slot0, pool_params["slot0"]),
+            state=PoolState(**pool_params["state"]),
+            slot0=Slot0(**pool_params["slot0"]),
             ticks=ticks,
             positions=positions,
             observations=observations,

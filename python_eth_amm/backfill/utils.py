@@ -6,7 +6,11 @@ import requests
 from rich.console import Console
 
 from python_eth_amm.abi_decoder import DecodingDispatcher
-from python_eth_amm.database.models import AllBlocks, AllTraces, AllTransactions
+from python_eth_amm.database.models import (
+    AbstractBlock,
+    AbstractTrace,
+    AbstractTransaction,
+)
 from python_eth_amm.database.models.ethereum import Block as EthereumBlock
 from python_eth_amm.database.models.ethereum import Trace as EthereumTrace
 from python_eth_amm.database.models.ethereum import Transaction as EthereumTransaction
@@ -287,7 +291,7 @@ def rpc_response_to_trace_model(
     network: SN,
     db_dialect: str,
     abi_decoder: DecodingDispatcher,
-) -> list[AllTraces]:
+) -> list[AbstractTrace]:
     """
     Parse a trace from a JSON RPC response into a list of Trace objects.
     Will run ABI decoding with the provided DecodingDispatcher, for both the trace input and output
@@ -298,7 +302,7 @@ def rpc_response_to_trace_model(
     :param abi_decoder:
     :return:
     """
-    return_traces = []
+    return_traces: list[AbstractTrace] = []
     for trace in traces:
         decoded_trace = abi_decoder.decode_trace(trace)
         match network:
@@ -343,7 +347,7 @@ def rpc_response_to_block_model(
     network: SN,
     db_dialect: str,
     abi_decoder: DecodingDispatcher | None = None,
-) -> tuple[AllBlocks, list[AllTransactions]]:
+) -> tuple[AbstractBlock, list[AbstractTransaction]]:
     """
     Parse a block from a JSON RPC response into a Block object and a list of Transaction objects.
     Runs the block through the ABI Decoder if one is provided.
@@ -362,7 +366,7 @@ def rpc_response_to_block_model(
         case SN.ethereum | SN.zk_sync_era | SN.polygon_zk_evm:
             block_data = {
                 "block_number": block_number,
-                "hash": db_encode_hex(block["hash"], db_dialect),
+                "block_hash": db_encode_hex(block["hash"], db_dialect),
                 "parent_hash": db_encode_hex(block["parentHash"], db_dialect),
                 "timestamp": block_timestamp,
                 "miner": db_encode_hex(block["miner"], db_dialect),
@@ -392,7 +396,7 @@ def rpc_response_to_block_model(
                 case SN.ethereum | SN.zk_sync_era | SN.polygon_zk_evm:
                     all_txns.append(
                         {
-                            "hash": db_encode_hex(tx["hash"], db_dialect),
+                            "transaction_hash": db_encode_hex(tx["hash"], db_dialect),
                             "block_number": block_number,
                             "transaction_index": maybe_hex_to_int(
                                 tx["transactionIndex"]
@@ -405,7 +409,7 @@ def rpc_response_to_block_model(
                             else None,
                             "input": db_encode_hex(tx["input"], db_dialect),
                             "value": maybe_hex_to_int(tx["value"]),
-                            "is_error": None,
+                            "error": None,
                             "gas_price": maybe_hex_to_int(tx["gasPrice"]),
                             "gas_available": maybe_hex_to_int(tx["gas"]),
                             "gas_used": None,
@@ -442,10 +446,10 @@ def rpc_response_to_block_model(
 
 
 def add_receipt_to_tx_models(
-    transactions: list[AllTransactions],
+    transactions: list[AbstractTransaction],
     receipt_responses: list[dict[str, Any]],
     strict: bool = False,
-) -> list[AllTransactions]:
+) -> list[AbstractTransaction]:
     """
     Adds receipt data to a list of transactions.  Parses in gas_used and error fields.
 
@@ -460,10 +464,12 @@ def add_receipt_to_tx_models(
     }
 
     for transaction in transactions:
-        tx_hash = to_bytes(transaction.hash)
+        tx_hash = to_bytes(transaction.transaction_hash)
         if tx_hash in receipt_dict:
             receipt = receipt_dict[tx_hash]
-            transaction.is_error = receipt["status"] == "0x0"
+            transaction.error = (
+                None if receipt["status"] == "0x0" else receipt["status"]
+            )
             transaction.gas_used = maybe_hex_to_int(receipt["gasUsed"])
         elif strict:
             raise ValueError(f"Receipt for transaction 0x{tx_hash.hex()} not found")

@@ -57,7 +57,8 @@ def add_abi(db_url, abi_name, abi_json, priority):
     """Adds an ABI to the database"""
 
     import json
-    from python_eth_amm.database.models.base import ContractABI, query_abis
+    from python_eth_amm.database.models.python_eth_amm import ContractABI
+    from python_eth_amm.database.readers.python_eth_amm import query_abis
 
     console = Console()
     db_session = create_cli_session(db_url)
@@ -106,7 +107,7 @@ def add_abi(db_url, abi_name, abi_json, priority):
 @group_options(db_url_option)
 def list_abis(db_url):
     """Lists all available ABIs that can be used for classification"""
-    from python_eth_amm.database.models.base import query_abis
+    from python_eth_amm.database.readers.python_eth_amm import query_abis
 
     db_session = create_cli_session(db_url)
     abis = query_abis(db_session)

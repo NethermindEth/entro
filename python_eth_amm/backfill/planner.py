@@ -10,7 +10,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from python_eth_amm.abi_decoder import DecodingDispatcher
-from python_eth_amm.database.models.base import BackfilledRange
+from python_eth_amm.database.models import BackfilledRange
 from python_eth_amm.database.writers.utils import model_to_dict
 from python_eth_amm.exceptions import BackfillError
 from python_eth_amm.types.backfill import BackfillDataType as BDT

@@ -1,7 +1,7 @@
 import pytest
 from sqlalchemy.exc import IntegrityError
 
-from python_eth_amm.database.models.base import ContractABI
+from python_eth_amm.database.models import ContractABI
 from tests.resources.ABI import ERC20_ABI_JSON
 
 

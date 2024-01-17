@@ -9,7 +9,7 @@ from sqlalchemy import select
 from sqlalchemy import text as encode_sql_text
 from sqlalchemy.orm import Session
 
-from python_eth_amm.database.models.base import BackfilledRange
+from python_eth_amm.database.models import BackfilledRange
 from python_eth_amm.database.models.prices import MARKET_SPOT_PRICES_PER_BLOCK_QUERY
 from python_eth_amm.pricing_oracle.timestamp_converter import TimestampConverter
 from python_eth_amm.uniswap_v3 import UniswapV3Pool

@@ -2,7 +2,7 @@ from click.testing import CliRunner
 
 from integration_tests.backfill_cli.utils import printout_error_and_traceback
 from python_eth_amm.cli.entry_point import cli_entry_point
-from python_eth_amm.database.models.base import BackfilledRange
+from python_eth_amm.database.models import BackfilledRange
 
 
 def test_backfill_ethereum_transactions(

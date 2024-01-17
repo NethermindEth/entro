@@ -3,7 +3,7 @@ import logging
 import click
 from rich.logging import RichHandler
 
-from python_eth_amm.database.models.migrations import cli_migrate_up
+from python_eth_amm.database.migrations import cli_migrate_up
 
 from .backfill import add_abi, backfill_group, list_abi_decoders, list_abis
 from .tokens import tokens_group

@@ -4,11 +4,13 @@ from sqlalchemy.orm import DeclarativeBase
 
 from python_eth_amm.types.backfill import SupportedNetwork
 
+from .base import AbstractBlock, AbstractEvent, AbstractTrace, AbstractTransaction
 from .ethereum import Block as EthereumBlock
 from .ethereum import DefaultEvent as EthereumDefaultEvent
 from .ethereum import Trace as EthereumTrace
 from .ethereum import Transaction as EthereumTransaction
 from .polygon import ZKEVMBlock, ZKEVMDefaultEvent, ZKEVMTransaction
+from .python_eth_amm import BackfilledRange, ContractABI
 from .starknet import Block as StarknetBlock
 from .starknet import DefaultEvent as StarknetDefaultEvent
 from .starknet import Transaction as StarknetTransaction
@@ -21,13 +23,7 @@ EVMTransaction = Union[EthereumTransaction, ZKEVMTransaction, ZKSyncEraTransacti
 EVMDefaultEvent = Union[EthereumDefaultEvent, ZKSyncEraDefaultEvent, ZKEVMDefaultEvent]
 
 
-AllBlocks = Union[EVMBlock, StarknetBlock]
-AllTraces = Union[EthereumTrace]
-AllTransactions = Union[EVMTransaction, StarknetTransaction]
-AllDefaultEvents = Union[EVMDefaultEvent, StarknetDefaultEvent]
-
-
-def block_model_for_network(network: SupportedNetwork) -> Type[AllBlocks]:
+def block_model_for_network(network: SupportedNetwork) -> Type[AbstractBlock]:
     """
     Returns the block model for the given network
 
@@ -47,7 +43,9 @@ def block_model_for_network(network: SupportedNetwork) -> Type[AllBlocks]:
             raise ValueError(f"Unsupported network: {network}")
 
 
-def transaction_model_for_network(network: SupportedNetwork) -> Type[AllTransactions]:
+def transaction_model_for_network(
+    network: SupportedNetwork,
+) -> Type[AbstractTransaction]:
     """
     Returns the transaction model for the given network
     :param network:
@@ -68,7 +66,7 @@ def transaction_model_for_network(network: SupportedNetwork) -> Type[AllTransact
 
 def default_event_model_for_network(
     network: SupportedNetwork,
-) -> Type[AllDefaultEvents]:
+) -> Type[AbstractEvent]:
     """
     Returns the default event model for the given network
     :param network:

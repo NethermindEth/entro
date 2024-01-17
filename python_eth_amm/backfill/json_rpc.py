@@ -7,8 +7,8 @@ from sqlalchemy import Connection, Engine
 from python_eth_amm.backfill.planner import BackfillPlan
 from python_eth_amm.backfill.utils import GracefulKiller
 from python_eth_amm.database.models import (
-    AllBlocks,
-    AllTransactions,
+    AbstractBlock,
+    AbstractTransaction,
     block_model_for_network,
     transaction_model_for_network,
 )
@@ -187,7 +187,7 @@ def get_block_models_for_range(
     db_dialect: str,
     full_txns: bool = True,
     max_concurrency: int = 20,
-) -> tuple[list[AllBlocks], list[AllTransactions]]:
+) -> tuple[list[AbstractBlock], list[AbstractTransaction]]:
     """
     Asyncronously fetch blocks from RPC and decode them into models
 
@@ -231,11 +231,11 @@ def get_block_models_for_range(
 
 
 def get_transaction_receipts_for_txns(
-    txns: list[AllTransactions],
+    txns: list[AbstractTransaction],
     json_rpc: str,
     network: SupportedNetwork,
     max_concurrency: int = 20,
-) -> tuple[list[AllTransactions], list[dict[str, Any]]]:
+) -> tuple[list[AbstractTransaction], list[dict[str, Any]]]:
     """
     Asynchronously fetch transaction receipts from RPC and add them to the transaction models, returning enriched
     transaction models and the raw logs
@@ -243,10 +243,10 @@ def get_transaction_receipts_for_txns(
     :param json_rpc:
     :param network:
     :param max_concurrency:
-    :return:
+    :return:  (enriched_txns, output_logs)
     """
     receipt_requests = parse_rpc_receipt_request(
-        [to_hex(tx.hash) for tx in txns],
+        [to_hex(tx.transaction_hash) for tx in txns],
         network=network,
     )
 

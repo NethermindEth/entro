@@ -1,95 +1,112 @@
-from typing import Any
+from typing import Annotated
 
-import click
-import sqlalchemy
-from sqlalchemy import JSON, Engine, MetaData, PrimaryKeyConstraint, Text, select
-from sqlalchemy.orm import DeclarativeBase, Mapped, Session, mapped_column
+from sqlalchemy import BigInteger, Numeric, Text
+from sqlalchemy.dialects.postgresql import BYTEA
+from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 
-from python_eth_amm.types.backfill import BackfillDataType, SupportedNetwork
+# Binary Data is Represented as a String of Hex Digits
+# -- If database backend supports binary data, hex strings will be stored as byte arrays.
+# -- Since data applications are network & io bound, the performance impact of hex strings over bytes is negligible.
 
-from .utils import execute_scalars_query
+AddressPK = Annotated[
+    str, mapped_column(Text(42).with_variant(BYTEA, "postgresql"), primary_key=True)
+]
+BlockNumberPK = Annotated[int, mapped_column(BigInteger, primary_key=True)]
+Hash32PK = Annotated[
+    str, mapped_column(Text(66).with_variant(BYTEA, "postgresql"), primary_key=True)
+]
 
 
-class PythonETHAMMBase(DeclarativeBase):
+IndexedAddress = Annotated[
+    str,
+    mapped_column(
+        Text(42).with_variant(BYTEA, "postgresql"), index=True, nullable=False
+    ),
+]
+IndexedNullableAddress = Annotated[
+    str,
+    mapped_column(
+        Text(42).with_variant(BYTEA, "postgresql"), index=True, nullable=True
+    ),
+]
+IndexedBlockNumber = Annotated[
+    int, mapped_column(BigInteger, nullable=False, index=True)
+]
+IndexedHash32 = Annotated[
+    str,
+    mapped_column(
+        Text(66).with_variant(BYTEA, "postgresql"), index=True, nullable=False
+    ),
+]
+
+UInt256 = Annotated[int, mapped_column(Numeric(78, 0))]
+UInt128 = Annotated[int, mapped_column(Numeric(39, 0))]
+UInt160 = Annotated[int, mapped_column(Numeric(49, 0))]
+
+Hash32 = Annotated[str, mapped_column(Text(66).with_variant(BYTEA, "postgresql"))]
+Address = Annotated[str, mapped_column(Text(42).with_variant(BYTEA, "postgresql"))]
+CalldataBytes = Annotated[
+    str, mapped_column(Text().with_variant(BYTEA, "postgresql"), nullable=True)
+]
+
+
+class Base(DeclarativeBase):
     """Base class for utility tables"""
 
-    metadata = MetaData(schema="python_eth_amm")
+
+class AbstractBlock(Base):
+    """Abstract base class for block tables"""
+
+    __abstract__ = True
+
+    block_number: Mapped[BlockNumberPK]
+    block_hash: Mapped[Hash32]
+    timestamp: Mapped[int] = mapped_column(BigInteger, nullable=False)
+
+    transaction_count: Mapped[int]
 
 
-class ContractABI(PythonETHAMMBase):
+class AbstractTransaction(Base):
+    """Abstract base class for transaction tables"""
+
+    __abstract__ = True
+
+    transaction_hash: Mapped[Hash32PK]
+    block_number: Mapped[IndexedBlockNumber]
+    transaction_index: Mapped[int]
+    timestamp: Mapped[int] = mapped_column(BigInteger)
+
+    gas_used: Mapped[int | None] = mapped_column(Numeric, nullable=True)
+
+    error: Mapped[str | None]
+    """  
+        Error message if transaction failed, None otherwise.  If Error Message is not supplied, 
+        error will be set as 'True'
     """
-    Table for storing contract ABIs to use for decoding events.
+
+
+class AbstractEvent(Base):
+    """Abstract base class for event tables"""
+
+    __abstract__ = True
+
+    block_number: Mapped[IndexedBlockNumber]
+    log_index: Mapped[int]
+    transaction_index: Mapped[int]
+    contract_address: Mapped[IndexedAddress]
+
+
+class AbstractTrace(Base):
+    """
+    Abstract base class for trace tables
     """
 
-    __tablename__ = "contract_abis"
+    __abstract__ = True
 
-    abi_name: Mapped[str]
-    abi_json: Mapped[dict[str, Any]] = mapped_column(JSON)
-    priority: Mapped[int]
+    block_number: Mapped[IndexedBlockNumber]
+    transaction_hash: Mapped[IndexedHash32]
+    transaction_index: Mapped[int]
+    trace_address: Mapped[list[int]]
 
-    __table_args__ = (PrimaryKeyConstraint("abi_name"),)
-
-
-class BackfilledRange(PythonETHAMMBase):
-    """
-    Table for storing backfill states.
-
-    This table is used to track the ranges of blocks that have been backfilled for each data type.
-
-    """
-
-    __tablename__ = "backfilled_ranges"
-
-    data_type: Mapped[BackfillDataType] = mapped_column(Text, nullable=False)
-    network: Mapped[SupportedNetwork] = mapped_column(Text, nullable=False)
-    start_block: Mapped[int]
-    end_block: Mapped[int]
-
-    filter_data: Mapped[dict[str, str | int] | None] = mapped_column(JSON)
-    metadata_dict: Mapped[dict[str, Any] | None] = mapped_column(JSON)
-    decoded_abis: Mapped[list[str] | None] = mapped_column(JSON)
-
-    __table_args__ = (
-        PrimaryKeyConstraint("data_type", "network", "start_block", "end_block"),
-    )
-
-
-def migrate_config_tables(db_engine: Engine):
-    """
-    Migrates the config tables to the database.
-
-    :param db_engine:
-    :return:
-    """
-    conn = db_engine.connect()
-    if not conn.dialect.has_schema(conn, "python_eth_amm"):
-        click.echo("Creating schema python_eth_amm for config tables")
-        conn.execute(sqlalchemy.schema.CreateSchema("python_eth_amm"))
-        conn.commit()
-
-    PythonETHAMMBase.metadata.create_all(bind=db_engine)
-
-
-# pylint: disable=singleton-comparison
-def query_abis(
-    db_session: Session, abi_names: list[str] | None = None
-) -> list[ContractABI]:
-    """
-    Queries the database for the contract ABIs to use for decoding events.  If abi_names is None, then all ABIs are
-    returned.
-
-    :param db_session:
-    :param abi_names:
-    :return:
-    """
-    query = (
-        select(ContractABI)  # type: ignore
-        .filter(
-            ContractABI.abi_name.in_(abi_names)
-            if abi_names
-            else ContractABI.abi_name != None
-        )
-        .order_by(ContractABI.priority.desc(), ContractABI.abi_name)
-    )
-
-    return execute_scalars_query(db_session, query)
+    gas_used: Mapped[int]
+    error: Mapped[str]

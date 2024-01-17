@@ -1,19 +1,8 @@
-import logging
-
-from sqlalchemy import Select, create_engine
+from sqlalchemy import Select
 from sqlalchemy.exc import ProgrammingError
-from sqlalchemy.orm import Session, sessionmaker
+from sqlalchemy.orm import Session
 
 from python_eth_amm.exceptions import DatabaseError
-
-package_logger = logging.getLogger("python_eth_amm")
-logger = package_logger.getChild("db")
-
-
-def create_session(db_url: str) -> Session:
-    """Creates a new database session"""
-    engine = create_engine(db_url)
-    return sessionmaker(bind=engine)()
 
 
 def execute_scalars_query(db_session: Session, query: Select):

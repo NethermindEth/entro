@@ -146,7 +146,7 @@ def test_full_backfill_zk_sync_era(
 
     assert txns[0].block_number == 17570000
     assert (
-        txns[0].hash.hex()
+        txns[0].transaction_hash.hex()
         == "75a3b863cd5232539bc6802269c9aaaaaec9dc2a54241629591f10512e102933"
     )
     assert txns[0].timestamp == 1698541582
@@ -159,7 +159,7 @@ def test_full_backfill_zk_sync_era(
 
     assert txns[-1].block_number == 17570099
     assert (
-        txns[-1].hash.hex()
+        txns[-1].transaction_hash.hex()
         == "72fe1733be6e45a715b71d078358294f08f24c93a1c4c5c80a291f96a7eb4ddc"
     )
     assert txns[-1].gas_used == 538740

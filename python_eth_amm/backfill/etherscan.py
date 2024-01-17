@@ -291,7 +291,7 @@ def _parse_etherscan_transactions(
                 function_name = None
 
         encoded_tx_data = {
-            "hash": db_encode_hex(tx_data["hash"], db_dialect),
+            "transaction_hash": db_encode_hex(tx_data["hash"], db_dialect),
             "block_number": int(tx_data["blockNumber"]),
             "transaction_index": int(tx_data["transactionIndex"]),
             "timestamp": int(tx_data["timeStamp"]),

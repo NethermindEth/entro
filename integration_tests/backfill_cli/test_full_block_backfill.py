@@ -65,7 +65,7 @@ def test_backfill_mainnet_full_block(
 
     assert txns[0].block_number == 18000000
     assert (
-        txns[0].hash.hex()
+        txns[0].transaction_hash.hex()
         == "16e199673891df518e25db2ef5320155da82a3dd71a677e7d84363251885d133"
     )
     assert txns[0].timestamp == 1693066895
@@ -74,7 +74,7 @@ def test_backfill_mainnet_full_block(
     assert txns[-1].block_number == 18000019
     assert txns[-1].timestamp == 1693067123
     assert (
-        txns[-1].hash.hex()
+        txns[-1].transaction_hash.hex()
         == "a3b459efcd2b0e906efe05d878d454e6b40699358324d8729c07edcbf06df5bc"
     )
     assert txns[-1].gas_used == 27527

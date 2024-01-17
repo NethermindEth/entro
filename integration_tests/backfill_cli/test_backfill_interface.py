@@ -3,8 +3,8 @@ from click.testing import CliRunner
 
 from python_eth_amm.backfill.planner import BackfillPlan
 from python_eth_amm.cli.entry_point import cli_entry_point
-from python_eth_amm.database.models.base import BackfilledRange
-from python_eth_amm.database.models.migrations import migrate_up
+from python_eth_amm.database.migrations import migrate_up
+from python_eth_amm.database.models import BackfilledRange
 from python_eth_amm.database.writers.utils import model_to_dict
 from python_eth_amm.types.backfill import BackfillDataType, SupportedNetwork
 
@@ -13,7 +13,6 @@ from .utils import printout_error_and_traceback
 
 @pytest.fixture(scope="function")
 def setup_backfills(integration_postgres_db, integration_db_session, cli_db_url):
-    runner = CliRunner()
     backfills = [
         BackfilledRange(
             start_block=18_000_000,

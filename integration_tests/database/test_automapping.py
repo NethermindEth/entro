@@ -1,10 +1,7 @@
 import pytest
 
-from python_eth_amm.database.models.ethereum import (
-    Block,
-    Transaction,
-    migrate_ethereum_tables,
-)
+from python_eth_amm.database.migrations import migrate_up
+from python_eth_amm.database.models.ethereum import Block, Transaction
 from python_eth_amm.database.writers.utils import automap_sqlalchemy_model
 from python_eth_amm.exceptions import DatabaseError
 
@@ -12,7 +9,7 @@ from python_eth_amm.exceptions import DatabaseError
 def test_automap_ethereum_tables(integration_postgres_db, integration_db_session):
     db_engine = integration_db_session.get_bind()
 
-    migrate_ethereum_tables(db_engine)
+    migrate_up(db_engine)
 
     ethereum_models = automap_sqlalchemy_model(
         db_engine, ["blocks", "transactions"], "ethereum_data"
@@ -31,7 +28,7 @@ def test_automap_ethereum_tables(integration_postgres_db, integration_db_session
 def test_automap_invalid_tables(integration_postgres_db, integration_db_session):
     db_engine = integration_db_session.get_bind()
 
-    migrate_ethereum_tables(db_engine)
+    migrate_up(db_engine)
 
     with pytest.raises(DatabaseError) as excinfo:
         automap_sqlalchemy_model(db_engine, ["blocks", "transactions"], "ethereum")

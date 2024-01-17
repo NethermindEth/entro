@@ -1,21 +1,13 @@
-import click
-import sqlalchemy
-from sqlalchemy import Engine, MetaData, PrimaryKeyConstraint, SmallInteger
-from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
+from sqlalchemy import PrimaryKeyConstraint, SmallInteger
+from sqlalchemy.orm import Mapped, mapped_column
 
 from python_eth_amm.addresses import UNISWAP_V3_FACTORY
 
-from .types import IndexedAddress, IndexedBlockNumber
+from .base import Base, IndexedAddress, IndexedBlockNumber
 from .uniswap import UniV3PoolCreationEvent
 
 
-class PriceDataBase(DeclarativeBase):
-    """Base class for pricing tables"""
-
-    metadata = MetaData(schema="price_data")
-
-
-class MarketSpotPrice(PriceDataBase):
+class MarketSpotPrice(Base):
     """
     Table for storing spot prices for each market at each block.
 
@@ -33,10 +25,11 @@ class MarketSpotPrice(PriceDataBase):
 
     __table_args__ = (
         PrimaryKeyConstraint("market_address", "block_number", "transaction_index"),
+        {"schema": "price_data"},
     )
 
 
-class TokenPrice(PriceDataBase):
+class TokenPrice(Base):
     """
     Table for storing spot prices for each token at each block.
 
@@ -50,7 +43,10 @@ class TokenPrice(PriceDataBase):
     eth_price: Mapped[float]
     usd_price: Mapped[float]
 
-    __table_args__ = (PrimaryKeyConstraint("token_id", "block_number"),)
+    __table_args__ = (
+        PrimaryKeyConstraint("token_id", "block_number"),
+        {"schema": "price_data"},
+    )
 
 
 MARKET_SPOT_PRICES_PER_BLOCK_QUERY = """
@@ -79,19 +75,3 @@ SUPPORTED_POOL_CREATION_EVENTS = {
         "abi_name": "UniswapV3Factory",
     },
 }
-
-
-def migrate_price_tables(db_engine: Engine):
-    """
-    Create the price_data schema and all tables within it.
-
-    :param db_engine:
-    :return:
-    """
-    conn = db_engine.connect()
-    if not conn.dialect.has_schema(conn, "price_data"):
-        click.echo("Creating schema price_data")
-        conn.execute(sqlalchemy.schema.CreateSchema("price_data"))
-        conn.commit()
-
-    PriceDataBase.metadata.create_all(bind=db_engine)
