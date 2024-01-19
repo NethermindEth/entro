@@ -52,7 +52,9 @@ def cli_get_blocks(
     """
     killer = GracefulKiller(console=progress.console)
 
-    for range_idx, (from_block, to_block) in enumerate(backfill_plan.block_ranges):
+    for range_idx, (from_block, to_block) in enumerate(
+        backfill_plan.range_plan.backfill_ranges
+    ):
         backfill_result = backfill_block_range(
             db_engine=db_engine,
             json_rpc=json_rpc,
@@ -75,6 +77,7 @@ def cli_get_blocks(
             )
             backfill_plan.process_failed_backfill(backfill_result)
             break
+        backfill_plan.range_plan.mark_finalized(range_idx)
 
 
 # pylint: disable=too-many-arguments
@@ -298,10 +301,9 @@ def cli_get_full_blocks(
 
     killer = GracefulKiller(console=progress.console)
 
-    for range_idx, (from_block, to_block) in enumerate(backfill_plan.block_ranges):
-        if killer.kill_now:
-            break
-
+    for range_idx, (from_block, to_block) in enumerate(
+        backfill_plan.range_plan.backfill_ranges
+    ):
         backfill_task = progress.add_task(
             backfill_plan.backfill_label(range_idx),
             total=to_block - from_block,
@@ -373,6 +375,10 @@ def cli_get_full_blocks(
             transaction_writer.add_backfill_data(tx_models)
 
             search_block += batch_size
+
+        if killer.kill_now:
+            break
+        backfill_plan.range_plan.mark_finalized(range_idx)
 
     progress.console.print(
         "[green]Finished Backfill.  Writing Model Cache to Database..."
@@ -468,7 +474,6 @@ def cli_get_logs(  # pylint: disable=too-many-branches
             f"{decoder.abi_name} ABI does not contain all of the events specified in the filter. "
             f"ABI Missing events: {set(decoding_events) - set(decoder.get_all_decoded_events(False))}"
         )
-        backfill_plan.mark_failed()
         return
 
     if len(selector_topics) == 1:
@@ -480,7 +485,9 @@ def cli_get_logs(  # pylint: disable=too-many-branches
 
     killer = GracefulKiller(console=progress.console)
 
-    for range_idx, (start_block, end_block) in enumerate(backfill_plan.block_ranges):
+    for range_idx, (start_block, end_block) in enumerate(
+        backfill_plan.range_plan.backfill_ranges
+    ):
         all_request_objects = [
             parse_event_request(
                 start_block=start_block,
@@ -511,6 +518,7 @@ def cli_get_logs(  # pylint: disable=too-many-branches
             )
             backfill_plan.process_failed_backfill(backfill_res)
             break
+        backfill_plan.range_plan.mark_finalized(range_idx)
 
     progress.console.print(
         "[green]Backfill Finished.  Writing Model Cache to Database...."

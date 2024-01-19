@@ -9,17 +9,12 @@ from python_eth_amm.abi_decoder import DecodingDispatcher
 from python_eth_amm.abi_decoder.utils import signature_to_name
 from python_eth_amm.backfill.planner import BackfillPlan
 from python_eth_amm.backfill.utils import GracefulKiller, etherscan_base_url
-from python_eth_amm.database.models import (
-    block_model_for_network,
-    transaction_model_for_network,
-)
+from python_eth_amm.database.models import transaction_model_for_network
 from python_eth_amm.database.models.ethereum import Transaction as EthereumTransaction
 from python_eth_amm.database.writers.model_writer import ModelWriter
 from python_eth_amm.database.writers.utils import db_encode_dict, db_encode_hex
 from python_eth_amm.exceptions import BackfillError
-from python_eth_amm.types.backfill import BackfillDataType, SupportedNetwork
-
-from .utils import rpc_response_to_block_model
+from python_eth_amm.types.backfill import SupportedNetwork
 
 package_logger = logging.getLogger("python_eth_amm")
 backfill_logger = package_logger.getChild("backfill")
@@ -103,6 +98,7 @@ def etherscan_backfill_txs(
         )
 
 
+# pylint: disable=too-many-locals
 def backfill_txns_from_account_api(
     backfill_plan: BackfillPlan,
     writer: ModelWriter,
@@ -122,16 +118,15 @@ def backfill_txns_from_account_api(
     backfill_task = progress.add_task(
         description="Backfill Blocks",
         total=backfill_plan.total_blocks(),
-        searching_block=backfill_plan.block_ranges[0][0],
+        searching_block=backfill_plan.range_plan.backfill_ranges[0][0],
     )
 
     killer = GracefulKiller(console=progress.console)
 
-    for start_block, end_block in backfill_plan.block_ranges:
-        search_block, break_loop = start_block, False
-
-        if killer.kill_now:
-            break
+    for range_idx, (start_block, end_block) in enumerate(
+        backfill_plan.range_plan.backfill_ranges
+    ):
+        search_block = start_block
 
         while True:
             if killer.kill_now:
@@ -189,6 +184,10 @@ def backfill_txns_from_account_api(
                 backfill_task, advance=blocks_in_batch, searching_block=search_block
             )
 
+        if killer.kill_now:
+            break
+        backfill_plan.range_plan.mark_finalized(range_idx)
+
     progress.console.print(
         "[green]Finished Backfilling Transactions. Saving Cached Models to DB..."
     )
@@ -205,71 +204,73 @@ def _trim_last_block(tx_batch: list[dict[str, Any]]) -> list[dict[str, Any]]:
             return tx_batch[: slice_index + 1]
 
 
-def etherscan_backfill_blocks(
-    backfill_plan: BackfillPlan,
-    db_engine: Engine | Connection,
-    api_key: str | None,
-    progress: Progress,
-):
-    """
-    Backfills blocks through etherscan RPC Proxy API
-
-    :param backfill_plan:
-    :param db_engine:
-    :param api_key:
-    :param progress:
-    :return:
-    """
-    valid_api_key = _validate_api_key(api_key)
-    save_txns: bool = backfill_plan.backfill_type == BackfillDataType.transactions
-
-    block_writer = ModelWriter(
-        db_engine=db_engine, db_model=block_model_for_network(backfill_plan.network)
-    )
-    transaction_writer = (
-        ModelWriter(
-            db_engine=db_engine,
-            db_model=transaction_model_for_network(backfill_plan.network),
-        )
-        if save_txns
-        else None
-    )
-
-    backfill_task = progress.add_task(
-        description="Backfill Blocks",
-        total=backfill_plan.total_blocks(),
-        searching_block=backfill_plan.block_ranges[0][0],
-    )
-
-    for block_range in backfill_plan.block_ranges:
-        for block in range(block_range[0], block_range[1]):
-            progress.update(
-                backfill_task,
-                advance=1,
-                searching_block=block,
-            )
-
-            response = requests.get(
-                etherscan_base_url(backfill_plan.network),
-                params=[
-                    ("module", "proxy"),
-                    ("action", "eth_getBlockByNumber"),
-                    ("tag", str(hex(block))),
-                    ("boolean", save_txns),
-                    ("apikey", valid_api_key),
-                ],
-                timeout=120,
-            )
-
-            parsed_block, parsed_txns = rpc_response_to_block_model(
-                block=handle_etherscan_error(response),
-                network=backfill_plan.network,
-                db_dialect=block_writer.db_dialect,
-                abi_decoder=backfill_plan.decoder,
-            )
-            block_writer.add_backfill_data([parsed_block])
-            if transaction_writer:
-                transaction_writer.add_backfill_data(parsed_txns)
+# def etherscan_backfill_blocks(
+#     backfill_plan: BackfillPlan,
+#     db_engine: Engine | Connection,
+#     api_key: str | None,
+#     progress: Progress,
+# ):
+#     """
+#     Backfills blocks through etherscan RPC Proxy API
+#
+#     :param backfill_plan:
+#     :param db_engine:
+#     :param api_key:
+#     :param progress:
+#     :return:
+#     """
+#     valid_api_key = _validate_api_key(api_key)
+#     save_txns: bool = backfill_plan.backfill_type == BackfillDataType.transactions
+#
+#     block_writer = ModelWriter(
+#         db_engine=db_engine, db_model=block_model_for_network(backfill_plan.network)
+#     )
+#     transaction_writer = (
+#         ModelWriter(
+#             db_engine=db_engine,
+#             db_model=transaction_model_for_network(backfill_plan.network),
+#         )
+#         if save_txns
+#         else None
+#     )
+#
+#     backfill_task = progress.add_task(
+#         description="Backfill Blocks",
+#         total=backfill_plan.total_blocks(),
+#         searching_block=backfill_plan.range_plan.backfill_ranges[0][0],
+#     )
+#
+#     for range_idx, (start_block, end_block) in enumerate(
+#         backfill_plan.range_plan.backfill_ranges
+#     ):
+#         for block in range(start_block, end_block):
+#             progress.update(
+#                 backfill_task,
+#                 advance=1,
+#                 searching_block=block,
+#             )
+#
+#             response = requests.get(
+#                 etherscan_base_url(backfill_plan.network),
+#                 params=[
+#                     ("module", "proxy"),
+#                     ("action", "eth_getBlockByNumber"),
+#                     ("tag", str(hex(block))),
+#                     ("boolean", save_txns),
+#                     ("apikey", valid_api_key),
+#                 ],
+#                 timeout=120,
+#             )
+#
+#             parsed_block, parsed_txns = rpc_response_to_block_model(
+#                 block=handle_etherscan_error(response),
+#                 network=backfill_plan.network,
+#                 db_dialect=block_writer.db_dialect,
+#                 abi_decoder=backfill_plan.decoder,
+#             )
+#             block_writer.add_backfill_data([parsed_block])
+#             if transaction_writer:
+#                 transaction_writer.add_backfill_data(parsed_txns)
 
 
 def _parse_etherscan_transactions(

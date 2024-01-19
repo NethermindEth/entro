@@ -237,7 +237,7 @@ def transactions(
         progress.console.print(
             "[green]Backfill Complete...  Updating Backfill Status in Database"
         )
-        backfill_plan.save_to_db(db_session)
+        backfill_plan.save_to_db()
         db_session.close()
 
 
@@ -322,7 +322,7 @@ def events(
         progress.console.print(
             "[green]Backfill Complete...  Updating Backfill Status in Database"
         )
-        backfill_plan.save_to_db(db_session)
+        backfill_plan.save_to_db()
 
 
 # @backfill_group.command()
@@ -369,7 +369,6 @@ def events(
     source_option,
     from_block_option,
     to_block_option,
-    api_key_option,
     decode_abis_option,
     all_abis_option,
     batch_size_option,
@@ -381,7 +380,6 @@ def blocks(
     source: str,
     from_block: BlockIdentifier,
     to_block: BlockIdentifier,
-    api_key: str | None,
     **kwargs,
 ):
     """Backfills block data"""
@@ -420,15 +418,8 @@ def blocks(
     with Progress(*progress_defaults, console=rich_console) as progress:
         match source:
             case "etherscan":
-                from python_eth_amm.backfill.etherscan import (
-                    etherscan_backfill_blocks,
-                )
-
-                etherscan_backfill_blocks(
-                    backfill_plan=backfill_plan,
-                    db_engine=db_session.get_bind(),
-                    api_key=api_key,
-                    progress=progress,
+                raise NotImplementedError(
+                    "Etherscan Block Backfill Not Yet Implemented"
                 )
 
             case "json_rpc":
@@ -459,4 +450,4 @@ def blocks(
         progress.console.print(
             "\n[green]Backfill Complete...  Updating Backfill Status in Database"
         )
-        backfill_plan.save_to_db(db_session)
+        backfill_plan.save_to_db()

@@ -28,9 +28,7 @@ def fixture_random_address():
 @pytest.fixture(scope="function")
 def debug_logger(request: FixtureRequest):
     log_filename = (
-        request.module.__name__.replace("integration_tests.", "")
-        + "."
-        + request.function.__name__
+        request.module.__name__.replace("tests.", "") + "." + request.function.__name__
     )
 
     parent_dir = Path(__file__).parent

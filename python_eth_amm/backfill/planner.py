@@ -1,16 +1,17 @@
 import logging
 import shutil
+import uuid
 from dataclasses import dataclass
-from typing import Any, Optional, Sequence, TypedDict
+from typing import Any, Literal, Optional, Sequence, TypedDict
 
 from eth_utils import to_checksum_address as tca
 from rich.console import Console
 from rich.table import Table
-from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from python_eth_amm.abi_decoder import DecodingDispatcher
 from python_eth_amm.database.models import BackfilledRange
+from python_eth_amm.database.readers.python_eth_amm import fetch_backfills_by_datatype
 from python_eth_amm.database.writers.utils import model_to_dict
 from python_eth_amm.exceptions import BackfillError
 from python_eth_amm.types.backfill import BackfillDataType as BDT
@@ -63,15 +64,6 @@ VALID_FILTERS = {
         exclusions=[],
     ),
 }
-
-
-@dataclass
-class BackfillRangePlan:
-    """Describes the backfill plan for a given block range"""
-
-    required_backfill_ranges: list[tuple[int, int]]
-    remove_backfills: list[BackfilledRange]
-    add_backfill_range: tuple[int, int] | None
 
 
 def _clean_block_inputs(
@@ -184,25 +176,6 @@ def _verify_filters(backfill_type: BDT, filter_params: dict[str, Any]):
             )
 
 
-def _fetch_backfills(
-    db_session: Session,
-    data_type: BDT,
-    network: SN,
-) -> Sequence[BackfilledRange]:
-    """Fetches all existing backfills from the database"""
-    select_stmt = (
-        select(BackfilledRange)
-        .where(
-            BackfilledRange.data_type == data_type.value,
-            BackfilledRange.network == network.value,
-        )
-        .order_by(BackfilledRange.start_block)  # type: ignore
-    )
-    existing_backfills = db_session.scalars(select_stmt).all()
-    logger.info(f"Selected {len(existing_backfills)} Existing Backfills from Database")
-    return existing_backfills
-
-
 def _filter_conflicting_backfills(
     data_type: BDT,
     backfills: Sequence[BackfilledRange],
@@ -273,103 +246,6 @@ def _filter_conflicting_backfills(
     raise ValueError("Invalid Filter Parameters")
 
 
-def _compute_backfill_ranges(
-    from_block: int,
-    to_block: int,
-    conflicting_backfills: Sequence[BackfilledRange],
-) -> BackfillRangePlan:
-    """
-    Generates a backfill plan for a given block range and conflicting backfills.
-    :param from_block:
-    :param to_block:
-    :param conflicting_backfills:
-    :return:
-    """
-    ranges: list[tuple[int, int]] = []
-    remove_backfills: list[BackfilledRange] = []
-
-    logger.info(
-        f"Computing Backfill Ranges for Blocks ({from_block} - {to_block}) with "
-        f"{len(conflicting_backfills)} Conflicting Backfills"
-    )
-
-    search_block = from_block
-    search_backfills = sorted(
-        [b for b in conflicting_backfills if b.end_block >= from_block],
-        key=lambda x: x.start_block,
-    )
-
-    logger.debug(
-        f"Sorted Backfill Ranges to Search: {[(b.start_block, b.end_block) for b in search_backfills]}"
-    )
-    if len(search_backfills) == 0:
-        logger.debug("Block Ranges do not overlap.  returning single range")
-        return BackfillRangePlan(
-            required_backfill_ranges=[(from_block, to_block)],
-            remove_backfills=[],
-            add_backfill_range=(from_block, to_block),
-        )
-
-    while True:
-        next_backfill = search_backfills.pop(0)
-        next_start, next_end = next_backfill.start_block, next_backfill.end_block
-        logger.debug(
-            f"Running Iteration of Loop:  Next Backfill: {(next_start, next_end)}\tSearch Block: {search_block}\t"
-            f"Current Ranges: {ranges}\tRemove Backfills: {remove_backfills}\tSearch Backfills Remaining: "
-            f"{[(b.start_block, b.end_block) for b in search_backfills]}"
-        )
-
-        if to_block <= next_start:
-            ranges.append((search_block, to_block))
-
-            if to_block == next_start:
-                remove_backfills.append(next_backfill)
-            break
-
-        if search_block < next_start:
-            ranges.append((search_block, next_start))
-            remove_backfills.append(next_backfill)
-        else:
-            if to_block <= next_end:
-                break
-            remove_backfills.append(next_backfill)
-
-        if next_end >= to_block:
-            break
-
-        if len(search_backfills) == 0:
-            ranges.append((next_end, to_block))
-            break
-
-        search_block = next_end
-
-    logger.debug(
-        f"Broke out of Loop...  Computed Ranges: {ranges}\tRemove Backfills: {remove_backfills}"
-    )
-
-    if not ranges:
-        return BackfillRangePlan(
-            required_backfill_ranges=[],
-            remove_backfills=[],
-            add_backfill_range=None,
-        )
-
-    updated_start = min(
-        [x[0] for x in ranges] + [b.start_block for b in remove_backfills]
-    )
-    updated_end = max([x[1] for x in ranges] + [b.end_block for b in remove_backfills])
-
-    logger.debug(
-        f"Computed Range for Add Backfill...  ({updated_start} - {updated_end})"
-    )
-
-    return BackfillRangePlan(
-        required_backfill_ranges=ranges,
-        remove_backfills=remove_backfills,
-        add_backfill_range=(updated_start, updated_end),
-    )
-
-
 def _unpack_kwargs(
     kwargs: dict[str, Any], backfill_type: BDT
 ) -> tuple[dict[str, str], dict[str, Any]]:
@@ -399,6 +275,223 @@ def _unpack_kwargs(
     return filter_dict, meta_dict
 
 
+class BackfillRangePlan:
+    """Describes the backfill plan for a given block range"""
+
+    backfill_ranges: list[tuple[int, int]]
+    backfill_mode: Literal["new", "extend", "join", "empty"]
+    conflicts: list[BackfilledRange]
+    backfill_kwargs: dict[str, Any]
+
+    remove_backfills: list[BackfilledRange]
+    add_backfill: BackfilledRange | None = None
+
+    def __init__(
+        self,
+        from_block: int,
+        to_block: int,
+        conflicts: list[BackfilledRange],
+        backfill_kwargs: dict[str, Any],
+    ):
+        self.conflicts = conflicts
+        self.backfill_kwargs = backfill_kwargs
+        self.remove_backfills = []
+        self.add_backfill = None
+
+        if len(conflicts) == 0:
+            self.backfill_ranges = [(from_block, to_block)]
+            self.backfill_mode = "new"
+        elif len(conflicts) == 1:
+            self._compute_extend(from_block=from_block, to_block=to_block)
+        elif len(conflicts) > 1:
+            self._compute_join(from_block=from_block, to_block=to_block)
+        else:
+            raise BackfillError("Invalid Backfill Range Plan")
+
+    def _compute_extend(self, from_block: int, to_block: int):
+        ranges = []
+        backfill = self.conflicts[0]
+        if from_block < backfill.start_block:
+            ranges.append((from_block, backfill.start_block))
+        if to_block > backfill.end_block:
+            ranges.append((backfill.end_block, to_block))
+
+        self.backfill_ranges = ranges
+        self.backfill_mode = "extend" if ranges else "empty"
+
+    def _compute_join(
+        self,
+        from_block: int,
+        to_block: int,
+    ):
+        ranges: list[tuple[int, int]] = []
+        search_block = from_block
+
+        for index, conflict_bfill in enumerate(self.conflicts):
+            # -- Handle Start Block Conditions --
+            if search_block < conflict_bfill.start_block:
+                ranges.append((search_block, conflict_bfill.start_block))
+
+            # -- Handle End Block Conditions --
+            if conflict_bfill.end_block >= to_block:
+                # To block inside current backfill (This is also final iter)
+                break
+            if index == len(self.conflicts) - 1:
+                # Reached end of conflicts, but to_block is after last end_block
+                ranges.append((conflict_bfill.end_block, to_block))
+            else:
+                search_block = conflict_bfill.end_block
+
+        # Ranges should never be empty
+        self.backfill_ranges = ranges
+        self.backfill_mode = "join"
+
+    @classmethod
+    def compute_db_backfills(
+        cls,
+        from_block: int,
+        to_block: int,
+        conflicting_backfills: Sequence[BackfilledRange],
+        backfill_kwargs: dict[str, Any],
+    ) -> "BackfillRangePlan":
+        """
+        Generates a backfill plan for a given block range and conflicting backfills.
+
+        :param from_block:
+        :param to_block:
+        :param conflicting_backfills:
+        :param backfill_kwargs:  List of kwargs to pass during ORM model construction
+        :return:
+        """
+
+        in_range_backfills = [
+            b
+            for b in conflicting_backfills
+            if b.end_block >= from_block and b.start_block <= to_block
+        ]
+
+        logger.info(
+            f"Computing Backfill Ranges for Blocks ({from_block} - {to_block}) with Conflicting Backfills: "
+            f"{[(b.start_block, b.end_block) for b in in_range_backfills]}"
+        )
+
+        return BackfillRangePlan(
+            from_block=from_block,
+            to_block=to_block,
+            conflicts=sorted(in_range_backfills, key=lambda x: x.start_block),
+            backfill_kwargs=backfill_kwargs,
+        )
+
+    def _process_extend(self, finished_range: tuple[int, int]):
+        if self.add_backfill is None:
+            raise BackfillError("Cannot Extend Non-existent Add Backfill")
+        if finished_range[0] == self.add_backfill.end_block:
+            # First backfill range starts after first conflict
+            self.add_backfill.end_block = finished_range[1]
+        elif finished_range[1] == self.add_backfill.start_block:
+            # First backfill range starts before first conflict
+            self.add_backfill.start_block = finished_range[0]
+        else:
+            raise BackfillError("Cannot Join Backfill to Non-Adjacent Range")
+
+    def mark_finalized(self, range_index: int):
+        """
+        Marks a given range as finalized, updating remove and add backfills accordingly
+
+        :param range_index: 0-indexed position of backfill range completed
+        :return:
+        """
+        r_len = len(self.backfill_ranges)
+        if range_index >= r_len:
+            raise BackfillError(
+                f"Backfill only contains {r_len} range{'s' if r_len > 1 else ''}... Cannot finalize Range "
+                f"#{range_index + 1}"
+            )
+
+        finalized_range = self.backfill_ranges[range_index]
+
+        match self.backfill_mode:
+            case "new":
+                self.add_backfill = BackfilledRange(
+                    backfill_id=uuid.uuid4().hex,
+                    start_block=finalized_range[0],
+                    end_block=finalized_range[1],
+                    **self.backfill_kwargs,
+                )
+
+            case "extend":
+                if not self.add_backfill:
+                    self.add_backfill = self.conflicts.pop(0)
+                self._process_extend(finalized_range)
+
+            case "join":
+                if self.add_backfill is None:  # First Iteration
+                    self.add_backfill = self.conflicts.pop(0)
+                    self._process_extend(finalized_range)
+
+                try:
+                    next_bfill = self.conflicts[0]
+                except IndexError:
+                    self.add_backfill.end_block = finalized_range[1]
+                    return
+
+                if next_bfill.start_block == finalized_range[1]:
+                    self.add_backfill.end_block = next_bfill.end_block
+                    self.remove_backfills.append(self.conflicts.pop(0))
+
+    def mark_failed(self, range_index, final_block):
+        """
+        Marks a backfill range as failed, saving current state to database.
+
+        :param range_index:  0-indexed position of backfill range that failure occurred in
+        :param final_block:  Block number that failure occurred at
+        :return:
+        """
+        if range_index >= len(self.backfill_ranges):
+            raise BackfillError("Backfill Range for Failiure Does Not Exist")
+        fail_range = self.backfill_ranges[range_index]
+        if not fail_range[0] <= final_block < fail_range[1]:
+            raise BackfillError(
+                f"Failiure Occured at block {final_block} Outside of Expected Range {fail_range}"
+            )
+        if fail_range[0] == final_block:
+            # No blocks in range were backfilled
+            return
+
+        if self.add_backfill:
+            self.add_backfill.end_block = final_block
+        else:
+            match self.backfill_mode:
+                case "new":
+                    self.add_backfill = BackfilledRange(
+                        backfill_id=uuid.uuid4().hex,
+                        start_block=fail_range[0],
+                        end_block=final_block,
+                        **self.backfill_kwargs,
+                    )
+                case "extend":
+                    if fail_range[0] == self.conflicts[0].end_block:
+                        self.add_backfill = self.conflicts[0]
+                        self.add_backfill.end_block = final_block
+                    else:
+                        self.add_backfill = BackfilledRange(
+                            backfill_id=uuid.uuid4().hex,
+                            start_block=fail_range[0],
+                            end_block=final_block,
+                            **self.backfill_kwargs,
+                        )
+                case "join":
+                    if self.add_backfill:
+                        self.add_backfill.end_block = final_block
+                    else:
+                        self.add_backfill = BackfilledRange(
+                            backfill_id=uuid.uuid4().hex,
+                            start_block=fail_range[0],
+                            end_block=final_block,
+                            **self.backfill_kwargs,
+                        )
+
+
 @dataclass
 class BackfillPlan:
     """
@@ -406,17 +499,17 @@ class BackfillPlan:
     to remove, and the backfill to add.
     """
 
+    db_session: Session
+    """ The database session to use for Backfill CRUD Operations """
+
+    range_plan: BackfillRangePlan
+    """ The backfill range plan for the backfill """
+
     backfill_type: BDT
     """ The type of backfill to perform """
 
     network: SN
     """ The network to backfill """
-
-    block_ranges: list[tuple[int, int]]
-    """ The block ranges to backfill """
-
-    remove_backfills: list[BackfilledRange]
-    """ The backfills to remove """
 
     decoder: DecodingDispatcher
     """ The ABI Decoder to use for decoding the backfill data """
@@ -426,9 +519,6 @@ class BackfillPlan:
 
     filter_params: dict[str, Any]
     """ The filter parameters to use for the backfill """
-
-    add_backfill: BackfilledRange | None = None
-    """ The backfill to add """
 
     @classmethod
     def generate(
@@ -472,14 +562,21 @@ class BackfillPlan:
 
         conflicting_backfills = _filter_conflicting_backfills(
             backfill_type,
-            _fetch_backfills(db_session, backfill_type, network),
+            fetch_backfills_by_datatype(db_session, backfill_type, network),
             filter_params.copy() if filter_params else None,
         )
 
-        backfill_plan = _compute_backfill_ranges(
+        backfill_range_plan = BackfillRangePlan.compute_db_backfills(
             from_block=start_block,
             to_block=end_block,
             conflicting_backfills=conflicting_backfills,
+            backfill_kwargs={
+                "data_type": backfill_type.value,
+                "network": network.value,
+                "filter_data": filter_params,
+                "metadata_dict": metadata_dict,
+                "decoded_abis": decode_abis,
+            },
         )
 
         if backfill_type == BDT.events:
@@ -489,42 +586,24 @@ class BackfillPlan:
                     f"Specify an ABI using --contract-abi"
                 )
 
-        logger.info("Computed Backfill Plan.... ")
-        logger.info(
-            f"\tRequired Backfill Ranges: {[f'({b[0]} - {b[1]})' for b in backfill_plan.required_backfill_ranges]}",
-        )
-        logger.info(
-            f"\tRemove Backfills: {[f'({b.start_block} - {b.end_block})' for b in backfill_plan.remove_backfills]}"
-        )
-        logger.info(f"\tAdd Backfill Range: {backfill_plan.add_backfill_range}")
-
-        if backfill_plan.add_backfill_range is None:
+        if backfill_range_plan.backfill_mode == "empty":
             # The planned backfill is redundant, data is already in db
             return None
 
         return BackfillPlan(
+            db_session=db_session,
+            range_plan=backfill_range_plan,
             backfill_type=backfill_type,
             network=network,
             filter_params=filter_params,
-            block_ranges=backfill_plan.required_backfill_ranges,
             metadata_dict=metadata_dict,
-            remove_backfills=backfill_plan.remove_backfills,
             decoder=decoder,
-            add_backfill=BackfilledRange(
-                data_type=backfill_type.value,
-                network=network.value,
-                start_block=backfill_plan.add_backfill_range[0],
-                end_block=backfill_plan.add_backfill_range[1],
-                filter_data=filter_params,
-                metadata_dict=metadata_dict,
-                decoded_abis=decode_abis,
-            ),
         )
 
     def print_backfill_plan(self, console: Console):  # pylint: disable=too-many-locals
         """Prints the backfill plan to the console"""
 
-        if len(self.block_ranges) == 0:
+        if len(self.range_plan.backfill_ranges) == 0:
             console.print("[green]No blocks to backfill")
             return
 
@@ -543,11 +622,11 @@ class BackfillPlan:
         block_range_table.add_column("End Block")
         block_range_table.add_column("Total Blocks", justify="right")
 
-        for block_range in self.block_ranges:
+        for start_block, end_block in self.range_plan.backfill_ranges:
             block_range_table.add_row(
-                f"{block_range[0]:,}",
-                f"{block_range[1]:,}",
-                f"{block_range[1] - block_range[0]:,}",
+                f"{start_block:,}",
+                f"{end_block:,}",
+                f"{end_block - start_block:,}",
             )
         console.print(block_range_table)
 
@@ -613,7 +692,8 @@ class BackfillPlan:
     def total_blocks(self) -> int:
         """Returns the total number of blocks within backfill plan"""
         return sum(
-            end_block - start_block for start_block, end_block in self.block_ranges
+            end_block - start_block
+            for start_block, end_block in self.range_plan.backfill_ranges
         )
 
     def get_filter_param(self, filter_key) -> str:
@@ -651,40 +731,24 @@ class BackfillPlan:
 
         :param end_block: The block number that the backfill failed on
         """
-        if self.add_backfill is None or not self.block_ranges:
-            raise BackfillError("No backfill to process")
 
-        for remove in self.remove_backfills:
-            if remove.start_block > end_block:
-                # Remove backfill not yet reached
-                self.remove_backfills.remove(remove)
+        for index, (from_blk, to_blk) in enumerate(self.range_plan.backfill_ranges):
+            if from_blk <= end_block < to_blk:
+                self.range_plan.mark_failed(index, end_block)
+                break
 
-        self.add_backfill.end_block = max(
-            [end_block] + [b.end_block for b in self.remove_backfills]
-        )
+            self.range_plan.mark_finalized(index)
 
-    def save_to_db(self, db_session):
-        """
-        Saves backfill plan to database
+    def save_to_db(self):
+        """Saves backfill plan to database"""
 
-        :param db_session:
-        :return:
-        """
-        for delete_backfill in self.remove_backfills:
-            db_session.delete(delete_backfill)
+        for remove_bfill in self.range_plan.remove_backfills:
+            self.db_session.delete(remove_bfill)
 
-        if self.add_backfill:
-            db_session.add(self.add_backfill)
+        if self.range_plan.add_backfill:
+            self.db_session.add(self.range_plan.add_backfill)
 
-        db_session.commit()
-
-    def mark_failed(self):
-        """
-        Marks the backfill plan as failed.  This will remove the add-backfill, and reset the remove-backfills
-        :return:
-        """
-        self.remove_backfills = []
-        self.add_backfill = None
+        self.db_session.commit()
 
     def backfill_label(self, range_index: int = 0):
         """
@@ -695,7 +759,7 @@ class BackfillPlan:
         :return:
         """
 
-        from_block, to_block = self.block_ranges[range_index]
+        from_block, to_block = self.range_plan.backfill_ranges[range_index]
         net = self.network.value.capitalize()
         typ = self.backfill_type.value.capitalize()
 

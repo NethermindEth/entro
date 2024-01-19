@@ -35,6 +35,7 @@ class BackfilledRange(Base):
 
     __tablename__ = "backfilled_ranges"
 
+    backfill_id: Mapped[int] = mapped_column(Text, nullable=False)
     data_type: Mapped[BackfillDataType] = mapped_column(Text, nullable=False)
     network: Mapped[SupportedNetwork] = mapped_column(Text, nullable=False)
     start_block: Mapped[int]
