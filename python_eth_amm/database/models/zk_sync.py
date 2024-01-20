@@ -25,7 +25,7 @@ class EraBlock(AbstractBlock):
     miner: Mapped[Address]
     difficulty: Mapped[int] = mapped_column(Numeric(32, 0), nullable=True)
     gas_limit: Mapped[int] = mapped_column(BigInteger, nullable=False)
-    gas_used: Mapped[int] = mapped_column(BigInteger, nullable=False)
+
     extra_data: Mapped[str] = mapped_column(
         Text().with_variant(BYTEA, "postgresql"), nullable=False
     )

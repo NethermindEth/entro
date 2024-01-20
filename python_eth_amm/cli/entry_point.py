@@ -1,7 +1,4 @@
-import logging
-
 import click
-from rich.logging import RichHandler
 
 from python_eth_amm.database.migrations import cli_migrate_up
 
@@ -12,10 +9,6 @@ from .tokens import tokens_group
 @click.group()
 def cli_entry_point():
     """CLI for python-eth-amm"""
-    logger = logging.getLogger("python_eth_amm")
-    if not logger.hasHandlers():
-        logger.addHandler(RichHandler(show_path=False))
-        logger.setLevel(logging.WARNING)
 
 
 # Adding Command Groups

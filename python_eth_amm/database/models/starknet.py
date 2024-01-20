@@ -19,10 +19,6 @@ class Block(AbstractBlock):
 
     state_root: Mapped[Hash32]
 
-    message_count: Mapped[int]
-    event_count: Mapped[int]
-    l1_verification_txn_hash: Mapped[Hash32 | None]
-
     status: Mapped[str | None]
 
     __table_args__ = {"schema": "starknet_data"}

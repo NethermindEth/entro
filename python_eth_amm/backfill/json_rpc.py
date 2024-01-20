@@ -189,6 +189,7 @@ def get_block_models_for_range(
     decoder: DecodingDispatcher,
     db_dialect: str,
     full_txns: bool = True,
+    get_gas_used: bool = True,
     max_concurrency: int = 20,
 ) -> tuple[list[AbstractBlock], list[AbstractTransaction]]:
     """
@@ -201,6 +202,7 @@ def get_block_models_for_range(
     :param decoder:
     :param db_dialect:
     :param full_txns:
+    :param get_gas_used:
     :param max_concurrency:
     :return:
     """
@@ -218,10 +220,10 @@ def get_block_models_for_range(
         )
         raise BackfillError()
 
-    all_blocks, all_txns = [], []
+    all_blocks, all_txns, last_hashes = [], [], []
 
     for block in block_json:
-        block_data, transactions = rpc_response_to_block_model(
+        block_data, transactions, last_tx = rpc_response_to_block_model(
             block=block,
             network=network,
             db_dialect=db_dialect,
@@ -229,6 +231,31 @@ def get_block_models_for_range(
         )
         all_blocks.append(block_data)
         all_txns.extend(transactions)
+        if last_tx:
+            last_hashes.append(last_tx)
+
+    if get_gas_used:
+        receipts = retry_enabled_batch_post(
+            request_objects=parse_rpc_receipt_request(last_hashes, network=network),
+            json_rpc=json_rpc,
+            max_concurrency=max_concurrency,
+        )
+        if receipts == "failed":
+            logger.error(
+                f"Querying Receipts from RPC failed between ({from_block} - {to_block - 1})"
+            )
+            raise BackfillError()
+
+        block_map = {block.block_number: block for block in all_blocks}
+
+        for receipt in receipts:
+            receipt_block = int(receipt["blockNumber"], 16)
+            if receipt_block not in block_map:
+                continue
+
+            block_map[receipt_block].effective_gas_price = int(
+                receipt["effectiveGasPrice"], 16
+            )
 
     return all_blocks, all_txns
 

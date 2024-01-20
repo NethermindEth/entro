@@ -166,7 +166,7 @@ class TimestampConverter:
 
         block_models, db_dialect = [], self.db_session.get_bind().dialect.name
         for resp in block_responses:
-            block_model, _ = rpc_response_to_block_model(
+            block_model, _, _ = rpc_response_to_block_model(
                 block=resp,
                 network=self.network,
                 db_dialect=db_dialect,

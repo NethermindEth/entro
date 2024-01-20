@@ -2,6 +2,7 @@ import logging
 
 import click
 
+from rich.logging import RichHandler
 from rich.console import Console
 from rich.prompt import Prompt
 from rich.progress import Progress
@@ -60,11 +61,15 @@ def add_abi(db_url, abi_name, abi_json, priority):
     from python_eth_amm.database.models.python_eth_amm import ContractABI
     from python_eth_amm.database.readers.python_eth_amm import query_abis
 
-    console = Console()
+    rich_console = Console()
+    if not package_logger.hasHandlers():
+        package_logger.addHandler(RichHandler(show_path=False, console=rich_console))
+        package_logger.setLevel(logging.WARNING)
+
     db_session = create_cli_session(db_url)
     loaded_abis = query_abis(db_session)
 
-    console.print(
+    rich_console.print(
         f"Attempting to add ABI {abi_name} to Decoder with priority {priority}.  Checking for "
         f"conflicts with {len(loaded_abis)} existing ABIs"
     )
@@ -98,7 +103,7 @@ def add_abi(db_url, abi_name, abi_json, priority):
     )
     db_session.commit()
 
-    click.echo(
+    rich_console.print(
         f"[green]Successfully Added {abi_name} to Database with Priority {priority}"
     )
 
@@ -108,6 +113,10 @@ def add_abi(db_url, abi_name, abi_json, priority):
 def list_abis(db_url):
     """Lists all available ABIs that can be used for classification"""
     from python_eth_amm.database.readers.python_eth_amm import query_abis
+
+    if not package_logger.hasHandlers():
+        package_logger.addHandler(RichHandler(show_path=False))
+        package_logger.setLevel(logging.WARNING)
 
     db_session = create_cli_session(db_url)
     abis = query_abis(db_session)
@@ -124,6 +133,9 @@ def list_abis(db_url):
 @group_options(db_url_option)
 def list_abi_decoders(db_url, full_signatures):
     """Lists all Available ABIs in Database, along with the function and event signatures each ABI will classify"""
+    if not package_logger.hasHandlers():
+        package_logger.addHandler(RichHandler(show_path=False))
+        package_logger.setLevel(logging.WARNING)
 
     db_session = create_cli_session(db_url)
     decoder = DecodingDispatcher.from_database(
@@ -176,8 +188,12 @@ def transactions(
     **kwargs,
 ):
     """Backfills transaction data"""
-    db_session = create_cli_session(db_url)
     rich_console = Console()
+    if not package_logger.hasHandlers():
+        package_logger.addHandler(RichHandler(show_path=False, console=rich_console))
+        package_logger.setLevel(logging.WARNING)
+
+    db_session = create_cli_session(db_url)
 
     try:
         backfill_plan = BackfillPlan.generate(
@@ -273,9 +289,13 @@ def events(
     **kwargs,
 ):
     """Backfills event data"""
+    rich_console = Console()
+    if not package_logger.hasHandlers():
+        package_logger.addHandler(RichHandler(show_path=False, console=rich_console))
+        package_logger.setLevel(logging.WARNING)
+
     data_source = DataSources(source)
     db_session = create_cli_session(db_url)
-    rich_console = Console()
 
     try:
         backfill_plan = BackfillPlan.generate(
@@ -384,9 +404,12 @@ def blocks(
 ):
     """Backfills block data"""
 
-    full_blocks = kwargs.get("full_blocks", False)
     rich_console = Console()
+    if not package_logger.hasHandlers():
+        package_logger.addHandler(RichHandler(show_path=False, console=rich_console))
+        package_logger.setLevel(logging.WARNING)
 
+    full_blocks = kwargs.get("full_blocks", False)
     db_session = create_cli_session(db_url)
 
     backfill_plan = BackfillPlan.generate(

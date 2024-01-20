@@ -169,7 +169,10 @@ def test_full_backfill_zk_sync_era(
     blocks = integration_db_session.query(EraBlock).all()
     assert blocks[0].block_number == 17570000
     assert blocks[0].timestamp == 1698541582
+    assert blocks[0].effective_gas_price == 0.25e9
+
     assert blocks[-1].block_number == 17570099
     assert blocks[-1].timestamp == 1698541685
+    assert blocks[-1].effective_gas_price == 0.25e9
 
     assert len(blocks) == 100

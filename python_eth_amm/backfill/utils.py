@@ -347,7 +347,7 @@ def rpc_response_to_block_model(
     network: SN,
     db_dialect: str,
     abi_decoder: DecodingDispatcher | None = None,
-) -> tuple[AbstractBlock, list[AbstractTransaction]]:
+) -> tuple[AbstractBlock, list[AbstractTransaction], str | None]:
     """
     Parse a block from a JSON RPC response into a Block object and a list of Transaction objects.
     Runs the block through the ABI Decoder if one is provided.
@@ -356,7 +356,7 @@ def rpc_response_to_block_model(
     :param network:  Network to parse RPC response.
     :param db_dialect:
     :param abi_decoder:
-    :return:
+    :return: (block, list[transactions], last_tx_in_block)
     """
 
     tx_count = len(block.get("transactions", []))
@@ -430,17 +430,28 @@ def rpc_response_to_block_model(
                         f"Cannot parse RPC Transaction Response for network {network}"
                     )
 
+    last_tx = block["transactions"][-1] if len(block["transactions"]) > 0 else None
+    last_tx_hash: str | None = last_tx["hash"] if isinstance(last_tx, dict) else last_tx
+
     match network:
         case SN.ethereum:
-            return EthereumBlock(**block_data), [
-                EthereumTransaction(**tx) for tx in all_txns
-            ]
+            return (
+                EthereumBlock(**block_data),
+                [EthereumTransaction(**tx) for tx in all_txns],
+                last_tx_hash,
+            )
         case SN.zk_sync_era:
-            return ZKSyncBlock(**block_data), [
-                ZKSyncTransaction(**tx) for tx in all_txns
-            ]
+            return (
+                ZKSyncBlock(**block_data),
+                [ZKSyncTransaction(**tx) for tx in all_txns],
+                last_tx_hash,
+            )
         case SN.polygon_zk_evm:
-            return ZKEVMBlock(**block_data), [ZKEVMTransaction(**tx) for tx in all_txns]
+            return (
+                ZKEVMBlock(**block_data),
+                [ZKEVMTransaction(**tx) for tx in all_txns],
+                last_tx_hash,
+            )
         case _:
             raise NotImplementedError(f"Cannot parse Block for network {network}")
 

@@ -82,7 +82,14 @@ def test_backfill_mainnet_full_block(
     assert len(txns) == 2696
 
     assert blocks[0].block_number == 18000000
+    assert blocks[0].gas_used == 16_247_211
+    assert blocks[0].effective_gas_price == 21_721_091_641
+    assert blocks[0].transaction_count == 94
 
     assert blocks[-1].block_number == 18000019
+    assert blocks[-1].gas_used == 14_309_399
+    assert blocks[-1].effective_gas_price == 20_117_274_455
+    assert blocks[-1].transaction_count == 150
 
+    assert sum([b.transaction_count for b in blocks]) == len(txns)
     assert len(blocks) == 20
