@@ -3,6 +3,7 @@ import click
 from python_eth_amm.database.migrations import cli_migrate_up
 
 from .backfill import add_abi, backfill_group, list_abi_decoders, list_abis
+from .prices import prices_group
 from .tokens import tokens_group
 
 
@@ -14,6 +15,7 @@ def cli_entry_point():
 # Adding Command Groups
 cli_entry_point.add_command(tokens_group, name="tokens")
 cli_entry_point.add_command(backfill_group, name="backfill")
+cli_entry_point.add_command(prices_group, name="prices")
 
 
 # Adding Base Commands

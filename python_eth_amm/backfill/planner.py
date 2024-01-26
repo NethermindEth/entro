@@ -2,22 +2,26 @@ import logging
 import shutil
 import uuid
 from dataclasses import dataclass
-from typing import Any, Literal, Optional, Sequence, TypedDict
+from typing import Any, Literal, Optional, Sequence, Type, TypedDict
 
 from eth_utils import to_checksum_address as tca
 from rich.console import Console
 from rich.table import Table
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import DeclarativeBase, Session
 
 from python_eth_amm.abi_decoder import DecodingDispatcher
 from python_eth_amm.database.models import BackfilledRange
 from python_eth_amm.database.readers.python_eth_amm import fetch_backfills_by_datatype
-from python_eth_amm.database.writers.utils import model_to_dict
+from python_eth_amm.database.writers.utils import (
+    automap_sqlalchemy_model,
+    model_to_dict,
+)
 from python_eth_amm.exceptions import BackfillError
 from python_eth_amm.types.backfill import BackfillDataType as BDT
 from python_eth_amm.types.backfill import SupportedNetwork as SN
 from python_eth_amm.utils import pprint_list
 
+from ..abi_decoder.evm_decoder import EVMDecoder
 from ..types import BlockIdentifier
 from .utils import block_identifier_to_block, get_current_block_number
 
@@ -49,8 +53,8 @@ VALID_FILTERS = {
         exclusions=[],
     ),
     BDT.events: BackfillFilter(
-        options=["contract_address", "event_names"],
-        required=["contract_address"],
+        options=["contract_address", "event_names", "abi_name"],
+        required=["contract_address", "abi_name"],
         exclusions=[],
     ),
     BDT.transfers: BackfillFilter(
@@ -59,8 +63,8 @@ VALID_FILTERS = {
         exclusions=[("from_address", "to_address")],
     ),
     BDT.spot_prices: BackfillFilter(
-        options=["contract_address"],
-        required=["contract_address"],
+        options=["market_address", "market_protocol"],
+        required=["market_address", "market_protocol"],
         exclusions=[],
     ),
 }
@@ -248,7 +252,7 @@ def _filter_conflicting_backfills(
 
 def _unpack_kwargs(
     kwargs: dict[str, Any], backfill_type: BDT
-) -> tuple[dict[str, str], dict[str, Any]]:
+) -> tuple[dict[str, Any], dict[str, Any]]:
     """
     Unpacks kwargs from the CLI.  If kwargs is None, will return empty dicts for filter_params and metadata_dict.
 
@@ -273,6 +277,41 @@ def _unpack_kwargs(
             meta_dict.update({key: val})
 
     return filter_dict, meta_dict
+
+
+def _generate_topics(
+    decoder: EVMDecoder, event_names: list[str]
+) -> list[str | list[str]]:
+    """
+        Generates the event topics for an event backfill
+    :return:
+    """
+    if len(event_names) == 0:
+        event_names = decoder.get_all_decoded_events(False)
+
+    selectors = []
+    for event_name in event_names:
+        event_sig = decoder.get_event_signature(event_name)
+        if event_sig is None:
+            continue
+        selectors.append("0x" + event_sig)
+
+    if len(selectors) != len(event_names):
+        error_msg = (
+            f"{decoder.abi_name} ABI does not contain all of the events specified in the filter. "
+            f"ABI Missing events: {set(event_names) - set(decoder.get_all_decoded_events(False))}"
+        )
+        logger.error(error_msg)
+        raise BackfillError(error_msg)
+
+    topics: list[str | list[str]] = []
+    if len(selectors) == 1:
+        # If only one event is being queried, pass event signatures as a string instead of array
+        topics.append(selectors[0])
+    else:
+        topics.append(selectors)
+
+    return topics
 
 
 class BackfillRangePlan:
@@ -385,6 +424,7 @@ class BackfillRangePlan:
     def _process_extend(self, finished_range: tuple[int, int]):
         if self.add_backfill is None:
             raise BackfillError("Cannot Extend Non-existent Add Backfill")
+
         if finished_range[0] == self.add_backfill.end_block:
             # First backfill range starts after first conflict
             self.add_backfill.end_block = finished_range[1]
@@ -557,6 +597,22 @@ class BackfillPlan:
                 all_abis=metadata_dict.get("all_abis", False),
             )
         )
+        if backfill_type in [BDT.events]:
+            if len(decoder.loaded_abis) != 1:
+                raise BackfillError(
+                    f"Expected 1 ABI for Event backfill, but found {len(decoder.loaded_abis)}.  "
+                    f"Specify an ABI using --contract-abi"
+                )
+            abi_name, decoder_instance = list(decoder.loaded_abis.items())[0]
+            filter_params.update({"abi_name": abi_name})
+            metadata_dict.update(
+                {
+                    "topics": _generate_topics(
+                        decoder_instance,
+                        filter_params.get("event_names", []),
+                    )
+                }
+            )
 
         _verify_filters(backfill_type, filter_params)
 
@@ -578,13 +634,6 @@ class BackfillPlan:
                 "decoded_abis": decode_abis,
             },
         )
-
-        if backfill_type == BDT.events:
-            if len(decoder.loaded_abis) != 1:
-                raise BackfillError(
-                    f"Expected 1 ABI for Event backfill, but found {len(decoder.loaded_abis)}.  "
-                    f"Specify an ABI using --contract-abi"
-                )
 
         if backfill_range_plan.backfill_mode == "empty":
             # The planned backfill is redundant, data is already in db
@@ -750,7 +799,7 @@ class BackfillPlan:
 
         self.db_session.commit()
 
-    def backfill_label(self, range_index: int = 0):
+    def backfill_label(self, range_index: int = 0):  # pylint: disable=unused-argument
         """
         Returns a label for the backfilled range.  For a mainnet transaction backfill with the ranges
         [(0, 100), (100, 200)], the label label at range index 0 would be
@@ -759,13 +808,40 @@ class BackfillPlan:
         :return:
         """
 
-        from_block, to_block = self.range_plan.backfill_ranges[range_index]
-        net = self.network.value.capitalize()
-        typ = self.backfill_type.value.capitalize()
+        net = self.network.pretty()
+        typ = self.backfill_type.pretty()
 
         match self.backfill_type:
             case BDT.events:
                 abi_name = list(self.decoder.loaded_abis.keys())[0]
-                return f"Backfill {abi_name} Events Between ({from_block} - {to_block})"
+                return f"Backfill {abi_name} Events"
             case _:
-                return f"Backfill {net} {typ} Between ({from_block} - {to_block})"
+                return f"Backfill {net} {typ}"
+
+    def load_model_overrides(self) -> dict[str, Type[DeclarativeBase]]:
+        """
+        Generates the event topics and model overrides for an event backfill
+
+        :return: (topics, event_model_overrides)
+        """
+        model_override_dict: dict[str, str] = self.metadata_dict.get("db_models", {})
+        if len(model_override_dict) == 0:
+            return {}
+
+        _, decoder = list(self.decoder.loaded_abis.items())[0]
+        model_overrides = {}
+
+        all_events_in_decoder = decoder.get_all_decoded_events()
+
+        for event, model in model_override_dict.items():
+            if "(" not in event:
+                event = [sig for sig in all_events_in_decoder if event in sig][0]
+            split = list(reversed(model.split(".")))
+            res = automap_sqlalchemy_model(
+                db_engine=self.db_session.get_bind(),
+                table_names=[split[0]],
+                schema=split[1] if split[1:] else "public",
+            )
+            model_overrides.update({event: res[split[0]]})
+
+        return model_overrides

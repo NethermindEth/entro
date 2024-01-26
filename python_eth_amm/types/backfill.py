@@ -1,7 +1,7 @@
 from enum import Enum
 
 # Disabling stupid naming check that wants enums to use UPPER_CASE
-# pylint: disable=C0103
+# pylint: disable=invalid-name
 
 
 class EnumHandler(Enum):
@@ -32,6 +32,16 @@ class BackfillDataType(Enum):
     events = "events"
     traces = "traces"
 
+    def pretty(self):
+        """Returns a pretty version of the data type"""
+        match self:
+            case BackfillDataType.full_blocks:
+                return "Full Blocks"
+            case BackfillDataType.spot_prices:
+                return "Spot-Prices"
+            case _:
+                return self.value.capitalize()
+
 
 class DataSources(Enum):
     """Enum storing supported backfill data sources"""
@@ -49,3 +59,17 @@ class SupportedNetwork(Enum):
     zk_sync_lite = "zk_sync_lite"
     zk_sync_era = "zk_sync_era"
     polygon_zk_evm = "polygon_zk_evm"
+
+    def pretty(self):
+        """Returns a pretty version of the network name"""
+        match self:
+            case SupportedNetwork.starknet:
+                return "StarkNet"
+            case SupportedNetwork.zk_sync_lite:
+                return "zkSync Lite"
+            case SupportedNetwork.zk_sync_era:
+                return "zkSync Era"
+            case SupportedNetwork.polygon_zk_evm:
+                return "Polygon zkEVM"
+            case _:
+                return self.value.capitalize()

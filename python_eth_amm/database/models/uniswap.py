@@ -1,7 +1,7 @@
 import datetime
 from typing import Type
 
-from sqlalchemy import DateTime, PrimaryKeyConstraint
+from sqlalchemy import DateTime, Index, PrimaryKeyConstraint
 from sqlalchemy.orm import Mapped, mapped_column
 
 from .base import (
@@ -75,6 +75,8 @@ class UniV3MintEvent(AbstractEvent):
 
     __table_args__ = (
         PrimaryKeyConstraint("block_number", "log_index"),
+        Index("uniswap.ix_v3_mint_sender", "sender"),
+        Index("uniswap.ix_v3_mint_position", "owner", "tick_lower", "tick_upper"),
         {"schema": "uniswap"},
     )
 
@@ -91,6 +93,8 @@ class UniV3CollectEvent(AbstractEvent):
 
     __table_args__ = (
         PrimaryKeyConstraint("block_number", "log_index"),
+        Index("uniswap.ix_v3_collect_position", "owner", "tick_lower", "tick_upper"),
+        Index("uniswap.ix_v3_collect_recipient", "recipient"),
         {"schema": "uniswap"},
     )
 
@@ -107,6 +111,7 @@ class UniV3BurnEvent(AbstractEvent):
 
     __table_args__ = (
         PrimaryKeyConstraint("block_number", "log_index"),
+        Index("uniswap.ix_v3_burn_position", "owner", "tick_lower", "tick_upper"),
         {"schema": "uniswap"},
     )
 
@@ -124,6 +129,8 @@ class UniV3SwapEvent(AbstractEvent):
 
     __table_args__ = (
         PrimaryKeyConstraint("block_number", "log_index"),
+        Index("uniswap.ix_v3_swap_sender", "sender"),
+        Index("uniswap.ix_v3_swap_recipient", "recipient"),
         {"schema": "uniswap"},
     )
 
@@ -140,6 +147,8 @@ class UniV3FlashEvent(AbstractEvent):
 
     __table_args__ = (
         PrimaryKeyConstraint("block_number", "log_index"),
+        Index("uniswap.ix_v3_flash_sender", "sender"),
+        Index("uniswap.ix_v3_flash_recipient", "recipient"),
         {"schema": "uniswap"},
     )
 
@@ -149,11 +158,15 @@ class UniV3PoolCreationEvent(AbstractEvent):
 
     token_0: Mapped[IndexedAddress]
     token_1: Mapped[IndexedAddress]
-    pool_address: Mapped[IndexedAddress]
+    pool: Mapped[IndexedAddress]
     fee: Mapped[int]
+    tick_spacing: Mapped[int]
 
     __table_args__ = (
         PrimaryKeyConstraint("block_number", "log_index"),
+        Index("uniswap.ix_v3_pool_creation_token_0", "token_0"),
+        Index("uniswap.ix_v3_pool_creation_token_1", "token_1"),
+        Index("uniswap.ix_v3_pool_creation_pool", "pool"),
         {"schema": "uniswap"},
     )
 
@@ -164,4 +177,5 @@ UNI_EVENT_MODELS: dict[str, Type[AbstractEvent]] = {
     "Burn(address,int24,int24,uint128,uint256,uint256)": UniV3BurnEvent,
     "Swap(address,address,int256,int256,uint160,uint128,int24)": UniV3SwapEvent,
     "Flash(address,address,uint256,uint256,uint256,uint256)": UniV3FlashEvent,
+    "PoolCreated(address,address,uint24,int24,address)": UniV3PoolCreationEvent,
 }

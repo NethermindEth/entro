@@ -301,7 +301,7 @@ def _parse_etherscan_transactions(
             "to_address": db_encode_hex(tx_data["to"], db_dialect),
             "input": db_encode_hex(tx_data["input"], db_dialect),
             "value": int(tx_data["value"]),
-            "is_error": bool(tx_data["isError"]),
+            "error": bool(tx_data["isError"]),
             "gas_price": int(tx_data["gasPrice"]),
             "gas_used": int(tx_data["gasUsed"]),
             "decoded_signature": function_name,

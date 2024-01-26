@@ -26,10 +26,8 @@ progress_defaults = [
     TaskProgressColumn(),
     TimeElapsedColumn(),
     TimeRemainingColumn(),
-    TextColumn("[green]Blocks Searched: {task.completed}/{task.total}"),
-    TextColumn(
-        "[magenta]Searching Block: {task.fields[searching_block]}", justify="right"
-    ),
+    TextColumn("[green]Searched: {task.completed}/{task.total}"),
+    TextColumn("[magenta]Searching Block: {task.fields[searching_block]}"),
 ]
 
 
@@ -137,6 +135,14 @@ event_name_option = click.option(
     help="Event name for event/log backfills.  Can be input multiple times.  If not provided, will backfill "
     "all events present in contract-abi",
 )
+token_address_option = click.option(
+    "--token-address",
+    "token_address",
+    type=str,
+    required=True,
+    help="Contract address of ERC20 Token Contract",
+)
+
 # -------------------------------------------------------
 #    Backfill Configuration Parameters
 # -------------------------------------------------------

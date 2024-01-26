@@ -4,7 +4,7 @@ from eth_utils import to_checksum_address as tca
 # Major ERC20 Tokens
 USDC_ADDRESS: ChecksumAddress = tca("0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48")
 WETH_ADDRESS: ChecksumAddress = tca("0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2")
-
+STABLECOIN_ADDRESSES = [USDC_ADDRESS]
 
 # Uniswap Adresses
 UNISWAP_V3_FACTORY = tca("0x1F98431c8aD98523631AE4a59f267346ea31F984")

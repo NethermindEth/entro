@@ -1,43 +1,74 @@
 import datetime
 import logging
-from dataclasses import dataclass
 
-import web3
 from eth_typing import ChecksumAddress
 from pandas import DataFrame
 from sqlalchemy import select
-from sqlalchemy import text as encode_sql_text
 from sqlalchemy.orm import Session
 
+from python_eth_amm.addresses import STABLECOIN_ADDRESSES, USDC_ADDRESS, WETH_ADDRESS
+from python_eth_amm.backfill.planner import BackfillPlan
+from python_eth_amm.backfill.prices import update_pool_creations
+from python_eth_amm.backfill.utils import get_current_block_number
 from python_eth_amm.database.models import BackfilledRange
-from python_eth_amm.database.models.prices import MARKET_SPOT_PRICES_PER_BLOCK_QUERY
+from python_eth_amm.database.readers.prices import get_supported_markets
+from python_eth_amm.exceptions import OracleError
 from python_eth_amm.pricing_oracle.timestamp_converter import TimestampConverter
-from python_eth_amm.uniswap_v3 import UniswapV3Pool
-
-from ..types.backfill import BackfillDataType
+from python_eth_amm.types.backfill import BackfillDataType, SupportedNetwork
+from python_eth_amm.types.prices import AbstractTokenMarket, TokenMarketInfo
 
 package_logger = logging.getLogger("python_eth_amm")
 logger = package_logger.getChild("prices")
 
 
-@dataclass
-class TokenMarketInfo:
+def _sort_tokens(
+    a: ChecksumAddress, b: ChecksumAddress
+) -> tuple[ChecksumAddress, ChecksumAddress]:
     """
-    Stores the information about a token market.  This includes the token address, the reference token address,
-    and the pool address.  This is used to generate the list of all available markets for querying prices
+    Sorts two token addresses as integer, and returns the sorted tuple.
     """
+    return (b, a) if int(a, 16) > int(b, 16) else (a, b)
 
-    market_address: ChecksumAddress
-    token_0: ChecksumAddress
-    token_1: ChecksumAddress
 
-    pool_class: UniswapV3Pool  # Union other supported markets
+def _filter_markets(
+    markets: list[TokenMarketInfo],
+    # at_block: BlockIdentifier = "latest",
+) -> TokenMarketInfo:
+    """
+    If there are multiple pools for a token pair, returns the pool that the price should be queries from.
+
+    Currently this checks for a 30 bips pool, then checks for a 10 bips, then a 200.  This process should be
+    refined in a future update to get the price from the pool with the most liquidity and activity
+
+    :param markets:
+        List of all markets for a token pair.
+    :param at_block:
+        Optional block identifier for filtering algo.  If filtering markets by active liquidity, will
+        query the liquidity at the specified block.  If None, will use the current block.
+    """
+    if len(markets) == 0:
+        raise ValueError("At least 1 market is required to filter")
+
+    return markets[0]
 
 
 class PriceOracle:
     """
     Interfacing class for processing price data from the database.
     """
+
+    json_rpc: str
+    " JSON RPC Endpoint for querying the blockchain "
+
+    latest_block: int
+    """ 
+        Stores the most recent updated block number for the price oracle.  If a block number is requested that is
+        greater than the latest block, it will auto-trigger an update from the database.  Fetching all prices
+        will alsotrigger an update
+    """
+
+    network: SupportedNetwork
+    " Network that the price oracle is running on.  [Default: Ethereum] "
 
     available_markets: dict[
         tuple[ChecksumAddress, ChecksumAddress], list[TokenMarketInfo]
@@ -48,13 +79,6 @@ class PriceOracle:
 
         The (token_a, token_b) tuple is sorted alphabetically, so that the same pair of tokens will always 
         map to the same list of markets.
-    """
-
-    latest_block: int
-    """ 
-        Stores the most recent updated block number for the price oracle.  If a block number is requested that is
-        greater than the latest block, it will auto-trigger an update from the database.  Fetching all prices
-        will alsotrigger an update
     """
 
     timestamp_converter: TimestampConverter | None
@@ -69,15 +93,13 @@ class PriceOracle:
         for tokens that dont have a USDC pair, and are priced in WETH.
     """
 
-    def __init__(
-        self,
-        w3: web3.Web3,
-        db_session: Session,
-        timestamp_converter: TimestampConverter | None = None,
-    ):
-        self.w3 = w3
+    def __init__(self, json_rpc: str, db_session: Session, **kwargs):
+        self.json_rpc = json_rpc
         self.db_session = db_session
-        self.timestamp_converter = timestamp_converter
+        self.network = SupportedNetwork(kwargs.get("network", "ethereum"))
+        self.latest_block = get_current_block_number(self.network)
+
+        self.timestamp_converter = kwargs.get("timestamp_converter", None)
 
         self._generate_market_list()
 
@@ -94,7 +116,8 @@ class PriceOracle:
             historical price data.
 
         """
-        latest_block = self.w3.eth.block_number
+        self.latest_block = get_current_block_number(self.network)
+
         backfilled_price_data = self.db_session.execute(
             select(BackfilledRange).filter(
                 BackfilledRange.data_type.in_(
@@ -104,7 +127,7 @@ class PriceOracle:
         ).all()
 
         for pool in backfilled_price_data:
-            if latest_block - pool.backfill_end > 50_400:  # 1 week of blocks
+            if self.latest_block - pool.backfill_end > 50_400:  # 1 week of blocks
                 logger.warning(
                     f"Skipping price update for {pool.priced_token} as the last backfill was more than 1 week ago."
                     f"To update the price, run the backfill_prices() method for the token before attempting to update"
@@ -118,20 +141,14 @@ class PriceOracle:
 
         :return:
         """
-        self.available_markets = {}
 
-    def _fetch_spot_price_per_block_for_market(
-        self,
-        market_id: ChecksumAddress,
-        from_block: int,
-        to_block: int,
-    ):
-        result = self.db_session.execute(
-            encode_sql_text(MARKET_SPOT_PRICES_PER_BLOCK_QUERY),
-            {"from_block": from_block, "to_block": to_block, "market_id": market_id},
+        update_pool_creations(
+            db_session=self.db_session,
+            latest_block=self.latest_block,
+            json_rpc=self.json_rpc,
+            network=self.network,
         )
-
-        return result.fetchall()
+        self.available_markets = get_supported_markets(self.db_session)
 
     def _load_weth_to_usd_price(self):
         """
@@ -184,23 +201,55 @@ class PriceOracle:
             If no end point is provided, it will backfill to the current block.
 
         """
+        if token_id in STABLECOIN_ADDRESSES:
+            raise OracleError(
+                f"Token {token_id} is a stablecoin, and does not need to be priced."
+            )
 
-    def filter_markets(
-        self,
-        markets: list[TokenMarketInfo],
-        # at_block: BlockIdentifier = "latest",
-    ) -> TokenMarketInfo:
+        if (
+            not isinstance(start, int) or not isinstance(end, int)
+        ) and self.timestamp_converter is None:
+            raise OracleError(
+                "Timestamp Converter is required to backfill prices when start or end is specified as a date. "
+                "Provide a TimestampConverter, or specify start and end limits as block numbers"
+            )
+
+        usdc_pools = self.available_markets.get(
+            _sort_tokens(token_id, USDC_ADDRESS), []
+        )
+        if usdc_pools:
+            backfill_pool = _filter_markets(usdc_pools)
+        else:
+            weth_pool = _filter_markets(
+                self.available_markets.get(_sort_tokens(token_id, WETH_ADDRESS), [])
+            )
+
+    def backfill_weth_price(self):
         """
-        If there are multiple pools for a token pair, returns the pool that the price should be queries from.
-
-        Currently this checks for a 30 bips pool, then checks for a 10 bips, then a 200.  This process should be
-        refined in a future update to get the price from the pool with the most liquidity and activity
-
-        :param markets:
-            List of all markets for a token pair.
-        :param at_block:
-            Optional block identifier for filtering algo.  If filtering markets by active liquidity, will
-            query the liquidity at the specified block.  If None, will use the current block.
+        Backfills the WETH price from the USDC/WETH pool.  This is used to convert WETH prices to USD prices.
+        for tokens that dont have a USDC pair, and are priced in WETH.  Is also used for the Baseline WETH Price
         """
 
-        return markets[0]
+        usdc_weth_pool = _filter_markets(
+            self.available_markets.get(_sort_tokens(USDC_ADDRESS, WETH_ADDRESS), [])
+        )
+
+        self.backfill_spot_price(usdc_weth_pool)
+
+    def backfill_spot_price(self, market_info: TokenMarketInfo):
+        """
+
+        :param market_info:
+        :return:
+        """
+
+        backfill_plan = BackfillPlan.generate(
+            db_session=self.db_session,
+            backfill_type=BackfillDataType.spot_prices,
+            network=self.network,
+            start_block=market_info.initialization_block,
+            end_block=self.latest_block,
+            market_address=market_info.market_address,
+            market_protocol=market_info.pool_class,
+        )
+        pass

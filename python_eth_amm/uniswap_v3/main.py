@@ -28,6 +28,7 @@ from python_eth_amm.database.models.uniswap import (
 from python_eth_amm.exceptions import UniswapV3Revert
 from python_eth_amm.tokens.erc_20 import NULL_TOKEN, ERC20Token
 from python_eth_amm.types import BlockIdentifier
+from python_eth_amm.types.prices import AbstractTokenMarket
 from python_eth_amm.types.uniswap_v3 import (
     OracleObservation,
     PoolImmutables,
@@ -98,7 +99,7 @@ def chain_translation(method):
 
 
 # pylint: disable=too-many-instance-attributes, too-many-public-methods, too-many-lines
-class UniswapV3Pool:
+class UniswapV3Pool(AbstractTokenMarket):
     """
     Class to simulate behavior of Uniswap V3 pools in python.
     Reproduces solidity integer rounding behavior when exact math mode enabled.
@@ -419,6 +420,25 @@ class UniswapV3Pool:
         """
         sqrt_price = self.math.tick_math.get_sqrt_ratio_at_tick(tick)
         return self.get_price_at_sqrt_ratio(sqrt_price, reverse_tokens)
+
+    @chain_translation
+    def decode_price_from_event(
+        self, event: dict[str, Any], reference_token: ChecksumAddress
+    ) -> float:
+        if "sqrtPriceX96" in event:
+            sqrt_price = event["sqrtPriceX96"]
+        elif "sqrt_price" in event:
+            sqrt_price = event["sqrt_price"]
+        else:
+            raise KeyError(
+                f"Uniswap V3 Event Does Not have a sqrt_price parameter: {event}"
+            )
+
+        if reference_token == self.immutables.token_0:
+            return self.get_price_at_sqrt_ratio(sqrt_price)
+        if reference_token == self.immutables.token_1:
+            return self.get_price_at_sqrt_ratio(sqrt_price, reverse_tokens=True)
+        raise ValueError(f"Reference token {reference_token} not found in pool")
 
     def __repr__(self):
         return (

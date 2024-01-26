@@ -90,7 +90,6 @@ class ZKEVMTransaction(AbstractTransaction):
     input: Mapped[CalldataBytes | None]
 
     value: Mapped[int] = mapped_column(Numeric(24, 0))
-    is_error: Mapped[bool | None]
 
     gas_available: Mapped[int | None] = mapped_column(BigInteger)
     gas_price: Mapped[int] = mapped_column(Numeric(16, 0))

@@ -13,7 +13,6 @@ from python_eth_amm.database.models import (
     transaction_model_for_network,
 )
 from python_eth_amm.database.writers import EventWriter, ModelWriter
-from python_eth_amm.database.writers.utils import automap_sqlalchemy_model
 from python_eth_amm.types.backfill import BackfillDataType, SupportedNetwork
 
 from ..abi_decoder import DecodingDispatcher
@@ -457,58 +456,18 @@ def cli_get_logs(  # pylint: disable=too-many-branches
     :param progress:
     :return:
     """
-    _, decoder = list(backfill_plan.decoder.loaded_abis.items())[0]
+
     batch_size = backfill_plan.metadata_dict.get("batch_size", 1000)
     max_concurrency = backfill_plan.metadata_dict.get("max_concurrency", 20)
     contract_address = backfill_plan.get_filter_param("contract_address")
-    decoding_events = backfill_plan.filter_params.get(
-        "event_names", decoder.get_all_decoded_events(False)
-    )
-    model_override_dict: dict[str, str] = backfill_plan.metadata_dict.get(
-        "db_models", {}
-    )
-    model_overrides = {}
-    all_events_in_decoder = decoder.get_all_decoded_events()
 
-    for event, model in model_override_dict.items():
-        if "(" not in event:
-            event = [sig for sig in all_events_in_decoder if event in sig][0]
-        split = list(reversed(model.split(".")))
-        res = automap_sqlalchemy_model(
-            db_engine=db_engine,
-            table_names=[split[0]],
-            schema=split[1] if split[1:] else "public",
-        )
-        model_overrides.update({event: res[split[0]]})
-
-    logger.info(
-        f"Initializing Log Backfill...  \tEvent Names: {decoding_events}\tContract Address: {contract_address}"
-    )
+    model_overrides = backfill_plan.load_model_overrides()
 
     event_writer = EventWriter(
         db_engine=db_engine,
         network=backfill_plan.network,
         event_model_overrides=model_overrides,
     )
-
-    selector_topics = [
-        decoder.get_event_signature(event_name) for event_name in decoding_events
-    ]
-    selector_topics = ["0x" + topic for topic in selector_topics if topic is not None]
-
-    if len(selector_topics) != len(decoding_events):
-        logger.error(
-            f"{decoder.abi_name} ABI does not contain all of the events specified in the filter. "
-            f"ABI Missing events: {set(decoding_events) - set(decoder.get_all_decoded_events(False))}"
-        )
-        return
-
-    if len(selector_topics) == 1:
-        # If only one event is being queried, pass event signatures as a string instead of array
-        selector_topics = selector_topics[0]  # type: ignore
-
-    # Add in filtering for topics[1:4]
-    topics = [selector_topics]
 
     killer = GracefulKiller(console=progress.console)
 
@@ -520,7 +479,7 @@ def cli_get_logs(  # pylint: disable=too-many-branches
                 start_block=start_block,
                 end_block=min(start_block + batch_size, end_block),
                 contract_address=contract_address,
-                topics=topics,  # type: ignore
+                topics=backfill_plan.get_metadata("topics"),
                 network=backfill_plan.network,
             )
             for start_block in range(start_block, end_block, batch_size)
