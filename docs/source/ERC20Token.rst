@@ -16,7 +16,7 @@ Initializing an ERC20Token from an address
 .. code-block:: python
 
     from web3 import Web3
-    from python_eth_amm import ERC20Token
+    from nethermind.entro import ERC20Token
 
     w3 = Web3(Web3.HTTPProvider("http://******"))
     weth_token = ERC20Token.from_chain(w3, "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2")

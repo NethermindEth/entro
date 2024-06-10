@@ -3,11 +3,11 @@ import uuid
 import pytest
 from click.testing import CliRunner
 
-from python_eth_amm.backfill.planner import BackfillPlan
-from python_eth_amm.cli.entry_point import cli_entry_point
-from python_eth_amm.database.migrations import migrate_up
-from python_eth_amm.database.models import BackfilledRange
-from python_eth_amm.types.backfill import BackfillDataType, SupportedNetwork
+from nethermind.entro.backfill.planner import BackfillPlan
+from nethermind.entro.cli import entro_cli
+from nethermind.entro.database.migrations import migrate_up
+from nethermind.entro.database.models import BackfilledRange
+from nethermind.entro.types.backfill import BackfillDataType, SupportedNetwork
 
 DEFAULT_KWARGS = {
     "data_type": BackfillDataType.blocks.value,
@@ -80,7 +80,7 @@ def test_start_inside_end_inside(
     runner = CliRunner()
 
     backfill_result = runner.invoke(
-        cli_entry_point,
+        entro_cli,
         [
             "backfill",
             "blocks",
@@ -105,9 +105,7 @@ def test_start_inside_end_inside(
     assert backfills[0].end_block == 18_000_080
 
 
-def test_extending_range_failed_backfill(
-    integration_postgres_db, integration_db_session
-):
+def test_extending_range_failed_backfill(integration_postgres_db, integration_db_session):
     migrate_up(integration_db_session.get_bind())
 
     extend_id = uuid.uuid4().hex

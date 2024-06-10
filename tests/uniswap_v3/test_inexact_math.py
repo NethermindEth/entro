@@ -1,7 +1,7 @@
 import pytest
 
-from python_eth_amm.exceptions import SqrtPriceMathRevert
-from python_eth_amm.uniswap_v3.math import UniswapV3Math
+from nethermind.entro.exceptions import SqrtPriceMathRevert
+from nethermind.entro.uniswap_v3.math import UniswapV3Math
 
 
 def is_within_bounds(a, b, tolerance: float = 0.000001):
@@ -52,12 +52,8 @@ class TestSqrtPriceMath:
             sqrt_b,
             liquidity,
         )
-        get_amount_0_approx = UniMath.sqrt_price_math.get_amount_0_delta(
-            sqrt_a, sqrt_b, liquidity
-        )
-        get_amount_1_approx = UniMath.sqrt_price_math.get_amount_1_delta(
-            sqrt_a, sqrt_b, liquidity
-        )
+        get_amount_0_approx = UniMath.sqrt_price_math.get_amount_0_delta(sqrt_a, sqrt_b, liquidity)
+        get_amount_1_approx = UniMath.sqrt_price_math.get_amount_1_delta(sqrt_a, sqrt_b, liquidity)
 
         assert is_within_bounds(get_amount_0_exact, get_amount_0_approx)
         assert is_within_bounds(get_amount_1_exact, get_amount_1_approx)
@@ -66,46 +62,32 @@ class TestSqrtPriceMath:
     @pytest.mark.parametrize("liquidity", liquidity_values)
     @pytest.mark.parametrize("amount", amounts)
     @pytest.mark.parametrize("zero_for_one", [True, False])
-    def test_get_next_sqrt_price(
-        self, initialize_empty_pool, sqrt_price, liquidity, amount, zero_for_one
-    ):
+    def test_get_next_sqrt_price(self, initialize_empty_pool, sqrt_price, liquidity, amount, zero_for_one):
         try:
-            sqrt_price_from_input_exact = (
-                ExactUniMath.sqrt_price_math.get_next_sqrt_price_from_input(
-                    sqrt_price,
-                    liquidity,
-                    amount,
-                    zero_for_one,
-                )
+            sqrt_price_from_input_exact = ExactUniMath.sqrt_price_math.get_next_sqrt_price_from_input(
+                sqrt_price,
+                liquidity,
+                amount,
+                zero_for_one,
             )
-            sqrt_price_from_output_exact = (
-                ExactUniMath.sqrt_price_math.get_next_sqrt_price_from_output(
-                    sqrt_price,
-                    liquidity,
-                    amount,
-                    zero_for_one,
-                )
+            sqrt_price_from_output_exact = ExactUniMath.sqrt_price_math.get_next_sqrt_price_from_output(
+                sqrt_price,
+                liquidity,
+                amount,
+                zero_for_one,
             )
         except SqrtPriceMathRevert:
             return True
 
-        sqrt_price_from_input_approx = (
-            UniMath.sqrt_price_math.get_next_sqrt_price_from_input(
-                sqrt_price, liquidity, amount, zero_for_one
-            )
+        sqrt_price_from_input_approx = UniMath.sqrt_price_math.get_next_sqrt_price_from_input(
+            sqrt_price, liquidity, amount, zero_for_one
         )
-        sqrt_price_from_output_approx = (
-            UniMath.sqrt_price_math.get_next_sqrt_price_from_output(
-                sqrt_price, liquidity, amount, zero_for_one
-            )
+        sqrt_price_from_output_approx = UniMath.sqrt_price_math.get_next_sqrt_price_from_output(
+            sqrt_price, liquidity, amount, zero_for_one
         )
 
-        assert is_within_bounds(
-            sqrt_price_from_input_exact, sqrt_price_from_input_approx
-        )
-        assert is_within_bounds(
-            sqrt_price_from_output_exact, sqrt_price_from_output_approx
-        )
+        assert is_within_bounds(sqrt_price_from_input_exact, sqrt_price_from_input_approx)
+        assert is_within_bounds(sqrt_price_from_output_exact, sqrt_price_from_output_approx)
 
 
 class TestTickMath:

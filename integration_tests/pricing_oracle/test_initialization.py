@@ -1,7 +1,6 @@
-import pytest
 from click.testing import CliRunner
 
-from python_eth_amm.cli.entry_point import cli_entry_point
+from nethermind.entro.cli import entro_cli
 
 
 def test_backfills_pool_creations(
@@ -13,10 +12,10 @@ def test_backfills_pool_creations(
 ):
     runner = CliRunner()
 
-    assert runner.invoke(cli_entry_point, ["migrate-up", *cli_db_url]).exit_code == 0
+    assert runner.invoke(entro_cli, ["migrate-up", *cli_db_url]).exit_code == 0
 
     oracle_init_result = runner.invoke(
-        cli_entry_point,
+        entro_cli,
         [
             "prices",
             "initialize",

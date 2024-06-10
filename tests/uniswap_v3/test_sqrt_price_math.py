@@ -1,7 +1,7 @@
 import pytest
 
-from python_eth_amm.exceptions import UniswapV3Revert
-from python_eth_amm.uniswap_v3 import UniswapV3Pool
+from nethermind.entro.exceptions import UniswapV3Revert
+from nethermind.entro.uniswap_v3 import UniswapV3Pool
 
 from ..utils import expand_to_decimals, uint_max
 from .utils import encode_sqrt_price
@@ -49,9 +49,7 @@ class TestGetNextSQRTPriceInput:
             == 1
         )
 
-    def test_returns_input_price_if_amount_in_is_zero_and_zero_for_one_is_false(
-        self, initialize_empty_pool
-    ):
+    def test_returns_input_price_if_amount_in_is_zero_and_zero_for_one_is_false(self, initialize_empty_pool):
         price = encode_sqrt_price(1, 1)
         assert (
             test_pool.math.get_next_sqrt_price_from_input(
@@ -63,9 +61,7 @@ class TestGetNextSQRTPriceInput:
             == price
         )
 
-    def test_returns_input_price_if_amount_in_is_zero_and_zero_for_one_is_true(
-        self, initialize_empty_pool
-    ):
+    def test_returns_input_price_if_amount_in_is_zero_and_zero_for_one_is_true(self, initialize_empty_pool):
         price = encode_sqrt_price(1, 1)
         assert (
             test_pool.math.get_next_sqrt_price_from_input(
@@ -149,9 +145,7 @@ class TestGetNextSQRTPriceOutput:
                 False,
             )
 
-    def test_raises_if_amount_out_equals_token0_virtual_reserves(
-        self, initialize_empty_pool
-    ):
+    def test_raises_if_amount_out_equals_token0_virtual_reserves(self, initialize_empty_pool):
         with pytest.raises(UniswapV3Revert):
             price = 20282409603651670423947251286016
             test_pool.math.get_next_sqrt_price_from_output(
@@ -161,9 +155,7 @@ class TestGetNextSQRTPriceOutput:
                 False,
             )
 
-    def test_raises_if_amount_out_greater_than_token0_virtual_reserves(
-        self, initialize_empty_pool
-    ):
+    def test_raises_if_amount_out_greater_than_token0_virtual_reserves(self, initialize_empty_pool):
         with pytest.raises(UniswapV3Revert):
             price = 20282409603651670423947251286016
             test_pool.math.get_next_sqrt_price_from_output(
@@ -173,9 +165,7 @@ class TestGetNextSQRTPriceOutput:
                 False,
             )
 
-    def test_raises_if_amount_out_equals_token1_virtual_reserves(
-        self, initialize_empty_pool
-    ):
+    def test_raises_if_amount_out_equals_token1_virtual_reserves(self, initialize_empty_pool):
         with pytest.raises(UniswapV3Revert):
             price = 20282409603651670423947251286016
             test_pool.math.get_next_sqrt_price_from_output(
@@ -185,9 +175,7 @@ class TestGetNextSQRTPriceOutput:
                 True,
             )
 
-    def test_raises_if_amount_out_greater_than_token1_virtual_reserves(
-        self, initialize_empty_pool
-    ):
+    def test_raises_if_amount_out_greater_than_token1_virtual_reserves(self, initialize_empty_pool):
         with pytest.raises(UniswapV3Revert):
             price = 20282409603651670423947251286016
             test_pool.math.get_next_sqrt_price_from_output(
@@ -197,9 +185,7 @@ class TestGetNextSQRTPriceOutput:
                 True,
             )
 
-    def test_succeeds_if_amount_out_is_less_than_token_1_virtual_reserves(
-        self, initialize_empty_pool
-    ):
+    def test_succeeds_if_amount_out_is_less_than_token_1_virtual_reserves(self, initialize_empty_pool):
         price = 20282409603651670423947251286016
         next_price = test_pool.math.get_next_sqrt_price_from_output(
             price,
@@ -220,9 +206,7 @@ class TestGetNextSQRTPriceOutput:
                 True,
             )
 
-    def test_returns_if_amount_in_is_zero_and_zero_for_one_is_true(
-        self, initialize_empty_pool
-    ):
+    def test_returns_if_amount_in_is_zero_and_zero_for_one_is_true(self, initialize_empty_pool):
         price = encode_sqrt_price(1, 1)
         assert (
             test_pool.math.get_next_sqrt_price_from_output(
@@ -234,9 +218,7 @@ class TestGetNextSQRTPriceOutput:
             == price
         )
 
-    def test_returns_if_amount_in_is_zero_and_zero_for_one_is_false(
-        self, initialize_empty_pool
-    ):
+    def test_returns_if_amount_in_is_zero_and_zero_for_one_is_false(self, initialize_empty_pool):
         price = encode_sqrt_price(1, 1)
         assert (
             test_pool.math.get_next_sqrt_price_from_output(
@@ -266,9 +248,7 @@ class TestGetNextSQRTPriceOutput:
         )
         assert sqrt_price == 71305346262837903834189555302
 
-    def test_raises_if_amount_out_is_impossible_in_zero_for_one_direction(
-        self, initialize_empty_pool
-    ):
+    def test_raises_if_amount_out_is_impossible_in_zero_for_one_direction(self, initialize_empty_pool):
         with pytest.raises(UniswapV3Revert):
             test_pool.math.get_next_sqrt_price_from_output(
                 encode_sqrt_price(1, 1),
@@ -277,9 +257,7 @@ class TestGetNextSQRTPriceOutput:
                 True,
             )
 
-    def test_raises_if_amount_out_is_impossible_in_one_for_zero_direction(
-        self, initialize_empty_pool
-    ):
+    def test_raises_if_amount_out_is_impossible_in_one_for_zero_direction(self, initialize_empty_pool):
         with pytest.raises(UniswapV3Revert):
             test_pool.math.get_next_sqrt_price_from_output(
                 encode_sqrt_price(1, 1),

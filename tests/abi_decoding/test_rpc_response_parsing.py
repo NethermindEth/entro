@@ -1,7 +1,7 @@
-from python_eth_amm.abi_decoder import DecodingDispatcher
-from python_eth_amm.backfill.utils import rpc_response_to_block_model
-from python_eth_amm.database.models.starknet import Block as StarknetBlock
-from python_eth_amm.types.backfill import SupportedNetwork
+from nethermind.entro.decoding import DecodingDispatcher
+from nethermind.entro.backfill.utils import rpc_response_to_block_model
+from nethermind.entro.database.models.starknet import Block as StarknetBlock
+from nethermind.entro.types.backfill import SupportedNetwork
 from tests.resources.rpc_responses import (
     STARKNET_GET_BLOCK_WITH_TX_HASHES,
     STARKNET_GET_BLOCK_WITH_TXS,
@@ -19,10 +19,7 @@ def test_starknet_basic_block_sqlite():
     assert isinstance(starknet_block, StarknetBlock)
     assert len(txns) == 0
 
-    assert (
-        starknet_block.block_hash
-        == "0x3a095054a69b74031cefb69117589868a710c510c2d74e5642890a30f7cb257"
-    )
+    assert starknet_block.block_hash == "0x3a095054a69b74031cefb69117589868a710c510c2d74e5642890a30f7cb257"
     assert starknet_block.block_number == 488504
 
 

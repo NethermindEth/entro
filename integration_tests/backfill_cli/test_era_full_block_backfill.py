@@ -1,13 +1,13 @@
 from click.testing import CliRunner
 
 from integration_tests.backfill_cli.utils import printout_error_and_traceback
-from python_eth_amm.cli.entry_point import cli_entry_point
-from python_eth_amm.database.models.zk_sync import (
+from nethermind.entro.cli import entro_cli
+from nethermind.entro.database.models.zk_sync import (
     EraBlock,
     EraDefaultEvent,
     EraTransaction,
 )
-from python_eth_amm.database.writers.utils import model_to_dict
+from nethermind.entro.database.writers.utils import model_to_dict
 from tests.resources.ABI import (
     ERC20_ABI_JSON,
     ERC721_ABI_JSON,
@@ -25,7 +25,7 @@ def test_full_backfill_zk_sync_era(
 ):
     runner = CliRunner()
 
-    migrate_res = runner.invoke(cli_entry_point, ["migrate-up", *cli_db_url])
+    migrate_res = runner.invoke(entro_cli, ["migrate-up", *cli_db_url])
     assert migrate_res.exit_code == 0
 
     with runner.isolated_filesystem():
@@ -45,8 +45,9 @@ def test_full_backfill_zk_sync_era(
             f.write(ERC721_ABI_JSON)
 
         erc_20_res = runner.invoke(
-            cli_entry_point,
+            entro_cli,
             [
+                "decoding",
                 "add-abi",
                 "ERC20",
                 "ERC20.json",
@@ -56,8 +57,9 @@ def test_full_backfill_zk_sync_era(
             ],
         )
         erc_721_res = runner.invoke(
-            cli_entry_point,
+            entro_cli,
             [
+                "decoding",
                 "add-abi",
                 "ERC721",
                 "ERC721.json",
@@ -68,8 +70,9 @@ def test_full_backfill_zk_sync_era(
         )
 
         classic_res = runner.invoke(
-            cli_entry_point,
+            entro_cli,
             [
+                "decoding",
                 "add-abi",
                 "SyncSwapClassicPair",
                 "SyncSwapClassicPair.json",
@@ -79,8 +82,9 @@ def test_full_backfill_zk_sync_era(
             ],
         )
         stable_res = runner.invoke(
-            cli_entry_point,
+            entro_cli,
             [
+                "decoding",
                 "add-abi",
                 "SyncSwapStablePair",
                 "SyncSwapStablePair.json",
@@ -90,9 +94,9 @@ def test_full_backfill_zk_sync_era(
             ],
         )
         router_res = runner.invoke(
-            cli_entry_point,
+            entro_cli,
             [
-                "add-abi",
+                "decoding" "add-abi",
                 "SyncSwapRouter",
                 "SyncSwapRouter.json",
                 "--priority",
@@ -107,18 +111,15 @@ def test_full_backfill_zk_sync_era(
         assert router_res.exit_code == 0
 
     backfill_res = runner.invoke(
-        cli_entry_point,
+        entro_cli,
         [
-            "backfill",
-            "blocks",
-            "--full-blocks",
+            "decoding" "backfill",
+            "zk_sync" "full_blocks",
             "--all-abis",
             "--from-block",
             17570000,
             "--to-block",
             17570100,
-            "--network",
-            "zk_sync_era",
             "--json-rpc",
             "https://mainnet.era.zksync.io/",
             *cli_db_url,
@@ -126,7 +127,7 @@ def test_full_backfill_zk_sync_era(
         input="y",
     )
 
-    printout_error_and_traceback(backfill_res)
+    # printout_error_and_traceback(backfill_res)
     assert backfill_res.exit_code == 0
 
     events = integration_db_session.query(EraDefaultEvent).all()
@@ -135,9 +136,7 @@ def test_full_backfill_zk_sync_era(
     assert events[0].transaction_index == 0
     assert events[0].event_name == "Transfer"
     assert events[0].abi_name == "ERC20"
-    assert (
-        events[0].decoded_event["from"] == "0x31D043dDBE1f798c1B75553cbbE90f98d293CbEC"
-    )
+    assert events[0].decoded_event["from"] == "0x31D043dDBE1f798c1B75553cbbE90f98d293CbEC"
     assert events[0].decoded_event["value"] == 218622000000000
 
     assert len(events) == 5235
@@ -145,23 +144,14 @@ def test_full_backfill_zk_sync_era(
     txns = integration_db_session.query(EraTransaction).all()
 
     assert txns[0].block_number == 17570000
-    assert (
-        txns[0].transaction_hash.hex()
-        == "75a3b863cd5232539bc6802269c9aaaaaec9dc2a54241629591f10512e102933"
-    )
+    assert txns[0].transaction_hash.hex() == "75a3b863cd5232539bc6802269c9aaaaaec9dc2a54241629591f10512e102933"
     assert txns[0].timestamp == 1698541582
-    assert (
-        txns[0].decoded_signature
-        == "swap(((address,bytes,address,bytes)[],address,uint256)[],uint256,uint256)"
-    )
+    assert txns[0].decoded_signature == "swap(((address,bytes,address,bytes)[],address,uint256)[],uint256,uint256)"
     assert "paths" in txns[0].decoded_input
     assert txns[0].gas_used == 304515
 
     assert txns[-1].block_number == 17570099
-    assert (
-        txns[-1].transaction_hash.hex()
-        == "72fe1733be6e45a715b71d078358294f08f24c93a1c4c5c80a291f96a7eb4ddc"
-    )
+    assert txns[-1].transaction_hash.hex() == "72fe1733be6e45a715b71d078358294f08f24c93a1c4c5c80a291f96a7eb4ddc"
     assert txns[-1].gas_used == 538740
 
     assert len(txns) == 927

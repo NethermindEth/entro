@@ -1,11 +1,11 @@
 import json
 
-from python_eth_amm.abi_decoder import DecodingDispatcher
-from python_eth_amm.backfill.etherscan import (
+from nethermind.entro.decoding import DecodingDispatcher
+from nethermind.entro.backfill.etherscan import (
     _parse_etherscan_transactions,
     _trim_last_block,
 )
-from python_eth_amm.types.backfill import SupportedNetwork
+from nethermind.entro.types.backfill import SupportedNetwork
 
 
 class TestEtherscan:
@@ -47,8 +47,6 @@ class TestEtherscan:
         assert trimmed_blocks_2[-1]["blockNumber"] == "13681879"
         assert len(trimmed_blocks_2) == 10
 
-        trimmed_blocks_3 = _trim_last_block(
-            blocks + [{"blockNumber": "13681890"}, {"blockNumber": "13681890"}]
-        )
+        trimmed_blocks_3 = _trim_last_block(blocks + [{"blockNumber": "13681890"}, {"blockNumber": "13681890"}])
         assert trimmed_blocks_3[-1]["blockNumber"] == "13681879"
         assert len(trimmed_blocks_3) == 10

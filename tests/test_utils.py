@@ -1,4 +1,4 @@
-from python_eth_amm.utils import camel_to_snake
+from nethermind.entro.utils import camel_to_snake
 
 
 def test_camel_to_snake_conversion():

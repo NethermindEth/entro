@@ -1,9 +1,9 @@
 import pytest
 
-from python_eth_amm.database.migrations import migrate_up
-from python_eth_amm.database.models.ethereum import Block, Transaction
-from python_eth_amm.database.writers.utils import automap_sqlalchemy_model
-from python_eth_amm.exceptions import DatabaseError
+from nethermind.entro.database.migrations import migrate_up
+from nethermind.entro.database.models.ethereum import Block, Transaction
+from nethermind.entro.database.writers.utils import automap_sqlalchemy_model
+from nethermind.entro.exceptions import DatabaseError
 
 
 def test_automap_ethereum_tables(integration_postgres_db, integration_db_session):
@@ -11,16 +11,10 @@ def test_automap_ethereum_tables(integration_postgres_db, integration_db_session
 
     migrate_up(db_engine)
 
-    ethereum_models = automap_sqlalchemy_model(
-        db_engine, ["blocks", "transactions"], "ethereum_data"
-    )
+    ethereum_models = automap_sqlalchemy_model(db_engine, ["blocks", "transactions"], "ethereum_data")
 
-    assert str(Block.__table__.columns) == str(
-        ethereum_models["blocks"].__table__.columns
-    )
-    assert str(Transaction.__table__.columns) == str(
-        ethereum_models["transactions"].__table__.columns
-    )
+    assert str(Block.__table__.columns) == str(ethereum_models["blocks"].__table__.columns)
+    assert str(Transaction.__table__.columns) == str(ethereum_models["transactions"].__table__.columns)
 
     assert len(ethereum_models) == 2
 
@@ -33,7 +27,4 @@ def test_automap_invalid_tables(integration_postgres_db, integration_db_session)
     with pytest.raises(DatabaseError) as excinfo:
         automap_sqlalchemy_model(db_engine, ["blocks", "transactions"], "ethereum")
 
-        assert (
-            "Could not load tables ['blocks', 'transactions'] from \"ethereum\" schema"
-            in str(excinfo.value)
-        )
+        assert "Could not load tables ['blocks', 'transactions'] from \"ethereum\" schema" in str(excinfo.value)

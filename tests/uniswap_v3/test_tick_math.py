@@ -2,11 +2,11 @@ import math
 
 import pytest
 
-from python_eth_amm.exceptions import TickMathRevert, UniswapV3Revert
-from python_eth_amm.types.uniswap_v3 import Tick
-from python_eth_amm.uniswap_v3 import UniswapV3Pool
-from python_eth_amm.uniswap_v3.math import UniswapV3Math
-from python_eth_amm.uniswap_v3.math.shared import (
+from nethermind.entro.exceptions import TickMathRevert, UniswapV3Revert
+from nethermind.entro.types.uniswap_v3 import Tick
+from nethermind.entro.uniswap_v3 import UniswapV3Pool
+from nethermind.entro.uniswap_v3.math import UniswapV3Math
+from nethermind.entro.uniswap_v3.math.shared import (
     MAX_SQRT_RATIO,
     MAX_TICK,
     MIN_SQRT_RATIO,
@@ -24,42 +24,27 @@ class TestTickSpacingToMaxLiquidityPerTick:
     def test_returns_correct_value_for_low_fee(
         self,
     ):
-        assert (
-            UniV3Math.get_max_liquidity_per_tick(10)
-            == 1917569901783203986719870431555990
-        )
+        assert UniV3Math.get_max_liquidity_per_tick(10) == 1917569901783203986719870431555990
 
     def test_returns_correct_value_for_medium_fee(
         self,
     ):
-        assert (
-            UniV3Math.get_max_liquidity_per_tick(60)
-            == 11505743598341114571880798222544994
-        )
+        assert UniV3Math.get_max_liquidity_per_tick(60) == 11505743598341114571880798222544994
 
     def test_returns_correct_value_for_high_fee(
         self,
     ):
-        assert (
-            UniV3Math.get_max_liquidity_per_tick(200)
-            == 38350317471085141830651933667504588
-        )
+        assert UniV3Math.get_max_liquidity_per_tick(200) == 38350317471085141830651933667504588
 
     def test_returns_correct_value_for_full_range(
         self,
     ):
-        assert (
-            UniV3Math.get_max_liquidity_per_tick(887272)
-            == 113427455640312821154458202477256070485
-        )
+        assert UniV3Math.get_max_liquidity_per_tick(887272) == 113427455640312821154458202477256070485
 
     def test_returns_correct_value_for_2032(
         self,
     ):
-        assert (
-            UniV3Math.get_max_liquidity_per_tick(2302)
-            == 441351967472034323558203122479595605
-        )
+        assert UniV3Math.get_max_liquidity_per_tick(2302) == 441351967472034323558203122479595605
 
 
 class TestGetFeeGrowthInside:
@@ -83,9 +68,7 @@ class TestGetFeeGrowthInside:
         self,
     ):
         pool = UniswapV3Pool()
-        growth_inside_0, growth_inside_1 = pool._get_fee_growth_inside(
-            -2, 2, -4, 15, 15
-        )
+        growth_inside_0, growth_inside_1 = pool._get_fee_growth_inside(-2, 2, -4, 15, 15)
         assert growth_inside_0 == 0
         assert growth_inside_1 == 0
 
@@ -201,86 +184,46 @@ class TestUpdateTick:
         self,
     ):
         pool = UniswapV3Pool()
-        assert (
-            pool._update_tick(
-                liquidity_delta=1, upper=False, max_liquidity=3, **self.ZERO_PARAMS
-            )
-            == True
-        )
+        assert pool._update_tick(liquidity_delta=1, upper=False, max_liquidity=3, **self.ZERO_PARAMS) == True
 
     def test_does_not_flip_from_nonzero_to_greater_nonzero(
         self,
     ):
         pool = UniswapV3Pool()
-        pool._update_tick(
-            liquidity_delta=1, upper=False, max_liquidity=3, **self.ZERO_PARAMS
-        )
-        assert (
-            pool._update_tick(
-                liquidity_delta=1, upper=False, max_liquidity=3, **self.ZERO_PARAMS
-            )
-            == False
-        )
+        pool._update_tick(liquidity_delta=1, upper=False, max_liquidity=3, **self.ZERO_PARAMS)
+        assert pool._update_tick(liquidity_delta=1, upper=False, max_liquidity=3, **self.ZERO_PARAMS) == False
 
     def test_flips_from_non_zero_to_zero(
         self,
     ):
         pool = UniswapV3Pool()
-        pool._update_tick(
-            liquidity_delta=1, upper=False, max_liquidity=3, **self.ZERO_PARAMS
-        )
-        assert (
-            pool._update_tick(
-                liquidity_delta=-1, upper=False, max_liquidity=3, **self.ZERO_PARAMS
-            )
-            == True
-        )
+        pool._update_tick(liquidity_delta=1, upper=False, max_liquidity=3, **self.ZERO_PARAMS)
+        assert pool._update_tick(liquidity_delta=-1, upper=False, max_liquidity=3, **self.ZERO_PARAMS) == True
 
     def test_does_not_flip_from_non_zero_to_negative(
         self,
     ):
         pool = UniswapV3Pool()
-        pool._update_tick(
-            liquidity_delta=2, upper=False, max_liquidity=3, **self.ZERO_PARAMS
-        )
-        assert (
-            pool._update_tick(
-                liquidity_delta=-1, upper=False, max_liquidity=3, **self.ZERO_PARAMS
-            )
-            == False
-        )
+        pool._update_tick(liquidity_delta=2, upper=False, max_liquidity=3, **self.ZERO_PARAMS)
+        assert pool._update_tick(liquidity_delta=-1, upper=False, max_liquidity=3, **self.ZERO_PARAMS) == False
 
     def test_reverts_if_total_liquidity_gross_is_greater_than_max(
         self,
     ):
         pool = UniswapV3Pool()
-        pool._update_tick(
-            liquidity_delta=2, upper=False, max_liquidity=3, **self.ZERO_PARAMS
-        )
-        pool._update_tick(
-            liquidity_delta=1, upper=True, max_liquidity=3, **self.ZERO_PARAMS
-        )
+        pool._update_tick(liquidity_delta=2, upper=False, max_liquidity=3, **self.ZERO_PARAMS)
+        pool._update_tick(liquidity_delta=1, upper=True, max_liquidity=3, **self.ZERO_PARAMS)
         with pytest.raises(UniswapV3Revert):
-            pool._update_tick(
-                liquidity_delta=1, upper=False, max_liquidity=3, **self.ZERO_PARAMS
-            )
+            pool._update_tick(liquidity_delta=1, upper=False, max_liquidity=3, **self.ZERO_PARAMS)
 
     def test_nets_the_liquidity_based_on_upper_flag(
         self,
     ):
         pool = UniswapV3Pool()
-        pool._update_tick(
-            liquidity_delta=2, upper=False, max_liquidity=10, **self.ZERO_PARAMS
-        )
-        pool._update_tick(
-            liquidity_delta=1, upper=True, max_liquidity=10, **self.ZERO_PARAMS
-        )
-        pool._update_tick(
-            liquidity_delta=3, upper=True, max_liquidity=10, **self.ZERO_PARAMS
-        )
-        pool._update_tick(
-            liquidity_delta=1, upper=False, max_liquidity=10, **self.ZERO_PARAMS
-        )
+        pool._update_tick(liquidity_delta=2, upper=False, max_liquidity=10, **self.ZERO_PARAMS)
+        pool._update_tick(liquidity_delta=1, upper=True, max_liquidity=10, **self.ZERO_PARAMS)
+        pool._update_tick(liquidity_delta=3, upper=True, max_liquidity=10, **self.ZERO_PARAMS)
+        pool._update_tick(liquidity_delta=1, upper=False, max_liquidity=10, **self.ZERO_PARAMS)
         tick = pool._get_tick(0)
         assert tick.liquidity_gross == 2 + 1 + 3 + 1
         assert tick.liquidity_net == 2 - 1 - 3 + 1
@@ -556,9 +499,7 @@ class TestGetSQRTRatioAtTick:
                 tick,
             )
             python_val = math.sqrt(1.0001**tick) * 2**96
-            assert (
-                abs(uni_lib_value - python_val) / uni_lib_value < 0.000001
-            )  # 1/100th of a bip
+            assert abs(uni_lib_value - python_val) / uni_lib_value < 0.000001  # 1/100th of a bip
 
     def test_min_sqrt_ratio(
         self,

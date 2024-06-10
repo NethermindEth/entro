@@ -1,8 +1,8 @@
 import json
 
-from python_eth_amm.abi_decoder import DecodingDispatcher
-from python_eth_amm.backfill.utils import rpc_response_to_trace_model
-from python_eth_amm.types.backfill import SupportedNetwork
+from nethermind.entro.decoding import DecodingDispatcher
+from nethermind.entro.backfill.utils import rpc_response_to_trace_model
+from nethermind.entro.types.backfill import SupportedNetwork
 from tests.resources.ABI import ERC20_ABI_JSON
 
 
@@ -11,9 +11,7 @@ def test_trace_parsing():
     trace_data = json.loads(trace_json)
     decoder = DecodingDispatcher()
     decoder.add_abi("ERC20", json.loads(ERC20_ABI_JSON))
-    parsed_trace = rpc_response_to_trace_model(
-        trace_data, SupportedNetwork.ethereum, "postgresql", decoder
-    )
+    parsed_trace = rpc_response_to_trace_model(trace_data, SupportedNetwork.ethereum, "postgresql", decoder)
 
 
 def test_transfer_traces_are_decoded():

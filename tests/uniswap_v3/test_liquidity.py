@@ -2,9 +2,9 @@ import datetime
 
 import pytest
 
-from python_eth_amm.exceptions import UniswapV3Revert
-from python_eth_amm.uniswap_v3 import UniswapV3Pool
-from python_eth_amm.uniswap_v3.math import MAX_SQRT_RATIO, MIN_SQRT_RATIO
+from nethermind.entro.exceptions import UniswapV3Revert
+from nethermind.entro.uniswap_v3 import UniswapV3Pool
+from nethermind.entro.uniswap_v3.math import MAX_SQRT_RATIO, MIN_SQRT_RATIO
 
 from ..utils import expand_to_decimals
 from .utils import MAX_TICK, MIN_TICK, encode_sqrt_price
@@ -12,9 +12,7 @@ from .utils import MAX_TICK, MIN_TICK, encode_sqrt_price
 
 @pytest.mark.parametrize("tick_spacing", [10, 60, 200])
 class TestMint:
-    def test_mint_fails_if_tick_lower_is_higher_than_tick_upper(
-        self, random_address, tick_spacing
-    ):
+    def test_mint_fails_if_tick_lower_is_higher_than_tick_upper(self, random_address, tick_spacing):
         pool = UniswapV3Pool(tick_spacing=tick_spacing)
         with pytest.raises(UniswapV3Revert):
             pool.mint(
@@ -24,9 +22,7 @@ class TestMint:
                 amount=100,
             )
 
-    def test_mint_fails_if_tick_lower_is_equal_to_tick_upper(
-        self, random_address, tick_spacing
-    ):
+    def test_mint_fails_if_tick_lower_is_equal_to_tick_upper(self, random_address, tick_spacing):
         pool = UniswapV3Pool(tick_spacing=tick_spacing)
         with pytest.raises(UniswapV3Revert):
             pool.mint(
@@ -36,9 +32,7 @@ class TestMint:
                 amount=100,
             )
 
-    def test_mint_fails_if_tick_lower_less_than_min_tick(
-        self, random_address, tick_spacing
-    ):
+    def test_mint_fails_if_tick_lower_less_than_min_tick(self, random_address, tick_spacing):
         pool = UniswapV3Pool(tick_spacing=tick_spacing)
         with pytest.raises(UniswapV3Revert):
             pool.mint(
@@ -48,9 +42,7 @@ class TestMint:
                 amount=100,
             )
 
-    def test_mint_fails_if_tick_upper_greater_than_max_tick(
-        self, random_address, tick_spacing
-    ):
+    def test_mint_fails_if_tick_upper_greater_than_max_tick(self, random_address, tick_spacing):
         pool = UniswapV3Pool(tick_spacing=tick_spacing)
         with pytest.raises(UniswapV3Revert):
             pool.mint(
@@ -88,9 +80,7 @@ class TestMint:
                 amount=0,
             )
 
-    def test_mint_fails_if_amount_exceeds_max_2_mints(
-        self, random_address, tick_spacing
-    ):
+    def test_mint_fails_if_amount_exceeds_max_2_mints(self, random_address, tick_spacing):
         pool = UniswapV3Pool(tick_spacing=tick_spacing)
         minter_address = random_address()
         pool.mint(
@@ -172,9 +162,7 @@ class TestMint:
     def test_mint_adds_liquidity_to_liquidity_gross(self, random_address, tick_spacing):
         pool = UniswapV3Pool(tick_spacing=tick_spacing)
         minter_address = random_address()
-        pool.mint(
-            minter_address, tick_lower=-4 * tick_spacing, tick_upper=0, amount=100
-        )
+        pool.mint(minter_address, tick_lower=-4 * tick_spacing, tick_upper=0, amount=100)
         assert pool.ticks[-4 * tick_spacing].liquidity_gross == 100
         assert pool.ticks[0].liquidity_gross == 100
         with pytest.raises(KeyError):
@@ -202,9 +190,7 @@ class TestMint:
     def test_burn_removes_from_liquidity_gross(self, random_address, tick_spacing):
         pool = UniswapV3Pool(tick_spacing=tick_spacing)
         minter_address = random_address()
-        pool.mint(
-            minter_address, tick_lower=-4 * tick_spacing, tick_upper=0, amount=100
-        )
+        pool.mint(minter_address, tick_lower=-4 * tick_spacing, tick_upper=0, amount=100)
         pool.mint(
             minter_address,
             tick_lower=-4 * tick_spacing,
@@ -215,14 +201,10 @@ class TestMint:
         assert pool.ticks[-4 * tick_spacing].liquidity_gross == 50
         assert pool.ticks[0].liquidity_gross == 50
 
-    def test_burn_unitiailizes_tick_if_liquidity_gross_goes_to_zero(
-        self, random_address, tick_spacing
-    ):
+    def test_burn_unitiailizes_tick_if_liquidity_gross_goes_to_zero(self, random_address, tick_spacing):
         pool = UniswapV3Pool(tick_spacing=tick_spacing)
         minter_address = random_address()
-        pool.mint(
-            minter_address, tick_lower=-4 * tick_spacing, tick_upper=0, amount=100
-        )
+        pool.mint(minter_address, tick_lower=-4 * tick_spacing, tick_upper=0, amount=100)
         pool.burn(minter_address, -4 * tick_spacing, 0, 100)
 
         with pytest.raises(KeyError):
@@ -234,9 +216,7 @@ class TestMint:
     def test_clears_tick_that_is_not_used(self, random_address, tick_spacing):
         pool = UniswapV3Pool(tick_spacing=tick_spacing)
         minter_address = random_address()
-        pool.mint(
-            minter_address, tick_lower=-4 * tick_spacing, tick_upper=0, amount=100
-        )
+        pool.mint(minter_address, tick_lower=-4 * tick_spacing, tick_upper=0, amount=100)
         pool.mint(minter_address, tick_lower=-tick_spacing, tick_upper=0, amount=250)
         pool.burn(minter_address, -4 * tick_spacing, 0, 100)
 
@@ -259,17 +239,13 @@ class TestMint:
         assert pool.observations[0].seconds_per_liquidity_cumulative == 0
         pool.advance_block()
 
-        pool.mint(
-            random_address, tick_lower=-4 * tick_spacing, tick_upper=0, amount=100
-        )
+        pool.mint(random_address, tick_lower=-4 * tick_spacing, tick_upper=0, amount=100)
         assert pool.observations[0].tick_cumulative == 0
         assert pool.observations[0].block_timestamp == start_time
         assert pool.observations[0].initialized
         assert pool.observations[0].seconds_per_liquidity_cumulative == 0
 
-    def test_mint_within_price_range_transfers_both_tokens(
-        self, initialize_mint_test_pool, tick_spacing
-    ):
+    def test_mint_within_price_range_transfers_both_tokens(self, initialize_mint_test_pool, tick_spacing):
         pool, minter_address = initialize_mint_test_pool(
             tick_spacing=tick_spacing,
         )
@@ -283,9 +259,7 @@ class TestMint:
         assert pool.state.balance_0 == 9996 + 317
         assert pool.state.balance_1 == 1000 + 32
 
-    def test_mint_within_price_range_initialized_ticks(
-        self, initialize_mint_test_pool, tick_spacing
-    ):
+    def test_mint_within_price_range_initialized_ticks(self, initialize_mint_test_pool, tick_spacing):
         pool, minter_address = initialize_mint_test_pool(
             tick_spacing=tick_spacing,
         )
@@ -299,9 +273,7 @@ class TestMint:
         assert pool.ticks[MIN_TICK[tick_spacing] + tick_spacing].liquidity_gross == 100
         assert pool.ticks[MAX_TICK[tick_spacing] - tick_spacing].liquidity_gross == 100
 
-    def test_mint_additional_liquidity_min_max_ticks(
-        self, initialize_mint_test_pool, tick_spacing
-    ):
+    def test_mint_additional_liquidity_min_max_ticks(self, initialize_mint_test_pool, tick_spacing):
         pool, minter_address = initialize_mint_test_pool(
             tick_spacing=tick_spacing,
         )
@@ -315,9 +287,7 @@ class TestMint:
         assert pool.state.balance_0 == 9996 + 31623
         assert pool.state.balance_1 == 1000 + 3163
 
-    def test_removing_liquidity_min_max_ticks(
-        self, initialize_mint_test_pool, tick_spacing
-    ):
+    def test_removing_liquidity_min_max_ticks(self, initialize_mint_test_pool, tick_spacing):
         pool, minter_address = initialize_mint_test_pool(
             tick_spacing=tick_spacing,
         )
@@ -328,9 +298,7 @@ class TestMint:
             tick_upper=MAX_TICK[tick_spacing],
             amount=100,
         )
-        amount_0, amount_1 = pool.burn(
-            minter_address, MIN_TICK[tick_spacing], MAX_TICK[tick_spacing], 100
-        )
+        amount_0, amount_1 = pool.burn(minter_address, MIN_TICK[tick_spacing], MAX_TICK[tick_spacing], 100)
         assert amount_0 == 316
         assert amount_1 == 31
 
@@ -364,10 +332,7 @@ class TestMint:
         assert pool.observations[0].tick_cumulative == -23028
         assert pool.observations[0].block_timestamp == start_time + 1
         assert pool.observations[0].initialized
-        assert (
-            pool.observations[0].seconds_per_liquidity_cumulative
-            == 107650226801941937191829992860413859
-        )
+        assert pool.observations[0].seconds_per_liquidity_cumulative == 107650226801941937191829992860413859
 
     def test_mint_below_current_price(self, initialize_mint_test_pool, tick_spacing):
         pool, minter_address = initialize_mint_test_pool(
@@ -379,9 +344,7 @@ class TestMint:
         assert pool.state.balance_0 == 9996
         assert pool.state.balance_1 == 1000 + 2162
 
-    def test_mint_min_tick_with_max_leverage(
-        self, initialize_mint_test_pool, tick_spacing
-    ):
+    def test_mint_min_tick_with_max_leverage(self, initialize_mint_test_pool, tick_spacing):
         pool, minter_address = initialize_mint_test_pool(
             tick_spacing=tick_spacing,
         )
@@ -421,9 +384,7 @@ class TestMint:
         assert amount_0 == 0
         assert amount_1 == 3
 
-    def test_mint_lower_than_price_does_not_write_observation(
-        self, initialize_mint_test_pool, tick_spacing
-    ):
+    def test_mint_lower_than_price_does_not_write_observation(self, initialize_mint_test_pool, tick_spacing):
         start_time = int(datetime.datetime.now().timestamp())
         pool, minter_address = initialize_mint_test_pool(
             tick_spacing=tick_spacing,
@@ -444,9 +405,7 @@ class TestMint:
         assert pool.observations[0].seconds_per_liquidity_cumulative == 0
 
     @pytest.mark.skip("Protocol Fees Skipped for now")
-    def test_protocol_fees_accumulate_as_expected_during_swap(
-        self, initialize_mint_test_pool, tick_spacing
-    ):
+    def test_protocol_fees_accumulate_as_expected_during_swap(self, initialize_mint_test_pool, tick_spacing):
         pool, minter_address = initialize_mint_test_pool(
             tick_spacing=tick_spacing,
         )
@@ -476,9 +435,7 @@ class TestMint:
         assert pool.protocol_fees_1 == 5000000000000
 
     @pytest.mark.skip("Protocol Fees Skipped for now")
-    def test_positions_are_protected_before_protocol_fee_is_turned_on(
-        self, initialize_mint_test_pool, tick_spacing
-    ):
+    def test_positions_are_protected_before_protocol_fee_is_turned_on(self, initialize_mint_test_pool, tick_spacing):
         pool, minter_address = initialize_mint_test_pool(
             tick_spacing=tick_spacing,
         )
@@ -511,9 +468,7 @@ class TestMint:
         assert pool.protocol_fees_0 == 0
         assert pool.protocol_fees_1 == 0
 
-    def test_poke_is_not_allowed_on_uninitialized_position(
-        self, initialize_mint_test_pool, tick_spacing
-    ):
+    def test_poke_is_not_allowed_on_uninitialized_position(self, initialize_mint_test_pool, tick_spacing):
         pool, minter_address = initialize_mint_test_pool(
             tick_spacing=tick_spacing,
         )
@@ -534,21 +489,13 @@ class TestMint:
         with pytest.raises(UniswapV3Revert):
             pool.burn(minter_address, min_tick_1, max_tick_1, 0)
 
-        pool.mint(
-            minter_address, tick_lower=min_tick_1, tick_upper=max_tick_1, amount=1
-        )
+        pool.mint(minter_address, tick_lower=min_tick_1, tick_upper=max_tick_1, amount=1)
 
         position_before_burn = pool.positions[(minter_address, min_tick_1, max_tick_1)]
 
         assert position_before_burn.liquidity == 1
-        assert (
-            position_before_burn.fee_growth_inside_1_last
-            == 102084710076281216349243831104605583
-        )
-        assert (
-            position_before_burn.fee_growth_inside_1_last
-            == 10208471007628121634924383110460558
-        )
+        assert position_before_burn.fee_growth_inside_1_last == 102084710076281216349243831104605583
+        assert position_before_burn.fee_growth_inside_1_last == 10208471007628121634924383110460558
         assert position_before_burn.tokens_owed_0 == 0
         assert position_before_burn.tokens_owed_1 == 0
 
@@ -556,14 +503,8 @@ class TestMint:
 
         position_after_burn = pool.positions[(minter_address, min_tick_1, max_tick_1)]
         assert position_before_burn.liquidity == 0
-        assert (
-            position_before_burn.fee_growth_inside_1_last
-            == 102084710076281216349243831104605583
-        )
-        assert (
-            position_before_burn.fee_growth_inside_1_last
-            == 10208471007628121634924383110460558
-        )
+        assert position_before_burn.fee_growth_inside_1_last == 102084710076281216349243831104605583
+        assert position_before_burn.fee_growth_inside_1_last == 10208471007628121634924383110460558
         assert position_after_burn.tokens_owed_0 == 3
         assert position_after_burn.tokens_owed_1 == 0
 
@@ -603,9 +544,7 @@ class TestBurn:
         assert position.fee_growth_inside_0_last == 340282366920938463463374607431768211
         assert position.fee_growth_inside_1_last == 340282366920938576890830247744589365
 
-    def test_clears_tick_if_last_position_using_it(
-        self, initialize_burn_test_pool, random_address
-    ):
+    def test_clears_tick_if_last_position_using_it(self, initialize_burn_test_pool, random_address):
         pool = initialize_burn_test_pool()
         mint_addr = random_address()
 
@@ -622,9 +561,7 @@ class TestBurn:
         with pytest.raises(KeyError):
             MAX_TICK[60] = pool.ticks[MAX_TICK[60]]
 
-    def test_clears_only_lower_tick_if_upper_tick_still_used(
-        self, initialize_burn_test_pool, random_address
-    ):
+    def test_clears_only_lower_tick_if_upper_tick_still_used(self, initialize_burn_test_pool, random_address):
         pool = initialize_burn_test_pool()
         mint_addr = random_address()
         tick_lower, tick_upper = MIN_TICK[60] + 60, MAX_TICK[60] - 60
@@ -643,9 +580,7 @@ class TestBurn:
 
         assert pool.ticks[tick_upper].liquidity_gross == 1
 
-    def test_clears_only_upper_tick_if_lower_still_used(
-        self, initialize_burn_test_pool, random_address
-    ):
+    def test_clears_only_upper_tick_if_lower_still_used(self, initialize_burn_test_pool, random_address):
         pool = initialize_burn_test_pool()
         mint_addr = random_address()
         tick_lower, tick_upper = MIN_TICK[60] + 60, MAX_TICK[60] - 60

@@ -1,7 +1,7 @@
 from click.testing import CliRunner
 
-from python_eth_amm.cli.entry_point import add_abi, cli_entry_point, cli_migrate_up
-from python_eth_amm.database.models.ethereum import Transaction
+from nethermind.entro.cli import entro_cli
+from nethermind.entro.database.models.ethereum import Transaction
 from tests.resources.ABI import (
     ERC20_ABI_JSON,
     UNISWAP_V2_PAIR_JSON,
@@ -15,14 +15,14 @@ def test_add_ERC_20_ABI(integration_postgres_db, cli_db_url):
     runner = CliRunner()
 
     with runner.isolated_filesystem():
-        migrate = runner.invoke(cli_migrate_up, [*cli_db_url])
+        migrate = runner.invoke(entro_cli, ["migrate-up", *cli_db_url])
 
         assert migrate.exit_code == 0
 
         with open("ERC20.json", "w") as f:
             f.write(ERC20_ABI_JSON)
 
-        result = runner.invoke(add_abi, ["ERC20", "ERC20.json", *cli_db_url])
+        result = runner.invoke(entro_cli, ["decoding", "add-abi", "ERC20", "ERC20.json", *cli_db_url])
 
     assert result.exit_code == 0
     assert "Successfully Added ERC20 to Database with Priority 0" in result.output
@@ -32,26 +32,19 @@ def test_add_duplicate_abis(integration_postgres_db, cli_db_url, caplog):
     runner = CliRunner()
 
     with runner.isolated_filesystem():
-        migration = runner.invoke(cli_entry_point, ["migrate-up", *cli_db_url])
+        migration = runner.invoke(entro_cli, ["migrate-up", *cli_db_url])
 
         assert migration.exit_code == 0
 
         with open("ERC20.json", "w") as f:
             f.write(ERC20_ABI_JSON)
 
-        abi_1_result = runner.invoke(
-            cli_entry_point, ["add-abi", "ERC20", "ERC20.json", *cli_db_url]
-        )
+        abi_1_result = runner.invoke(entro_cli, ["decoding", "add-abi", "ERC20", "ERC20.json", *cli_db_url])
 
         assert abi_1_result.exit_code == 0
-        assert (
-            "Successfully Added ERC20 to Database with Priority 0"
-            in abi_1_result.output
-        )
+        assert "Successfully Added ERC20 to Database with Priority 0" in abi_1_result.output
 
-        abi_2_result = runner.invoke(
-            cli_entry_point, ["add-abi", "ERC20", "ERC20.json", *cli_db_url]
-        )
+        abi_2_result = runner.invoke(entro_cli, ["decoding", "add-abi", "ERC20", "ERC20.json", *cli_db_url])
 
         assert abi_2_result.exit_code == 0
         assert "ERC20 ABI already loaded into dispatcher" in caplog.text
@@ -62,15 +55,12 @@ def test_add_nonexistent_file(cli_db_url):
 
     with runner.isolated_filesystem():
         result = runner.invoke(
-            cli_entry_point,
-            ["add-abi", "UniswapV3Pool", "UniswapV3Pool.json", *cli_db_url],
+            entro_cli,
+            ["decoding", "add-abi", "UniswapV3Pool", "UniswapV3Pool.json", *cli_db_url],
         )
 
         assert result.exit_code == 2
-        assert (
-            "Error: Invalid value for 'ABI_JSON': 'UniswapV3Pool.json': No such file or directory"
-            in result.output
-        )
+        assert "Error: Invalid value for 'ABI_JSON': 'UniswapV3Pool.json': No such file or directory" in result.output
 
 
 def test_abi_decoding(
@@ -87,11 +77,11 @@ def test_abi_decoding(
         with open("ERC20.json", "w") as f:
             f.write(ERC20_ABI_JSON)
 
-        runner.invoke(cli_entry_point, ["migrate-up", *cli_db_url])
-        runner.invoke(cli_entry_point, ["add-abi", "ERC20", "ERC20.json", *cli_db_url])
+        runner.invoke(entro_cli, ["migrate-up", *cli_db_url])
+        runner.invoke(entro_cli, ["decoding", "add-abi", "ERC20", "ERC20.json", *cli_db_url])
 
         backfill_result = runner.invoke(
-            cli_entry_point,
+            entro_cli,
             [
                 "backfill",
                 "transactions",
@@ -141,13 +131,13 @@ def test_list_abis(integration_postgres_db, cli_db_url):
         with open("UniswapV3Pool.json", "w") as f:
             f.write(UNISWAP_V3_POOL_JSON)
 
-        migrate_res = runner.invoke(cli_entry_point, ["migrate-up", *cli_db_url])
+        migrate_res = runner.invoke(entro_cli, ["migrate-up", *cli_db_url])
         erc_res = runner.invoke(
-            cli_entry_point,
-            ["add-abi", "ERC20", "ERC20.json", "--priority", "10", *cli_db_url],
+            entro_cli,
+            ["decoding", "add-abi", "ERC20", "ERC20.json", "--priority", "10", *cli_db_url],
         )
         v2_res = runner.invoke(
-            cli_entry_point,
+            entro_cli,
             [
                 "add-abi",
                 "UniswapV2Pair",
@@ -158,8 +148,9 @@ def test_list_abis(integration_postgres_db, cli_db_url):
             ],
         )
         v3_res = runner.invoke(
-            cli_entry_point,
+            entro_cli,
             [
+                "decoding",
                 "add-abi",
                 "UniswapV3Pool",
                 "UniswapV3Pool.json",
@@ -174,17 +165,17 @@ def test_list_abis(integration_postgres_db, cli_db_url):
         assert v2_res.exit_code == 0
         assert v3_res.exit_code == 0
 
-        list_result = runner.invoke(cli_entry_point, ["list-abis", *cli_db_url])
+        list_result = runner.invoke(entro_cli, ["decoding", "list-abis", *cli_db_url])
 
         assert list_result.exit_code == 0
 
-        list_output = """  ABI Name         Priority\n\tERC20 ----------> 10\n\tUniswapV2Pair --> 9\n\tUniswapV3Pool --> 8\n\n"""
+        list_output = (
+            """  ABI Name         Priority\n\tERC20 ----------> 10\n\tUniswapV2Pair --> 9\n\tUniswapV3Pool --> 8\n\n"""
+        )
 
         assert list_output == list_result.output
 
-        list_decoders_result = runner.invoke(
-            cli_entry_point, ["list-abi-decoders", *cli_db_url]
-        )
+        list_decoders_result = runner.invoke(entro_cli, ["decoding", "list-abi-decoders", *cli_db_url])
 
         assert "'Approval'," in list_decoders_result.output
         assert "'Transfer'," in list_decoders_result.output
@@ -203,14 +194,12 @@ def test_abi_priority_raises(integration_postgres_db, cli_db_url, caplog):
         with open("UniswapV2Pair.json", "w") as f:
             f.write(UNISWAP_V2_PAIR_JSON)
 
-        runner.invoke(cli_entry_point, ["migrate-up", *cli_db_url])
+        runner.invoke(entro_cli, ["migrate-up", *cli_db_url])
 
-        add_erc_result = runner.invoke(
-            cli_entry_point, ["add-abi", "ERC20", "ERC20.json", *cli_db_url]
-        )
+        add_erc_result = runner.invoke(entro_cli, ["decoding", "add-abi", "ERC20", "ERC20.json", *cli_db_url])
         add_uni_v2_result = runner.invoke(
-            cli_entry_point,
-            ["add-abi", "UniswapV2Pair", "UniswapV2Pair.json", *cli_db_url],
+            entro_cli,
+            ["decoding", "add-abi", "UniswapV2Pair", "UniswapV2Pair.json", *cli_db_url],
         )
 
         assert add_erc_result.exit_code == 0

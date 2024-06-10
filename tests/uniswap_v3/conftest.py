@@ -4,7 +4,7 @@ import pytest
 from eth_typing import ChecksumAddress
 from eth_utils import to_checksum_address
 
-from python_eth_amm.uniswap_v3 import UniswapV3Pool
+from nethermind.entro.uniswap_v3 import UniswapV3Pool
 
 from .utils import MAX_TICK, MIN_TICK, encode_sqrt_price
 
@@ -28,9 +28,7 @@ def fixture_initialize_empty_pool():
 
 @pytest.fixture(name="initialize_mint_test_pool")
 def fixture_initialize_mint_test_pool(random_address):
-    def _initialize_mint_test_pool(
-        tick_spacing: int, **kwargs
-    ) -> Tuple[UniswapV3Pool, ChecksumAddress]:
+    def _initialize_mint_test_pool(tick_spacing: int, **kwargs) -> Tuple[UniswapV3Pool, ChecksumAddress]:
         minter_address = random_address()
 
         mint_test_pool = UniswapV3Pool(
@@ -40,9 +38,7 @@ def fixture_initialize_mint_test_pool(random_address):
             **kwargs,
         )
 
-        mint_test_pool.mint(
-            minter_address, MIN_TICK[tick_spacing], MAX_TICK[tick_spacing], 3161
-        )
+        mint_test_pool.mint(minter_address, MIN_TICK[tick_spacing], MAX_TICK[tick_spacing], 3161)
         return mint_test_pool, minter_address
 
     return _initialize_mint_test_pool

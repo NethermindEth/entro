@@ -1,6 +1,6 @@
 import json
 
-from python_eth_amm.abi_decoder import DecodingDispatcher
+from nethermind.entro.decoding import DecodingDispatcher
 
 from ..resources.ABI import ERC20_ABI_JSON, ERC721_ABI_JSON, UNISWAP_V2_PAIR_JSON
 
@@ -54,26 +54,12 @@ def test_overlapping_events():
 
     assert erc_20_decoding_result.event_signature == "Transfer(address,address,uint256)"
     assert erc_20_decoding_result.abi_name == "ERC20"
-    assert (
-        erc_20_decoding_result.event_data["from"]
-        == "0xC0140CFC3988101A7C1aC769aF92Fb1fFCa80F58"
-    )
-    assert (
-        erc_20_decoding_result.event_data["to"]
-        == "0xae542fc36F457426f3711747Dc2340f5Ac8B560F"
-    )
+    assert erc_20_decoding_result.event_data["from"] == "0xC0140CFC3988101A7C1aC769aF92Fb1fFCa80F58"
+    assert erc_20_decoding_result.event_data["to"] == "0xae542fc36F457426f3711747Dc2340f5Ac8B560F"
     assert erc_20_decoding_result.event_data["value"] == 89081766912
 
-    assert (
-        erc_721_decoding_result.event_signature == "Transfer(address,address,uint256)"
-    )
+    assert erc_721_decoding_result.event_signature == "Transfer(address,address,uint256)"
     assert erc_721_decoding_result.abi_name == "ERC721"
-    assert (
-        erc_721_decoding_result.event_data["from"]
-        == "0xC0140CFC3988101A7C1aC769aF92Fb1fFCa80F58"
-    )
-    assert (
-        erc_721_decoding_result.event_data["to"]
-        == "0xae542fc36F457426f3711747Dc2340f5Ac8B560F"
-    )
+    assert erc_721_decoding_result.event_data["from"] == "0xC0140CFC3988101A7C1aC769aF92Fb1fFCa80F58"
+    assert erc_721_decoding_result.event_data["to"] == "0xae542fc36F457426f3711747Dc2340f5Ac8B560F"
     assert erc_721_decoding_result.event_data["tokenId"] == 0xAB4

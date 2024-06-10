@@ -11,7 +11,7 @@ it generates a list of all Uniswap V3 pools to extract prices from.  It will als
 .. code-block:: python
 
     import logging
-    from python_eth_amm import Factory
+    from nethermind.entro import Factory
     from eth_utils import to_checksum_address
 
     project_logger = logging.getLogger("my_project")

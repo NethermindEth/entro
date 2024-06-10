@@ -4,8 +4,8 @@ from click.testing import CliRunner
 from eth_utils import to_checksum_address
 from sqlalchemy import select
 
-from python_eth_amm.cli.entry_point import cli_entry_point
-from python_eth_amm.database.models.uniswap import (
+from nethermind.entro.cli import entro_cli
+from nethermind.entro.database.models.uniswap import (
     UniV3BurnEvent,
     UniV3CollectEvent,
     UniV3MintEvent,
@@ -23,7 +23,7 @@ def test_backfill_mint_events_for_weth_wbtc_pool(
     create_debug_logger,
 ):
     runner = CliRunner()
-    migrate_res = runner.invoke(cli_entry_point, ["migrate-up", *cli_db_url])
+    migrate_res = runner.invoke(entro_cli, ["migrate-up", *cli_db_url])
     assert migrate_res.exit_code == 0
 
     with runner.isolated_filesystem():
@@ -31,17 +31,17 @@ def test_backfill_mint_events_for_weth_wbtc_pool(
             f.write(UNISWAP_V3_POOL_JSON)
 
         result = runner.invoke(
-            cli_entry_point,
-            ["add-abi", "UniswapV3Pool", "UniswapV3Pool.json", *cli_db_url],
+            entro_cli,
+            ["decoding", "add-abi", "UniswapV3Pool", "UniswapV3Pool.json", *cli_db_url],
         )
 
         assert result.exit_code == 0
 
     mint_backfill_result = runner.invoke(
-        cli_entry_point,
+        entro_cli,
         [
             "backfill",
-            "events",
+            "ethereum" "events",
             "-from",
             17_800_000,
             "-to",
@@ -77,9 +77,7 @@ def test_backfill_mint_events_for_weth_wbtc_pool(
         assert line in mint_backfill_result.output
 
     mint_events = integration_db_session.execute(select(UniV3MintEvent)).scalars().all()
-    assert mint_events[0].sender == bytes.fromhex(
-        "C36442b4a4522E871399CD717aBDD847Ab11FE88"
-    )
+    assert mint_events[0].sender == bytes.fromhex("C36442b4a4522E871399CD717aBDD847Ab11FE88")
 
     assert mint_events[0].amount == 32500065523907
     assert mint_events[0].tick_lower == 254220
@@ -100,24 +98,24 @@ def test_cli_backfill_multiple_events(
     create_debug_logger,
 ):
     runner = CliRunner()
-    runner.invoke(cli_entry_point, ["migrate-up", *cli_db_url])
+    runner.invoke(entro_cli, ["migrate-up", *cli_db_url])
 
     with runner.isolated_filesystem():
         with open("UniswapV3Pool.json", "w") as f:
             f.write(UNISWAP_V3_POOL_JSON)
 
         result = runner.invoke(
-            cli_entry_point,
-            ["add-abi", "UniswapV3Pool", "UniswapV3Pool.json", *cli_db_url],
+            entro_cli,
+            ["decoding", "add-abi", "UniswapV3Pool", "UniswapV3Pool.json", *cli_db_url],
         )
 
         assert result.exit_code == 0
 
     event_backfill_res = runner.invoke(
-        cli_entry_point,
+        entro_cli,
         [
             "backfill",
-            "events",
+            "ethereum" "events",
             "-from",
             18_000_000,
             "-to",
@@ -150,9 +148,7 @@ def test_cli_backfill_multiple_events(
 
     mint_events = integration_db_session.execute(select(UniV3MintEvent)).scalars().all()
     burn_events = integration_db_session.execute(select(UniV3BurnEvent)).scalars().all()
-    collect_events = (
-        integration_db_session.execute(select(UniV3CollectEvent)).scalars().all()
-    )
+    collect_events = integration_db_session.execute(select(UniV3CollectEvent)).scalars().all()
 
     assert event_backfill_res.exit_code == 0
 
@@ -173,22 +169,16 @@ def test_cli_backfill_multiple_events(
     assert burn_events[-1].tick_upper == collect_events[-1].tick_upper == 264360
 
     assert burn_events[-1].amount_0 == collect_events[-1].amount_0 == Decimal("398206")
-    assert (
-        burn_events[-1].amount_1
-        == collect_events[-1].amount_1
-        == Decimal("63404179018897713")
-    )
+    assert burn_events[-1].amount_1 == collect_events[-1].amount_1 == Decimal("63404179018897713")
 
 
-def test_event_cli_required_params(
-    integration_postgres_db, integration_db_session, cli_db_url
-):
+def test_event_cli_required_params(integration_postgres_db, integration_db_session, cli_db_url):
     runner = CliRunner()
 
-    runner.invoke(cli_entry_point, ["migrate-up", *cli_db_url])
+    runner.invoke(entro_cli, ["migrate-up", *cli_db_url])
 
     missing_contract_address = runner.invoke(
-        cli_entry_point,
+        entro_cli,
         [
             "backfill",
             "events",
@@ -201,7 +191,7 @@ def test_event_cli_required_params(
     )
 
     missing_abi_name = runner.invoke(
-        cli_entry_point,
+        entro_cli,
         [
             "backfill",
             "events",
@@ -214,7 +204,7 @@ def test_event_cli_required_params(
     )
 
     invalid_abi = runner.invoke(
-        cli_entry_point,
+        entro_cli,
         [
             "backfill",
             "events",
@@ -229,15 +219,10 @@ def test_event_cli_required_params(
     )
 
     assert missing_contract_address.exit_code == 2
-    assert (
-        "Error: Missing option '--contract-address'" in missing_contract_address.output
-    )
+    assert "Error: Missing option '--contract-address'" in missing_contract_address.output
 
     assert missing_abi_name.exit_code == 0
-    assert (
-        "Error Occurred Generating Backfill: Expected 1 ABI for Event backfill"
-        in missing_abi_name.output
-    )
+    assert "Error Occurred Generating Backfill: Expected 1 ABI for Event backfill" in missing_abi_name.output
     assert "Specify an ABI using --contract-abi" in missing_abi_name.output
 
     assert invalid_abi.exit_code == 0

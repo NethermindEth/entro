@@ -1,4 +1,4 @@
-from python_eth_amm.uniswap_v3.math import UniswapV3Math
+from nethermind.entro.uniswap_v3.math import UniswapV3Math
 
 from ..utils import expand_to_decimals
 from .utils import encode_sqrt_price
@@ -7,9 +7,7 @@ UniswapV3Math.initialize_exact_math()
 
 
 class TestComputeSwapStep:
-    def test_exact_amount_in_gets_capped_at_price_target_one_for_zero(
-        self, initialize_empty_pool
-    ):
+    def test_exact_amount_in_gets_capped_at_price_target_one_for_zero(self, initialize_empty_pool):
         price = encode_sqrt_price(1, 1)
         price_target = encode_sqrt_price(101, 100)
         liquidity = expand_to_decimals(2, 18)
@@ -36,9 +34,7 @@ class TestComputeSwapStep:
         assert swap_step.sqrt_price_next == price_target
         assert swap_step.sqrt_price_next < price_after_whole_input_amount
 
-    def test_exact_amount_out_gets_capped_at_price_target_one_for_zero(
-        self, initialize_empty_pool
-    ):
+    def test_exact_amount_out_gets_capped_at_price_target_one_for_zero(self, initialize_empty_pool):
         price = encode_sqrt_price(1, 1)
         price_target = encode_sqrt_price(101, 100)
         liquidity = expand_to_decimals(2, 18)
@@ -84,13 +80,11 @@ class TestComputeSwapStep:
         assert swap_step.amount_out == 666399946655997866
         assert swap_step.amount_in + swap_step.fee_amount == amount
 
-        price_after_whole_input_amount_no_fee = (
-            UniswapV3Math.get_next_sqrt_price_from_input(
-                price,
-                liquidity,
-                amount - swap_step.fee_amount,
-                False,
-            )
+        price_after_whole_input_amount_no_fee = UniswapV3Math.get_next_sqrt_price_from_input(
+            price,
+            liquidity,
+            amount - swap_step.fee_amount,
+            False,
         )
 
         assert swap_step.sqrt_price_next < price_target
@@ -150,10 +144,7 @@ class TestComputeSwapStep:
 
         assert swap_step.amount_in == 39614081257132168796771975168
         assert swap_step.fee_amount == 39614120871253040049813
-        assert (
-            swap_step.amount_in + swap_step.fee_amount
-            <= 3915081100057732413702495386755767
-        )
+        assert swap_step.amount_in + swap_step.fee_amount <= 3915081100057732413702495386755767
         assert swap_step.amount_out == 0
         assert swap_step.sqrt_price_next == 1
 
@@ -171,9 +162,7 @@ class TestComputeSwapStep:
         assert swap_step.amount_out == 0
         assert swap_step.sqrt_price_next == 2413
 
-    def test_handles_intermediate_insufficient_liqudity_exact_output_zero_for_one(
-        self, initialize_empty_pool
-    ):
+    def test_handles_intermediate_insufficient_liqudity_exact_output_zero_for_one(self, initialize_empty_pool):
         sqrt_price = 20282409603651670423947251286016
         sqrt_price_target = int((sqrt_price * 11) / 10)
         swap_step = UniswapV3Math.compute_swap_step(
@@ -189,9 +178,7 @@ class TestComputeSwapStep:
         assert swap_step.amount_in == 26215
         assert swap_step.fee_amount == 79
 
-    def test_handes_intermediate_insufficient_liquidity_exact_output_one_for_zero(
-        self, initialize_empty_pool
-    ):
+    def test_handes_intermediate_insufficient_liquidity_exact_output_one_for_zero(self, initialize_empty_pool):
         sqrt_price = 20282409603651670423947251286016
         sqrt_price_target = int((sqrt_price * 9) / 10)
         swap_step = UniswapV3Math.compute_swap_step(

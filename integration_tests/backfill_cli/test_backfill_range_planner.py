@@ -2,11 +2,11 @@ import uuid
 
 import pytest
 
-from python_eth_amm.backfill.planner import BackfillRangePlan
-from python_eth_amm.database.migrations import migrate_up
-from python_eth_amm.database.models.python_eth_amm import BackfilledRange
-from python_eth_amm.exceptions import BackfillError
-from python_eth_amm.types.backfill import BackfillDataType, SupportedNetwork
+from nethermind.entro.backfill.planner import BackfillRangePlan
+from nethermind.entro.database.migrations import migrate_up
+from nethermind.entro.database.models.internal import BackfilledRange
+from nethermind.entro.exceptions import BackfillError
+from nethermind.entro.types.backfill import BackfillDataType, SupportedNetwork
 
 DEFAULT_KWARGS = {
     "data_type": BackfillDataType.blocks.value,

@@ -42,7 +42,7 @@ def voyager_cli_config() -> List[str]:
 @pytest.fixture()
 def add_abis_to_db(cli_db_url):
     def _add_abis(cli_runner: CliRunner):
-        from python_eth_amm.cli.entry_point import cli_entry_point
+        from nethermind.entro.cli.entry_point import cli_entry_point
 
         with cli_runner.isolated_filesystem():
             with open("ERC20.json", "w") as f:

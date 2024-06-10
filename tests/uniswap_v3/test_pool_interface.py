@@ -3,11 +3,11 @@ from datetime import datetime
 
 import pytest
 
-from python_eth_amm.exceptions import UniswapV3Revert
-from python_eth_amm.tokens.erc_20 import NULL_TOKEN
-from python_eth_amm.uniswap_v3 import UniswapV3Pool
-from python_eth_amm.uniswap_v3.chain_interface import _get_pos_from_bitmap
-from python_eth_amm.uniswap_v3.math import MAX_SQRT_RATIO, MIN_SQRT_RATIO
+from nethermind.entro.exceptions import UniswapV3Revert
+from nethermind.entro.tokens.erc_20 import NULL_TOKEN
+from nethermind.entro.uniswap_v3 import UniswapV3Pool
+from nethermind.entro.uniswap_v3.chain_interface import _get_pos_from_bitmap
+from nethermind.entro.uniswap_v3.math import MAX_SQRT_RATIO, MIN_SQRT_RATIO
 from tests.uniswap_v3.utils import encode_sqrt_price
 
 
@@ -19,10 +19,7 @@ class TestPoolInitialization:
         assert pool.immutables.token_1 == NULL_TOKEN
         assert pool.immutables.tick_spacing == 60
         assert pool.immutables.fee == 3000
-        assert (
-            pool.immutables.max_liquidity_per_tick
-            == 11505743598341114571880798222544994
-        )
+        assert pool.immutables.max_liquidity_per_tick == 11505743598341114571880798222544994
 
     def test_initialization_args_are_passed_to_pool(self):
         pool = UniswapV3Pool(
@@ -46,7 +43,9 @@ class TestPoolInitialization:
         with caplog.at_level(logging.WARN):
             UniswapV3Pool(fee=1000, tick_spacing=200)
 
-        expected_warn = "Tick spacing & Fee were both specified, but do not match typical values\tFee: 1000, Tick Spacing: 200"
+        expected_warn = (
+            "Tick spacing & Fee were both specified, but do not match typical values\tFee: 1000, Tick Spacing: 200"
+        )
         assert expected_warn in [record.message for record in caplog.records]
 
     def test_raises_if_initialization_price_too_low(self):

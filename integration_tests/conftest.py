@@ -24,7 +24,7 @@ def integration_postgres_db():
         "environment": {
             "POSTGRES_PASSWORD": os.environ["PG_PASS"],
         },
-        "name": "test_postgres",
+        "name": "entro_testing",
         "ports": {"5432/tcp": ("127.0.0.1", os.environ["PG_PORT"])},
         "detach": True,
     }
@@ -33,12 +33,12 @@ def integration_postgres_db():
         container = client.containers.run(**container_args)
 
     except docker.errors.APIError:
-        client.containers.get("test_postgres").remove(force=True)
+        client.containers.get("entro_testing").remove(force=True)
         container = client.containers.run(**container_args)
 
     while True:
         if b"database system is ready to accept connections" in container.logs():
-            time.sleep(0.5)
+            time.sleep(0.75)
             break
         time.sleep(0.1)
 
@@ -49,7 +49,7 @@ def integration_postgres_db():
         password=os.environ["PG_PASS"],
     )
     connection.set_isolation_level(ISOLATION_LEVEL_AUTOCOMMIT)
-    connection.cursor().execute("CREATE DATABASE python_eth_amm_integration;")
+    connection.cursor().execute("CREATE DATABASE entro;")
 
     yield
 
@@ -59,7 +59,7 @@ def integration_postgres_db():
 
 @pytest.fixture
 def integration_db_url() -> str:
-    return f"postgresql+psycopg2://postgres:{os.environ['PG_PASS']}@127.0.0.1:{os.environ['PG_PORT']}/python_eth_amm_integration"
+    return f"postgresql+psycopg2://postgres:{os.environ['PG_PASS']}@127.0.0.1:{os.environ['PG_PORT']}/entro"
 
 
 @pytest.fixture
@@ -69,11 +69,7 @@ def integration_db_session(integration_db_url) -> Session:
 
 @pytest.fixture(scope="function")
 def create_debug_logger(request: FixtureRequest) -> logging.Logger:
-    log_filename = (
-        request.module.__name__.replace("integration_tests.", "")
-        + "."
-        + request.function.__name__
-    )
+    log_filename = request.module.__name__.replace("integration_tests.", "") + "." + request.function.__name__
 
     parent_dir = Path(__file__).parent
     log_file = parent_dir / "logs" / f"{log_filename}.log"
@@ -85,7 +81,7 @@ def create_debug_logger(request: FixtureRequest) -> logging.Logger:
     file_handler = logging.FileHandler(log_file)
     file_handler.setFormatter(formatter)
 
-    logger = logging.getLogger("python_eth_amm")
+    logger = logging.getLogger("nethermind")
     logger.addHandler(file_handler)
     logger.setLevel(logging.DEBUG)
 

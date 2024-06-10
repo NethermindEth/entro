@@ -16,8 +16,8 @@ Setting up Simulation
     from web3 import Web3
     from eth_utils import to_checksum_address
 
-    from python_eth_amm.base import PoolFactory
-    from python_eth_amm.uniswap_v3 import UniswapV3Pool
+    from nethermind.entro.base import PoolFactory
+    from nethermind.entro.uniswap_v3 import UniswapV3Pool
 
     LIQUIDITY_SNAPSHOT_BLOCK = 14000000
     LP_POSITION_MANAGER = to_checksum_address("0xC36442b4a4522E871399CD717aBDD847Ab11FE88")

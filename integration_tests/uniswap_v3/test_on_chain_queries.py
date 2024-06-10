@@ -1,10 +1,10 @@
 import pytest
 from eth_utils import to_checksum_address as tca
 
-from python_eth_amm.database.models.uniswap import UniV3MintEvent
-from python_eth_amm.exceptions import UniswapV3Revert
-from python_eth_amm.uniswap_v3 import UniswapV3Pool
-from python_eth_amm.uniswap_v3.chain_interface import (
+from nethermind.entro.database.models.uniswap import UniV3MintEvent
+from nethermind.entro.exceptions import UniswapV3Revert
+from nethermind.entro.uniswap_v3 import UniswapV3Pool
+from nethermind.entro.uniswap_v3.chain_interface import (
     _get_pos_from_bitmap,
     fetch_initialization_block,
     fetch_liquidity,
@@ -13,7 +13,7 @@ from python_eth_amm.uniswap_v3.chain_interface import (
     fetch_positions,
     fetch_slot_0,
 )
-from python_eth_amm.uniswap_v3.math import TickMathModule
+from nethermind.entro.uniswap_v3.math import TickMathModule
 from tests.resources.addresses import USDC_WETH_UNI_V3_POOL
 
 
@@ -63,9 +63,7 @@ class TestPoolInitialization:
                 at_block=12370000,
             )
 
-    def test_position_owners_match_mint_events(
-        self, integration_db_session, integration_postgres_db, eth_archival_w3
-    ):
+    def test_position_owners_match_mint_events(self, integration_db_session, integration_postgres_db, eth_archival_w3):
         usdc_weth_pool = UniswapV3Pool.from_chain(
             w3=eth_archival_w3,
             db_session=integration_db_session,
@@ -80,9 +78,7 @@ class TestPoolInitialization:
         for key, data in usdc_weth_pool.positions.items():
             assert key[0] in minting_lp_addresses
 
-    def test_initialized_ticks_match_positions(
-        self, integration_db_session, integration_postgres_db, eth_archival_w3
-    ):
+    def test_initialized_ticks_match_positions(self, integration_db_session, integration_postgres_db, eth_archival_w3):
         usdc_weth_pool = UniswapV3Pool.from_chain(
             w3=eth_archival_w3,
             db_session=integration_db_session,
@@ -92,9 +88,7 @@ class TestPoolInitialization:
         )
 
         position_keys = usdc_weth_pool.positions.keys()
-        active_ticks = set(
-            [key[1] for key in position_keys] + [key[2] for key in position_keys]
-        )
+        active_ticks = set([key[1] for key in position_keys] + [key[2] for key in position_keys])
 
         for tick_num in usdc_weth_pool.ticks.keys():
             assert tick_num in active_ticks
@@ -121,9 +115,7 @@ class TestFetchOnChainLiquidity:
         )
         assert sum([liq.liquidity_net for liq in liquidity.values()]) == 0
 
-    def test_liquidity_net_is_zero_established_pool_medium_fee(
-        self, wbtc_weth_contract
-    ):
+    def test_liquidity_net_is_zero_established_pool_medium_fee(self, wbtc_weth_contract):
         liquidity = fetch_liquidity(
             contract=wbtc_weth_contract,
             tick_spacing=60,
@@ -184,18 +176,12 @@ class TestFetchPoolState:
         assert immutables.tick_spacing == 60
         assert immutables.max_liquidity_per_tick == 11505743598341114571880798222544994
 
-        assert (
-            immutables.token_0.address.lower()
-            == "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48"
-        )
+        assert immutables.token_0.address.lower() == "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48"
         assert immutables.token_0.name == "USD Coin"
         assert immutables.token_0.symbol == "USDC"
         assert immutables.token_0.decimals == 6
 
-        assert (
-            immutables.token_1.address.lower()
-            == "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2"
-        )
+        assert immutables.token_1.address.lower() == "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2"
         assert immutables.token_1.name == "Wrapped Ether"
         assert immutables.token_1.symbol == "WETH"
         assert immutables.token_1.decimals == 18

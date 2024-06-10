@@ -2,14 +2,14 @@ import uuid
 
 import pytest
 
-from python_eth_amm.backfill.planner import (
+from nethermind.entro.backfill.planner import (
     BackfillRangePlan,
     _filter_conflicting_backfills,
     _verify_filters,
 )
-from python_eth_amm.database.models import BackfilledRange
-from python_eth_amm.exceptions import BackfillError
-from python_eth_amm.types.backfill import BackfillDataType
+from nethermind.entro.database.models import BackfilledRange
+from nethermind.entro.exceptions import BackfillError
+from nethermind.entro.types.backfill import BackfillDataType
 
 # fmt: off
 

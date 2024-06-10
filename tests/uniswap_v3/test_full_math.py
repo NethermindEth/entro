@@ -1,7 +1,7 @@
 import pytest
 
-from python_eth_amm.exceptions import FullMathRevert
-from python_eth_amm.uniswap_v3.math import UniswapV3Math
+from nethermind.entro.exceptions import FullMathRevert
+from nethermind.entro.uniswap_v3.math import UniswapV3Math
 
 UniV3Math = UniswapV3Math.__new__(UniswapV3Math)
 UniV3Math.initialize_exact_math()

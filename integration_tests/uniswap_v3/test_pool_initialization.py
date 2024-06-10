@@ -2,7 +2,7 @@ import json
 
 from click.testing import CliRunner
 
-from python_eth_amm.uniswap_v3 import UniswapV3Pool
+from nethermind.entro.uniswap_v3 import UniswapV3Pool
 from tests.resources.addresses import USDC_WETH_UNI_V3_POOL
 
 
