@@ -1,6 +1,6 @@
 Exceptions
 ==========
 
-.. automodule:: python_eth_amm.exceptions
+.. automodule:: nethermind.entro.exceptions
     :members:
 

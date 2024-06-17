@@ -12,7 +12,6 @@ from sqlalchemy.orm import Session
 from web3.contract import Contract
 from web3.exceptions import BadFunctionCallOutput
 
-from nethermind.entro.decoding import DecodingDispatcher
 from nethermind.entro.backfill.json_rpc import (
     decode_events_for_requests,
     parse_event_request,
@@ -20,6 +19,7 @@ from nethermind.entro.backfill.json_rpc import (
 from nethermind.entro.backfill.utils import block_identifier_to_block
 from nethermind.entro.database.models.uniswap import UniV3MintEvent
 from nethermind.entro.database.writers import EventWriter
+from nethermind.entro.decoding import DecodingDispatcher
 from nethermind.entro.exceptions import UniswapV3Revert
 from nethermind.entro.tokens import ERC20Token
 from nethermind.entro.types import BlockIdentifier
@@ -33,7 +33,6 @@ from nethermind.entro.types.uniswap_v3 import (
     Tick,
 )
 from nethermind.entro.uniswap_v3.math import MAX_TICK, MIN_TICK, UniswapV3Math
-
 
 root_logger = logging.getLogger("nethermind")
 logger = root_logger.getChild("entro").getChild("uniswap_v3").getChild("chain_interface")

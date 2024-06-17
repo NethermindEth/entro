@@ -5,13 +5,13 @@ from eth_typing import ChecksumAddress
 from rich.progress import Progress
 from sqlalchemy.orm import Session
 
-from nethermind.entro.decoding import DecodingDispatcher
 from nethermind.entro.cli.utils import progress_defaults
 from nethermind.entro.database.models.prices import (
     SUPPORTED_POOL_CREATION_EVENTS,
     MarketSpotPrice,
 )
 from nethermind.entro.database.readers.prices import get_pool_creation_backfills
+from nethermind.entro.decoding import DecodingDispatcher
 from nethermind.entro.exceptions import BackfillError, OracleError
 from nethermind.entro.types.backfill import BackfillDataType, SupportedNetwork
 
@@ -22,7 +22,6 @@ from .async_rpc import retry_enabled_batch_post
 from .json_rpc import cli_get_logs, decode_events_for_requests
 from .planner import BackfillPlan
 from .utils import GracefulKiller, parse_event_request
-
 
 root_logger = logging.getLogger("nethermind")
 logger = root_logger.getChild("entro").getChild("backfill").getChild("prices")
@@ -89,7 +88,7 @@ def update_pool_creations(
         (latest_block - bfill.end_block) > 50_400 for bfill in pool_creation_bfills
     ):
         raise OracleError(
-            "Pool Creation Backfills are out of date.  Run the CLI command `python-eth-amm prices initialize` "
+            "Pool Creation Backfills are out of date.  Run the CLI command `entro prices initialize` "
             "to update Pool Creation Events"
         )
 
@@ -117,7 +116,7 @@ def update_pool_creations(
             pool_bfill.end_block = bfill_status
             db_session.commit()
             raise OracleError(
-                "Error Backfilling Pool Creation Events. Try running the CLI command `python-eth-amm prices initialize`"
+                "Error Backfilling Pool Creation Events. Try running the CLI command `entro prices initialize`"
             )
 
         pool_bfill.end_block = latest_block
@@ -158,7 +157,7 @@ def get_price_events_for_range(
         json_rpc=json_rpc,
         max_concurrency=1,
     )
-    if event_responses == "failed":
+    if not isinstance(event_responses, list):
         raise BackfillError(f"Failed to Backfill Price Events Between ({start} - {end})")
 
     for log in event_responses:

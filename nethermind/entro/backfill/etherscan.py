@@ -5,17 +5,16 @@ import requests
 from rich.progress import Progress
 from sqlalchemy import Connection, Engine
 
-from nethermind.entro.decoding import DecodingDispatcher
-from nethermind.entro.decoding.utils import signature_to_name
 from nethermind.entro.backfill.planner import BackfillPlan
 from nethermind.entro.backfill.utils import GracefulKiller, etherscan_base_url
 from nethermind.entro.database.models import transaction_model_for_network
 from nethermind.entro.database.models.ethereum import Transaction as EthereumTransaction
 from nethermind.entro.database.writers.model_writer import ModelWriter
 from nethermind.entro.database.writers.utils import db_encode_dict, db_encode_hex
+from nethermind.entro.decoding import DecodingDispatcher
+from nethermind.entro.decoding.utils import signature_to_name
 from nethermind.entro.exceptions import BackfillError
 from nethermind.entro.types.backfill import SupportedNetwork
-
 
 root_logger = logging.getLogger("nethermind")
 logger = root_logger.getChild("entro").getChild("backfill").getChild("etherscan")

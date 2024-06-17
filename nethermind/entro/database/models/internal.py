@@ -3,9 +3,8 @@ from typing import Any
 from sqlalchemy import JSON, PrimaryKeyConstraint, Text
 from sqlalchemy.orm import Mapped, mapped_column
 
-from nethermind.entro.types.backfill import BackfillDataType, SupportedNetwork
-
 from nethermind.entro.database.models.base import Base
+from nethermind.entro.types.backfill import BackfillDataType, SupportedNetwork
 
 
 class ContractABI(Base):

@@ -4,8 +4,12 @@ from sqlalchemy import PrimaryKeyConstraint, SmallInteger
 from sqlalchemy.orm import Mapped, mapped_column
 
 from nethermind.entro.addresses import UNISWAP_V3_FACTORY
-
-from nethermind.entro.database.models.base import AbstractEvent, Base, IndexedAddress, IndexedBlockNumber
+from nethermind.entro.database.models.base import (
+    AbstractEvent,
+    Base,
+    IndexedAddress,
+    IndexedBlockNumber,
+)
 from nethermind.entro.database.models.uniswap import UniV3PoolCreationEvent
 
 

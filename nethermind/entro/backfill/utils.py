@@ -5,7 +5,6 @@ from typing import Any
 import requests
 from rich.console import Console
 
-from nethermind.entro.decoding import DecodingDispatcher
 from nethermind.entro.database.models import (
     AbstractBlock,
     AbstractTrace,
@@ -17,6 +16,7 @@ from nethermind.entro.database.models.ethereum import Transaction as EthereumTra
 from nethermind.entro.database.models.zk_sync import EraBlock as ZKSyncBlock
 from nethermind.entro.database.models.zk_sync import EraTransaction as ZKSyncTransaction
 from nethermind.entro.database.writers.utils import db_encode_dict, db_encode_hex
+from nethermind.entro.decoding import DecodingDispatcher
 from nethermind.entro.types import BlockIdentifier
 from nethermind.entro.types.backfill import SupportedNetwork as SN
 from nethermind.entro.utils import maybe_hex_to_int, to_bytes
@@ -36,8 +36,6 @@ def default_rpc(network: SN) -> str:
     match network:
         case SN.ethereum:
             return "https://eth.public-rpc.com/"
-        case SN.polygon_zk_evm:
-            return "https://zkevm-rpc.com/"
         case SN.zk_sync_era:
             return "https://mainnet.era.zksync.io"
         case SN.starknet:
@@ -72,7 +70,7 @@ def get_current_block_number(network: SN) -> int:
     :return:
     """
     match network:
-        case SN.ethereum | SN.polygon_zk_evm | SN.zk_sync_era:
+        case SN.ethereum | SN.zk_sync_era:
             rpc = os.environ.get("JSON_RPC", default_rpc(network))
 
             response = requests.post(
@@ -91,10 +89,6 @@ def get_current_block_number(network: SN) -> int:
                 timeout=30,
             ).json()
             return int(response["result"])
-
-        case SN.zk_sync_lite:
-            response = requests.get("https://api.zksync.io/api/v0.1/blocks", params={"limit": 1}, timeout=30).json()
-            return int(response[0]["block_number"])
 
         case _:
             raise NotImplementedError(f"Network {network} not implemented")
@@ -129,7 +123,7 @@ def block_identifier_to_block(
             )
         case "finalized":
             raise NotImplementedError(
-                "Generaelized Finalized block not implemented. Compute finalized block manually and use "
+                "Generalized Finalized block not implemented. Compute finalized block manually and use "
                 "integer block numbers"
             )
         case _:

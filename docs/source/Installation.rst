@@ -34,10 +34,10 @@ enable this functionality, pass the option exact_math=True to the PoolFactory ob
 
 .. code-block:: console
 
-    $ git clone https://github.com/nethermindETH/python-eth-amm.git
-    $ cd python-eth-amm
+    $ git clone https://github.com/nethermindETH/entro.git
+    $ cd entro
     $ git clone https://github.com/elicbarbieri/pyrevm.git  # temporary until official pyrevm supports result decoding
-    $ poetry env use python3.10
+    $ poetry env use python3.12
     $ poetry install --all-extras
     $ poetry run pytest
     $ maturin develop --release pyrevm/

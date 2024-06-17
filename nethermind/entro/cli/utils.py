@@ -1,7 +1,10 @@
 import logging
 import os
+from logging import Logger
 
 import click
+from rich.console import Console
+from rich.logging import RichHandler
 from rich.progress import (
     BarColumn,
     SpinnerColumn,
@@ -29,6 +32,15 @@ progress_defaults = [
     TextColumn("[green]Searched: {task.completed}/{task.total}"),
     TextColumn("[magenta]Searching Block: {task.fields[searching_block]}"),
 ]
+
+
+def cli_logger_config(instrument_logger: Logger) -> Console:
+    rich_console = Console()
+    logger.handlers.clear()
+
+    logger.addHandler(RichHandler(show_path=False, console=rich_console))
+    logger.setLevel(logging.WARNING)
+    return rich_console
 
 
 def group_options(*options):
@@ -152,8 +164,8 @@ decode_abis_option = click.option(
     "-abi",
     "decode_abis",
     multiple=True,
-    help="Names of ABIs to use for Decoding.  To view available ABIs, run `python-eth-amm list-abis`"
-    "ABIs can be added to the database using `python-eth-amm add-abi`",
+    help="Names of ABIs to use for Decoding.  To view available ABIs, run `entro list-abis`"
+    "ABIs can be added to the database using `entro decoding add-abi`",
 )
 batch_size_option = click.option(
     "--batch-size",
@@ -199,6 +211,35 @@ all_abis_option = click.option(
     is_flag=True,
     default=None,
     help="If provided, will use all ABIs present in the database for classification",
+)
+
+# -------------------------------------------------------
+#  File Export Configuration Parameters
+# -------------------------------------------------------
+
+block_file_option = click.option(
+    "--block-file",
+    "block_file",
+    type=click.Path(writable=True),
+    help="File to save block data",
+)
+transaction_file_option = click.option(
+    "--transaction-file",
+    "transaction_file",
+    type=click.Path(writable=True),
+    help="File to save transaction data",
+)
+event_file_option = click.option(
+    "--event-file",
+    "event_file",
+    type=click.Path(writable=True),
+    help="File to save event data",
+)
+trace_file_option = click.option(
+    "--trace-file",
+    "trace_file",
+    type=click.Path(writable=True),
+    help="File to save trace data",
 )
 
 

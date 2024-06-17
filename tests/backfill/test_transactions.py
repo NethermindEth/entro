@@ -1,10 +1,10 @@
 import json
 
-from nethermind.entro.decoding import DecodingDispatcher
 from nethermind.entro.backfill.etherscan import (
     _parse_etherscan_transactions,
     _trim_last_block,
 )
+from nethermind.entro.decoding import DecodingDispatcher
 from nethermind.entro.types.backfill import SupportedNetwork
 
 

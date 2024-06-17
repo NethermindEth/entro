@@ -1,6 +1,6 @@
 Pool Factory
 ============
 
-.. autoclass:: python_eth_amm.PoolFactory
+.. autoclass:: nethermind.entro.PoolFactory
    :exclude-members: __init__, call_evm_contract
    :members:

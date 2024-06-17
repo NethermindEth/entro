@@ -41,9 +41,9 @@ def add_abi(db_url, abi_name, abi_json, priority):
     from nethermind.entro.database.readers.internal import query_abis
 
     rich_console = Console()
-    if not package_logger.hasHandlers():
-        package_logger.addHandler(RichHandler(show_path=False, console=rich_console))
-        package_logger.setLevel(logging.WARNING)
+    if not root_logger.hasHandlers():
+        root_logger.addHandler(RichHandler(show_path=False, console=rich_console))
+        root_logger.setLevel(logging.WARNING)
 
     db_session = create_cli_session(db_url)
     loaded_abis = query_abis(db_session)
@@ -89,9 +89,9 @@ def list_abis(db_url):
     """Lists all available ABIs that can be used for classification"""
     from nethermind.entro.database.readers.internal import query_abis
 
-    if not package_logger.hasHandlers():
-        package_logger.addHandler(RichHandler(show_path=False))
-        package_logger.setLevel(logging.WARNING)
+    if not root_logger.hasHandlers():
+        root_logger.addHandler(RichHandler(show_path=False))
+        root_logger.setLevel(logging.WARNING)
 
     db_session = create_cli_session(db_url)
     abis = query_abis(db_session)
@@ -107,9 +107,9 @@ def list_abis(db_url):
 @group_options(db_url_option)
 def list_abi_decoders(db_url, full_signatures):
     """Lists all Available ABIs in Database, along with the function and event signatures each ABI will classify"""
-    if not package_logger.hasHandlers():
-        package_logger.addHandler(RichHandler(show_path=False))
-        package_logger.setLevel(logging.WARNING)
+    if not root_logger.hasHandlers():
+        root_logger.addHandler(RichHandler(show_path=False))
+        root_logger.setLevel(logging.WARNING)
 
     db_session = create_cli_session(db_url)
     decoder = DecodingDispatcher.from_database(classify_abis=[], db_session=db_session, all_abis=True)

@@ -19,6 +19,7 @@ from nethermind.entro.types.backfill import (
 )
 
 from nethermind.entro.cli.utils import (
+    cli_logger_config,
     db_url_option,
     group_options,
     json_rpc_option,
@@ -82,26 +83,17 @@ def transactions(
     **kwargs,
 ):
     """Backfills transaction data"""
-    rich_console = Console()
-    root_logger.handlers.clear()
-
-    root_logger.addHandler(RichHandler(show_path=False, console=rich_console))
-    root_logger.setLevel(logging.WARNING)
-
+    rich_console = cli_logger_config(root_logger)
     db_session = create_cli_session(db_url)
 
-    try:
-        backfill_plan = BackfillPlan.generate(
-            db_session=db_session,
-            backfill_type=BackfillDataType.transactions,
-            network=SupportedNetwork(network),
-            start_block=from_block,
-            end_block=to_block,
-            **kwargs,
-        )
-    except (DatabaseError, ValueError) as e:
-        rich_console.print(f"[red]Error Occurred Computing Backfill: {e}")
-        return
+    backfill_plan = BackfillPlan.generate(
+        db_session=db_session,
+        backfill_type=BackfillDataType.transactions,
+        network=SupportedNetwork(network),
+        start_block=from_block,
+        end_block=to_block,
+        **kwargs,
+    )
 
     if backfill_plan is None:
         rich_console.print("Data Range Specified already exists in database.  Exiting...")

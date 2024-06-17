@@ -5,7 +5,7 @@
 Welcome
 =======
 
-**python-eth-amm** is a Python library for simulating and interacting with EVM AMMs.
+**Entro** is a Python library for simulating and interacting with EVM AMMs.
 
 Currently only supports Uniswap V3, but more AMMs and protocols coming soon.
 
@@ -21,4 +21,4 @@ Currently only supports Uniswap V3, but more AMMs and protocols coming soon.
 
 
 .. _Discord: https://discord.com/invite/ENPVVmkwKG
-.. _Github: https://github.com/nethermindETH/python-eth-amm
+.. _Github: https://github.com/nethermindETH/entro

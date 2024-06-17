@@ -13,9 +13,9 @@ from nethermind.entro.database.models import (
     transaction_model_for_network,
 )
 from nethermind.entro.database.writers import EventWriter, ModelWriter
+from nethermind.entro.decoding import DecodingDispatcher
 from nethermind.entro.types.backfill import BackfillDataType, SupportedNetwork
 
-from nethermind.entro.decoding import DecodingDispatcher
 from ..exceptions import BackfillError
 from ..utils import to_hex
 from .async_rpc import retry_enabled_batch_post

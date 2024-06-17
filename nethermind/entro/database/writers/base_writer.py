@@ -10,7 +10,6 @@ from sqlalchemy.orm import DeclarativeBase, Session, sessionmaker
 
 from .utils import model_to_dict
 
-
 root_logger = logging.getLogger("nethermind")
 logger = root_logger.getChild("entro").getChild("db").getChild("base_writer")
 

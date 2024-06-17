@@ -27,7 +27,6 @@ from .shared import (
 from .sqrt_price_math import SqrtPriceMathModule
 from .tick_math import TickMathModule
 
-
 root_logger = logging.getLogger("nethermind")
 logger = root_logger.getChild("entro").getChild("uniswap_v3").getChild("math")
 

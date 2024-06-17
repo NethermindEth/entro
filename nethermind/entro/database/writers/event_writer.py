@@ -5,11 +5,11 @@ from typing import Any, Type
 from sqlalchemy import Connection, Engine, TableClause
 from sqlalchemy.orm import DeclarativeBase
 
-from nethermind.entro.decoding import DecodedEvent
-from nethermind.entro.decoding.utils import signature_to_name
 from nethermind.entro.database.models import default_event_model_for_network
 from nethermind.entro.database.models.uniswap import UNI_EVENT_MODELS
 from nethermind.entro.database.writers.utils import db_encode_dict
+from nethermind.entro.decoding import DecodedEvent
+from nethermind.entro.decoding.utils import signature_to_name
 from nethermind.entro.types.backfill import SupportedNetwork
 from nethermind.entro.utils import camel_to_snake, maybe_hex_to_int
 

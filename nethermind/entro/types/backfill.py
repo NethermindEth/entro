@@ -1,5 +1,7 @@
 from enum import Enum
 
+from entro.exceptions import BackfillError
+
 # Disabling stupid naming check that wants enums to use UPPER_CASE
 # pylint: disable=invalid-name
 

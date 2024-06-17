@@ -1,12 +1,12 @@
+import dataclasses
 import importlib.util
 import inspect
 import os
 from pathlib import Path
-import dataclasses
 
 import pytest
-from nethermind.entro.database.models.base import Base
 
+from nethermind.entro.database.models.base import Base
 
 PARENT_DIRECTORY = Path(__file__).parents[2]
 
@@ -37,7 +37,6 @@ def walk_directory(directory) -> list[str]:
     model_paths = []
 
     for root, _, files in os.walk(directory):
-
         for file in files:
             if not file.endswith(".py") or file in SKIPPED_FILES:
                 continue
@@ -86,7 +85,7 @@ def test_sqlalchemy_models_override_all_dataclass_fields(database_model):
     """
     Test that all dataclass fields in a SQLAlchemy model are overridden with SQLAlchemy types.
 
-    nethermind.idealis defines dataclasses for parsed blockchain data.  The python-eth-amm models override these
+    nethermind.idealis defines dataclasses for parsed blockchain data.  The entro models override these
     attributes with sqlalchemy orm mapped_columns specifying DB types.  This test ensures that all dataclass
     fields have been overridden with sqlalchemy types, allowing dataclasses to be converted into models using
     db_model(**dataclasses.to_dict(dataclass)) syntax

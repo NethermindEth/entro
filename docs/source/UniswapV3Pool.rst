@@ -31,7 +31,7 @@ Initializing Pools From Chain
 
     1. Fetching the pool's immutable parameters & state (1-3 seconds and ~20 RPC Calls)
     2. Fetching the Initialized Ticks:
-        a. Search Tick Bitmap (~120 queries on pool with 60 tick spacing.  ~700 on pool with 10 tick spacing5).
+        a. Search Tick Bitmap (~120 queries on pool with 60 tick spacing.  ~700 on pool with 10 tick spacing).
 
 .. code-block:: python
 
@@ -59,7 +59,7 @@ Initializing Pools From Chain
 API Documentation
 -----------------
 
-.. autoclass:: python_eth_amm.uniswap_v3.UniswapV3Pool
+.. autoclass:: nethermind.entro.uniswap_v3.UniswapV3Pool
     :members:
     :exclude-members: from_chain, initialize_empty_pool, __init__
 
@@ -67,25 +67,25 @@ API Documentation
 Uniswap V3 Types
 ----------------
 
-.. autopydantic_model:: python_eth_amm.uniswap_v3.types.PoolImmutables
+.. autopydantic_model:: nethermind.entro.uniswap_v3.types.PoolImmutables
     :members:
 
-.. autopydantic_model:: python_eth_amm.uniswap_v3.types.PoolState
-    :members:
-    :exclude-members: uninitialized
-
-.. autopydantic_model:: python_eth_amm.uniswap_v3.types.Slot0
+.. autopydantic_model:: nethermind.entro.uniswap_v3.types.PoolState
     :members:
     :exclude-members: uninitialized
 
-.. autopydantic_model:: python_eth_amm.uniswap_v3.types.Tick
+.. autopydantic_model:: nethermind.entro.uniswap_v3.types.Slot0
     :members:
     :exclude-members: uninitialized
 
-.. autopydantic_model:: python_eth_amm.uniswap_v3.types.OracleObservation
+.. autopydantic_model:: nethermind.entro.uniswap_v3.types.Tick
     :members:
     :exclude-members: uninitialized
 
-.. autopydantic_model:: python_eth_amm.uniswap_v3.types.PositionInfo
+.. autopydantic_model:: nethermind.entro.uniswap_v3.types.OracleObservation
+    :members:
+    :exclude-members: uninitialized
+
+.. autopydantic_model:: nethermind.entro.uniswap_v3.types.PositionInfo
     :members:
     :exclude-members: uninitialized

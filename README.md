@@ -1,7 +1,7 @@
-## Python package for simulating behavior of Ethereum Automated Market Makers
+## Python package for simulating behavior of Automated Market Makers, Backfilling Blockchain Data, and more...
 
 ## Resources:
 
-* [Documentation](https://nethermindETH.github.io/python-eth-amm/)
+* [Documentation](https://nethermindETH.github.io/entro/)
 * 
 

@@ -102,6 +102,8 @@ min-public-methods = 2  # Minimum number of public methods for a class (see R090
 known-third-party = ["sqlalchemy", "py-evm", "nethermind"]
 
 [tool.mypy]
+explicit_package_bases = true
+namespace_packages = true
 exclude = [
     "^docs\\.py$",
     "^tests\\.py$",

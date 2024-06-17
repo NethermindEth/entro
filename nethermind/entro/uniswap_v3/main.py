@@ -681,7 +681,11 @@ class UniswapV3Pool(AbstractTokenMarket):
         )
 
         return {
-            (to_checksum_address(position.lp_address), position.tick_lower, position.tick_upper,): {
+            (
+                to_checksum_address(position.lp_address),
+                position.tick_lower,
+                position.tick_upper,
+            ): {
                 "token_0_value": position.token_0_value,
                 "token_1_value": position.token_1_value,
                 "token_0_value_usd": position.token_0_value_usd,
@@ -941,7 +945,12 @@ class UniswapV3Pool(AbstractTokenMarket):
             for name, val in asdict(computed_swap_step).items():
                 logger.debug(f"{name}: {val}")
 
-            (state.sqrt_price, step.amount_in, step.amount_out, step.fee_amount,) = (
+            (
+                state.sqrt_price,
+                step.amount_in,
+                step.amount_out,
+                step.fee_amount,
+            ) = (
                 computed_swap_step.sqrt_price_next,
                 computed_swap_step.amount_in,
                 computed_swap_step.amount_out,
@@ -981,7 +990,10 @@ class UniswapV3Pool(AbstractTokenMarket):
                     break  # Not standard behavior
 
                 if not swap_cache.computed_last_observation:
-                    (swap_cache.tick_cumulative, swap_cache.seconds_per_liquidity_cumulative,) = self._observe_single(
+                    (
+                        swap_cache.tick_cumulative,
+                        swap_cache.seconds_per_liquidity_cumulative,
+                    ) = self._observe_single(
                         self.block_timestamp,
                         0,
                         slot_0_start.tick,

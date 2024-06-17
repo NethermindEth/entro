@@ -8,7 +8,7 @@ Initializing Pricing Oracle
 Class Documentation
 -------------------
 
-.. autoclass:: python_eth_amm.PricingOracle
+.. autoclass:: nethermind.entro.pricing.PricingOracle
    :exclude-members: __init__
    :members:
 

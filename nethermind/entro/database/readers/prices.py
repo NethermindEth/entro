@@ -6,8 +6,8 @@ from sqlalchemy import String, select
 from sqlalchemy import text as encode_sql_text
 from sqlalchemy.orm import Session
 
-from nethermind.entro.database.models.prices import SUPPORTED_POOL_CREATION_EVENTS
 from nethermind.entro.database.models.internal import BackfilledRange
+from nethermind.entro.database.models.prices import SUPPORTED_POOL_CREATION_EVENTS
 from nethermind.entro.database.models.uniswap import UniV3PoolCreationEvent
 from nethermind.entro.types.backfill import BackfillDataType, SupportedNetwork
 from nethermind.entro.types.prices import SupportedPricingPool, TokenMarketInfo

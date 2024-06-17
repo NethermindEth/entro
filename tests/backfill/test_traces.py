@@ -1,7 +1,7 @@
 import json
 
-from nethermind.entro.decoding import DecodingDispatcher
 from nethermind.entro.backfill.utils import rpc_response_to_trace_model
+from nethermind.entro.decoding import DecodingDispatcher
 from nethermind.entro.types.backfill import SupportedNetwork
 from tests.resources.ABI import ERC20_ABI_JSON
 

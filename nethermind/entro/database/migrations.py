@@ -6,8 +6,8 @@ def migrate_up(db_engine: Engine):
     """Create Sqlalchemy DB Tables"""
     # pylint: disable=import-outside-toplevel,unused-import
     import nethermind.entro.database.models.ethereum
-    import nethermind.entro.database.models.prices
     import nethermind.entro.database.models.internal
+    import nethermind.entro.database.models.prices
     import nethermind.entro.database.models.starknet
     import nethermind.entro.database.models.uniswap
     import nethermind.entro.database.models.zk_sync

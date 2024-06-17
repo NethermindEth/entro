@@ -1,6 +1,6 @@
-from nethermind.entro.decoding import DecodingDispatcher
 from nethermind.entro.backfill.utils import rpc_response_to_block_model
 from nethermind.entro.database.models.starknet import Block as StarknetBlock
+from nethermind.entro.decoding import DecodingDispatcher
 from nethermind.entro.types.backfill import SupportedNetwork
 from tests.resources.rpc_responses import (
     STARKNET_GET_BLOCK_WITH_TX_HASHES,

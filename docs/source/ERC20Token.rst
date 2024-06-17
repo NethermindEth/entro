@@ -4,7 +4,7 @@ Standard Token Interface
 ========================
 .. note::
 
-    Python ETH AMM provides basic support for ERC20 tokens. This support will expand later to encompass more token
+    Entro provides basic support for ERC20 tokens. This support will expand later to encompass more token
     standards and additional functionality
 
 ERC20 Token Usage
@@ -38,7 +38,7 @@ Reading Token Paramters
 ERC20Token API
 --------------
 
-.. autoclass:: python_eth_amm.base.token.ERC20Token
+.. autoclass:: nethermind.entro.tokens.ERC20Token
    :members:
 
 

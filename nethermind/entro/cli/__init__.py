@@ -1,13 +1,12 @@
 import click
-
 from sqlalchemy import create_engine
 
-from nethermind.entro.cli.utils import group_options, db_url_option
-from nethermind.entro.database.migrations import migrate_up
-from nethermind.entro.cli.decoding import decoding_group
 from nethermind.entro.cli.backfill import backfill_group
+from nethermind.entro.cli.decoding import decoding_group
 from nethermind.entro.cli.prices import prices_group
 from nethermind.entro.cli.tokens import tokens_group
+from nethermind.entro.cli.utils import db_url_option, group_options
+from nethermind.entro.database.migrations import migrate_up
 
 
 @click.group()
