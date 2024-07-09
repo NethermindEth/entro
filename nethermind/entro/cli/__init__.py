@@ -2,7 +2,8 @@ import click
 from sqlalchemy import create_engine
 
 from nethermind.entro.cli.backfill import backfill_group
-from nethermind.entro.cli.decoding import decoding_group
+from nethermind.entro.cli.decode import decode_group
+from nethermind.entro.cli.get import get_group
 from nethermind.entro.cli.prices import prices_group
 from nethermind.entro.cli.tokens import tokens_group
 from nethermind.entro.cli.utils import db_url_option, group_options
@@ -32,4 +33,5 @@ def cli_migrate_up(db_url):
 entro_cli.add_command(tokens_group, name="tokens")
 entro_cli.add_command(backfill_group, name="backfill")
 entro_cli.add_command(prices_group, name="prices")
-entro_cli.add_command(decoding_group, name="decoding")
+entro_cli.add_command(decode_group, name="decode")
+entro_cli.add_command(get_group, name="get")

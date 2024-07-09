@@ -13,6 +13,7 @@ python = "^3.10"
 pandas = "^2.2.2"
 web3 = ">=4.0.0"
 sqlalchemy = {extras = ["asyncio", "postgres"], version = "^2.0.24"}
+psycopg2-binary = "^2.9.1"
 aiohttp = "^3.8.6"
 rich = "^13.7.0"
 idealis = {git = "https://github.com/NethermindEth/idealis"}

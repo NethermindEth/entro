@@ -6,16 +6,27 @@ import time
 from abc import abstractmethod
 from dataclasses import asdict
 from enum import Enum
-from typing import Any, Protocol, Type, TypeVar
+from typing import Any, Type
 
 from sqlalchemy import Connection, Engine
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import DeclarativeBase, Session, sessionmaker
 
-from entro.exceptions import BackfillError
-from entro.types.backfill import BackfillDataType, SupportedNetwork
+from nethermind.entro.database.models import (
+    block_model_for_network,
+    default_event_model_for_network,
+    trace_model_for_network,
+    transaction_model_for_network,
+    transfer_model_for_network,
+)
 from nethermind.entro.database.models.uniswap import UNI_EVENT_MODELS
 from nethermind.entro.database.writers.utils import db_encode_hex
+from nethermind.entro.exceptions import BackfillError
+from nethermind.entro.types.backfill import (
+    BackfillDataType,
+    Dataclass,
+    SupportedNetwork,
+)
 from nethermind.entro.utils import camel_to_snake
 from nethermind.idealis.utils import to_hex
 
@@ -26,14 +37,6 @@ logger = root_logger.getChild("entro").getChild("export")
 ALL_EVENT_MODELS: dict[str, Type[DeclarativeBase]] = {
     **UNI_EVENT_MODELS,
 }
-
-
-# This allows type-checkers to enforce dataclass type checks
-class DataclassType(Protocol):
-    __dataclass_fields__: dict[str, Any]
-
-
-Dataclass = TypeVar("Dataclass", bound=DataclassType)
 
 
 class ExportMode(Enum):
@@ -337,7 +340,7 @@ def get_db_exporters_for_backfill(
         case backfill_type.events:
             return {
                 "events": EventExporter(
-                    db_engine, event_model_for_network(network), kwargs.get("event_model_overrides")
+                    db_engine, default_event_model_for_network(network), kwargs.get("event_model_overrides")
                 )
             }
 
@@ -346,7 +349,7 @@ def get_db_exporters_for_backfill(
                 "blocks": DBResourceExporter(db_engine, block_model_for_network(network)),
                 "transactions": DBResourceExporter(db_engine, transaction_model_for_network(network)),
                 "events": EventExporter(
-                    db_engine, event_model_for_network(network), kwargs.get("event_model_overrides")
+                    db_engine, default_event_model_for_network(network), kwargs.get("event_model_overrides")
                 ),
             }
         case _:

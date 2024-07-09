@@ -1,11 +1,12 @@
 import logging
 import shutil
 from dataclasses import dataclass
-from typing import Any, Optional, Type, Union
+from typing import Any, Callable, Protocol, Type, Union
 
 from rich.console import Console
+from rich.progress import Progress
 from rich.table import Table
-from sqlalchemy import Engine, create_engine
+from sqlalchemy import create_engine
 from sqlalchemy.orm import DeclarativeBase, Session, sessionmaker
 
 from nethermind.entro.backfill.exporters import (
@@ -13,25 +14,20 @@ from nethermind.entro.backfill.exporters import (
     get_db_exporters_for_backfill,
     get_file_exporters_for_backfill,
 )
+from nethermind.entro.backfill.importers import get_importers_for_backfill
+from nethermind.entro.cli.utils import progress_defaults
 from nethermind.entro.database.readers.internal import fetch_backfills_by_datatype
 from nethermind.entro.database.writers.utils import automap_sqlalchemy_model
 from nethermind.entro.decoding import DecodingDispatcher
 from nethermind.entro.exceptions import BackfillError
-from nethermind.entro.types.backfill import BackfillDataType
 from nethermind.entro.types.backfill import BackfillDataType as BDT
-from nethermind.entro.types.backfill import DataSources
+from nethermind.entro.types.backfill import Dataclass, DataSources, ImporterCallable
 from nethermind.entro.types.backfill import SupportedNetwork as SN
 from nethermind.entro.utils import pprint_list
 
-from ..types import BlockIdentifier
-from .filter import (
-    _clean_block_inputs,
-    _filter_conflicting_backfills,
-    _generate_topics,
-    _unpack_kwargs,
-    _verify_filters,
-)
+from .filter import _clean_block_inputs, _generate_topics, _unpack_kwargs
 from .ranges import BackfillRangePlan
+from .utils import GracefulKiller
 
 root_logger = logging.getLogger("nethermind")
 logger = root_logger.getChild("entro").getChild("backfill").getChild("planner")
@@ -65,6 +61,24 @@ def _handle_event_backfill(decoder: DecodingDispatcher, filter_params: dict[str,
     )
 
 
+def _default_batch_size(backfill_type: BDT) -> int:
+    """
+    Returns the default batch size for a given backfill type
+
+    :param backfill_type: The backfill type
+    :return: The default batch size
+    """
+    match backfill_type:
+        case BDT.events | BDT.transfers:
+            return 1000
+        case BDT.full_blocks | BDT.traces:
+            return 10
+        case BDT.blocks | BDT.transactions:
+            return 50
+        case _:
+            raise NotImplementedError(f"Cannot determine default batch size for {backfill_type}")
+
+
 @dataclass
 class BackfillPlan:
     """
@@ -78,11 +92,16 @@ class BackfillPlan:
     network: SN  # Network data is being extracted from
 
     exporters: dict[str, AbstractResourceExporter]
+    importers: dict[str, ImporterCallable]
 
     metadata_dict: dict[str, Any]  # Metadata that is cached for DB backfills
     filter_params: dict[str, Any]  # Filters to further narrow down the backfilled resources
 
     decoder: DecodingDispatcher | None  # Optional ABI Decoder
+
+    batch_size: int  # Number of blocks to backfill at a time
+    max_concurrency: int = 10  # Maximum number of concurrent requests
+    confirm: bool = True  # Whether to confirm the backfill before executing
 
     @classmethod
     def from_cli(
@@ -132,15 +151,19 @@ class BackfillPlan:
                 from_block=start_block, to_block=end_block, conflicts=[], backfill_kwargs=kwargs
             )
 
+        dataclass_importers = get_importers_for_backfill()
+
         return BackfillPlan(
             db_session=db_session,
             range_plan=range_plan,
             backfill_type=backfill_type,
             network=network,
             exporters=exporters,
+            importers=dataclass_importers,
             metadata_dict=metadata_dict,
             filter_params=filter_params,
             decoder=None,
+            batch_size=metadata_dict.get("batch_size", _default_batch_size(backfill_type)),
         )
 
     @staticmethod
@@ -180,91 +203,42 @@ class BackfillPlan:
             }
         )
 
-    def generate(
-        cls,
-        db_session: Session,
-        backfill_type: BDT,
-        network: SN,
-        start_block: BlockIdentifier,
-        end_block: BlockIdentifier,
-        **kwargs,
-    ) -> Optional["BackfillPlan"]:
+    def execute_backfill(self, console: Console, killer: GracefulKiller):
         """
-        Generates a backfill plan for a given backfill request.  Contains the block ranges to backfill, the backfills
-        to remove, and the backfill to add.
+        Executes the backfill plan
 
-        :param db_session:
-        :param backfill_type:
-        :param network:
-        :param start_block:
-        :param end_block:
-        :return:
+        :param console: Rich Console
+        :param killer: Graceful Killer
         """
-        start_block, end_block = _clean_block_inputs(start_block, end_block, backfill_type, network)
-        filter_params, metadata_dict = _unpack_kwargs(kwargs, backfill_type)
 
-        decode_abis = metadata_dict.pop("decode_abis", [])
+        progress = Progress(*progress_defaults)
 
-        decoder: DecodingDispatcher = (
-            metadata_dict.pop("decoder")
-            if "decoder" in metadata_dict
-            else DecodingDispatcher.from_database(
-                classify_abis=decode_abis,
-                db_session=db_session,
-                all_abis=metadata_dict.get("all_abis", False),
+        for range_idx, (range_start, range_end) in enumerate(self.range_plan.backfill_ranges):
+            range_progress = progress.add_task(
+                description=self.backfill_label(range_idx), total=range_end - range_start, searching_block=range_start
             )
-        )
-        if backfill_type in [BDT.events]:
-            if len(decoder.loaded_abis) != 1:
-                raise BackfillError(
-                    f"Expected 1 ABI for Event backfill, but found {len(decoder.loaded_abis)}.  "
-                    f"Specify an ABI using --contract-abi"
-                )
-            abi_name, decoder_instance = list(decoder.loaded_abis.items())[0]
-            filter_params.update({"abi_name": abi_name})
-            metadata_dict.update(
-                {
-                    "topics": _generate_topics(
-                        decoder_instance,
-                        filter_params.get("event_names", []),
+
+            for batch_start in range(range_start, range_end, self.batch_size):
+                batch_end = min(batch_start + self.batch_size, range_end)
+                if killer.kill_now:
+                    self.process_failed_backfill(batch_start)
+                    return
+
+                try:
+                    batch_dataclasses = self.get_dataclasses_for_range(
+                        batch_start=batch_start,
+                        batch_end=batch_end,
                     )
-                }
-            )
 
-        _verify_filters(backfill_type, filter_params)
+                    self.export_dataclasses(batch_dataclasses)
+                    progress.update(range_progress, advance=batch_end - batch_start, searching_block=batch_end)
 
-        conflicting_backfills = _filter_conflicting_backfills(
-            backfill_type,
-            fetch_backfills_by_datatype(db_session, backfill_type, network),
-            filter_params.copy() if filter_params else None,
-        )
+                except BaseException:  # pylint: disable=broad-except
+                    console.print(f"[red] ----  Unexpected Error Processing Blocks {batch_start} - {batch_end}  ----")
+                    self.process_failed_backfill(batch_start)
+                    return
 
-        backfill_range_plan = BackfillRangePlan.compute_db_backfills(
-            from_block=start_block,
-            to_block=end_block,
-            conflicting_backfills=conflicting_backfills,
-            backfill_kwargs={
-                "data_type": backfill_type.value,
-                "network": network.value,
-                "filter_data": filter_params,
-                "metadata_dict": metadata_dict,
-                "decoded_abis": decode_abis,
-            },
-        )
-
-        if backfill_range_plan.backfill_mode == "empty":
-            # The planned backfill is redundant, data is already in db
-            return None
-
-        return BackfillPlan(
-            db_session=db_session,
-            range_plan=backfill_range_plan,
-            backfill_type=backfill_type,
-            network=network,
-            filter_params=filter_params,
-            metadata_dict=metadata_dict,
-            decoder=decoder,
-        )
+        console.print("[green]---- Backfill Complete ------")
 
     def print_backfill_plan(self, console: Console):  # pylint: disable=too-many-locals
         """Prints the backfill plan to the console"""

@@ -23,12 +23,12 @@ root_logger = logging.getLogger("nethermind")
 logger = root_logger.getChild("entro").getChild("backfill")
 
 
-@click.group("decoding", short_help="ABI Decoding & Event Classification")
-def decoding_group():
+@click.group("decode", short_help="ABI Decoding & Event Classification")
+def decode_group():
     pass
 
 
-@decoding_group.command()
+@decode_group.command()
 @group_options(db_url_option)
 @click.argument("abi_name")
 @click.argument("abi_json", type=click.File("r"))
@@ -83,7 +83,7 @@ def add_abi(db_url, abi_name, abi_json, priority):
     rich_console.print(f"[green]Successfully Added {abi_name} to Database with Priority {priority}")
 
 
-@decoding_group.command()
+@decode_group.command()
 @group_options(db_url_option)
 def list_abis(db_url):
     """Lists all available ABIs that can be used for classification"""
@@ -102,7 +102,7 @@ def list_abis(db_url):
     )
 
 
-@decoding_group.command()
+@decode_group.command()
 @click.option("--full-signatures", is_flag=True, default=False)
 @group_options(db_url_option)
 def list_abi_decoders(db_url, full_signatures):

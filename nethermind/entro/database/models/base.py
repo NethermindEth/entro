@@ -98,3 +98,21 @@ class AbstractTrace(Base):
 
     gas_used: Mapped[int]
     error: Mapped[str]
+
+
+class AbstractERC20Transfer(Base):
+    """
+    Abstract base class for transfer tables
+    """
+
+    __abstract__ = True
+
+    block_number: Mapped[IndexedBlockNumber]
+    transaction_hash: Mapped[Hash32]
+    transaction_index: Mapped[int]
+    log_index: Mapped[int]
+
+    token_address: Mapped[IndexedAddress]
+    from_address: Mapped[IndexedAddress]
+    to_address: Mapped[IndexedAddress]
+    value: Mapped[UInt256]

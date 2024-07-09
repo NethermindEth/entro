@@ -1,9 +1,23 @@
 from enum import Enum
-
-from entro.exceptions import BackfillError
+from typing import Any, Protocol, TypeVar
 
 # Disabling stupid naming check that wants enums to use UPPER_CASE
 # pylint: disable=invalid-name
+
+
+# This allows type-checkers to enforce dataclass type checks
+class DataclassType(Protocol):
+    __dataclass_fields__: dict[str, Any]
+
+
+Dataclass = TypeVar("Dataclass", bound=DataclassType)
+
+
+# Importer Callable checks that the callable Fn passed matches the signature defined in __call__
+class ImporterCallable(Protocol):
+    def __call__(self, from_block: int, to_block: int, **kwargs) -> dict[str, list[Dataclass]]:
+        # Return {'blocks': [BlockDataclass, ...], 'transactions': [TransactionDataclass, ...]}
+        ...
 
 
 class BackfillDataType(Enum):

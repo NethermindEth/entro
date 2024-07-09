@@ -4,17 +4,26 @@ from sqlalchemy.orm import DeclarativeBase
 
 from nethermind.entro.types.backfill import SupportedNetwork
 
-from .base import AbstractBlock, AbstractEvent, AbstractTrace, AbstractTransaction
+from .base import (
+    AbstractBlock,
+    AbstractERC20Transfer,
+    AbstractEvent,
+    AbstractTrace,
+    AbstractTransaction,
+)
 from .ethereum import Block as EthereumBlock
 from .ethereum import DefaultEvent as EthereumDefaultEvent
+from .ethereum import ERC20Transfer as EthereumERC20Transfer
 from .ethereum import Trace as EthereumTrace
 from .ethereum import Transaction as EthereumTransaction
 from .internal import BackfilledRange, ContractABI
 from .starknet import Block as StarknetBlock
 from .starknet import DefaultEvent as StarknetDefaultEvent
+from .starknet import ERC20Transfer as StarknetERC20Transfer
 from .starknet import Transaction as StarknetTransaction
 from .zk_sync import EraBlock as ZKSyncEraBlock
 from .zk_sync import EraDefaultEvent as ZKSyncEraDefaultEvent
+from .zk_sync import EraERC20Transfer as ZKSyncEraERC20Transfer
 from .zk_sync import EraTransaction as ZKSyncEraTransaction
 
 EVMBlock = Union[EthereumBlock, ZKSyncEraBlock]
@@ -76,6 +85,34 @@ def default_event_model_for_network(
             return StarknetDefaultEvent
         case _:
             raise ValueError(f"Unsupported network: {network}")
+
+
+def transfer_model_for_network(
+    network: SupportedNetwork,
+) -> Type[AbstractERC20Transfer]:
+    """
+    Returns the transfer model for the given network
+    """
+
+    match network:
+        case SupportedNetwork.ethereum:
+            return EthereumERC20Transfer
+        case SupportedNetwork.zk_sync_era:
+            return ZKSyncEraERC20Transfer
+        case SupportedNetwork.starknet:
+            return StarknetERC20Transfer
+        case _:
+            raise ValueError(f"Unsupported network: {network}")
+
+
+def trace_model_for_network(
+    network: SupportedNetwork,
+) -> Type[AbstractTrace]:
+    """
+    Returns the trace model for the given network
+    """
+
+    raise NotImplementedError("Trace model is not implemented yet")
 
 
 def model_for_network(

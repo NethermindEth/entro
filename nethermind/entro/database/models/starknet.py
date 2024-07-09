@@ -5,6 +5,7 @@ from sqlalchemy.orm import Mapped, mapped_column
 
 from nethermind.entro.database.models.base import (
     AbstractBlock,
+    AbstractERC20Transfer,
     AbstractEvent,
     AbstractTransaction,
     Hash32,
@@ -54,3 +55,9 @@ class Transaction(AbstractTransaction):
     gas_used: Mapped[int | None] = mapped_column(Integer, nullable=True)
 
     __table_args__ = {"schema": "starknet_data"}
+
+
+class ERC20Transfer(AbstractERC20Transfer):
+    __tablename__ = "erc20_transfers"
+
+    __table_args__ = (PrimaryKeyConstraint("transaction_hash", "log_index"), {"schema": "starknet_data"})

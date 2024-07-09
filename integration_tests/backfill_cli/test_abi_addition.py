@@ -84,6 +84,7 @@ def test_abi_decoding(
             entro_cli,
             [
                 "backfill",
+                "ethereum",
                 "transactions",
                 "--for-address",
                 weth_9,
@@ -139,6 +140,7 @@ def test_list_abis(integration_postgres_db, cli_db_url):
         v2_res = runner.invoke(
             entro_cli,
             [
+                "decoding",
                 "add-abi",
                 "UniswapV2Pair",
                 "UniswapV2Pair.json",
