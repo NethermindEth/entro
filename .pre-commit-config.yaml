@@ -1,6 +1,6 @@
 repos:
 -   repo: https://github.com/ambv/black
-    rev: 23.3.0
+    rev: 23.12.1
     hooks:
       - id: black
         language_version: python3.10
@@ -15,12 +15,18 @@ repos:
     hooks:
     - id: pylint
       name: pylint
-      entry: poetry run pylint
-      args: ['--rcfile=pyproject.toml', --disable=redefined-builtin]
+      entry: poetry run pylint python_eth_amm/
+      args: [
+        '-rn',
+        '-sn',
+        '--rcfile=pyproject.toml',
+        '--disable=redefined-builtin',
+      ]
       language: system
       types: [python]
+      require_serial: true
 -   repo: https://github.com/pre-commit/mirrors-mypy
-    rev: v1.3.0
+    rev: v1.8.0
     hooks:
       - id: 'mypy'
         additional_dependencies:

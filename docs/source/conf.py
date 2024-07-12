@@ -1,12 +1,12 @@
 import os
 import sys
 
-sys.path.insert(0, os.path.abspath("../../python_eth_amm"))
+sys.path.insert(0, os.path.abspath("../../nethermind/entro"))
 
 # -- Project information -----------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#project-information
 
-project = "python-eth-amm"
+project = "entro"
 copyright = "2023, Nethermind"
 author = "Nethermind"
 release = "0.0.1"
@@ -18,19 +18,12 @@ extensions = [
     "sphinx.ext.autodoc",
     "sphinx.ext.autosummary",
     "sphinx.ext.intersphinx",
-    "sphinxcontrib.autodoc_pydantic",
 ]
 
 autosummary_generate = True
 autodoc_member_order = "groupwise"
 autoclass_content = "class"
 autodoc_class_signature = "separated"
-
-autodoc_pydantic_model_show_json = False
-autodoc_pydantic_model_show_config_summary = False
-autodoc_pydantic_field_signature_prefix = "field"
-autodoc_pydantic_model_signature_prefix = "class"
-autodoc_pydantic_model_show_field_summary = False
 
 intersphinx_mapping = {
     "python": ("https://docs.python.org/3", None),
@@ -45,11 +38,11 @@ templates_path = ["_templates"]
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#options-for-html-output
 
 html_theme = "sphinx_book_theme"
-html_title = "Python ETH AMM Documentation"
+html_title = "Nethermind Entro Documentation"
 html_theme_options = {
     "show_toc_level": 2,
     "logo": {
-        "repository_url": "https://github.com/nethermindEth/python-eth-amm",
+        "repository_url": "https://github.com/nethermindEth/entro",
         "use_repository_button": True,
         "image_light": "_static/logo-light.svg",
         "image_dark": "_static/logo-dark.svg",
