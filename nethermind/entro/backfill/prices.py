@@ -5,7 +5,7 @@ from eth_typing import ChecksumAddress
 from rich.progress import Progress
 from sqlalchemy.orm import Session
 
-from nethermind.entro.cli.utils import progress_defaults
+from nethermind.entro.backfill.utils import progress_defaults
 from nethermind.entro.database.models.prices import (
     SUPPORTED_POOL_CREATION_EVENTS,
     MarketSpotPrice,
@@ -21,7 +21,7 @@ from ..utils import maybe_hex_to_int
 from .async_rpc import retry_enabled_batch_post
 from .json_rpc import cli_get_logs, decode_events_for_requests
 from .planner import BackfillPlan
-from .utils import GracefulKiller, parse_event_request
+from .utils import GracefulKiller
 
 root_logger = logging.getLogger("nethermind")
 logger = root_logger.getChild("entro").getChild("backfill").getChild("prices")
@@ -42,7 +42,7 @@ def download_pool_creations(
 
     with Progress(*progress_defaults) as progress:
         for factory_addr, pool_data in SUPPORTED_POOL_CREATION_EVENTS.items():
-            backfill_plan = BackfillPlan.generate(
+            backfill_plan = BackfillPlan.from_cli(
                 db_session=db_session,
                 network=SupportedNetwork.ethereum,
                 start_block=pool_data["start_block"],
@@ -102,9 +102,8 @@ def update_pool_creations(
             topics=(pool_bfill.metadata_dict["topics"]),
             network=network,
         )
-        decoder = DecodingDispatcher.from_database(
-            classify_abis=[str(pool_bfill.filter_data["abi_name"])],
-            db_session=db_session,
+        decoder = DecodingDispatcher.from_abis(
+            classify_abis=[str(pool_bfill.filter_data["abi_name"])], db_session=db_session
         )
         bfill_status = decode_events_for_requests(
             request_objects=[request],

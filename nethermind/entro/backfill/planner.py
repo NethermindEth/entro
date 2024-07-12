@@ -1,7 +1,8 @@
 import logging
 import shutil
+import traceback
 from dataclasses import dataclass
-from typing import Any, Callable, Protocol, Type, Union
+from typing import Any, Type, Union
 
 from rich.console import Console
 from rich.progress import Progress
@@ -14,12 +15,11 @@ from nethermind.entro.backfill.exporters import (
     get_db_exporters_for_backfill,
     get_file_exporters_for_backfill,
 )
-from nethermind.entro.backfill.importers import get_importers_for_backfill
-from nethermind.entro.cli.utils import progress_defaults
+from nethermind.entro.backfill.importers import get_importer_for_backfill
 from nethermind.entro.database.readers.internal import fetch_backfills_by_datatype
 from nethermind.entro.database.writers.utils import automap_sqlalchemy_model
 from nethermind.entro.decoding import DecodingDispatcher
-from nethermind.entro.exceptions import BackfillError
+from nethermind.entro.exceptions import BackfillError, DecodingError
 from nethermind.entro.types.backfill import BackfillDataType as BDT
 from nethermind.entro.types.backfill import Dataclass, DataSources, ImporterCallable
 from nethermind.entro.types.backfill import SupportedNetwork as SN
@@ -27,38 +27,13 @@ from nethermind.entro.utils import pprint_list
 
 from .filter import _clean_block_inputs, _generate_topics, _unpack_kwargs
 from .ranges import BackfillRangePlan
-from .utils import GracefulKiller
+from .utils import GracefulKiller, progress_defaults
 
 root_logger = logging.getLogger("nethermind")
 logger = root_logger.getChild("entro").getChild("backfill").getChild("planner")
 
 
 # pylint: disable=raise-missing-from
-
-
-def _handle_event_backfill(decoder: DecodingDispatcher, filter_params: dict[str, Any], metadata_dict: dict[str, Any]):
-    """
-    Handles the event backfill by generating the event topics and adding them to the metadata dictionary
-
-    :param decoder: ABI Decoder
-    :param filter_params: Filter Parameters
-    :param metadata_dict: Metadata Dictionary
-    """
-    if len(decoder.loaded_abis) != 1:
-        raise BackfillError(
-            f"Expected 1 ABI for Event backfill, but found {len(decoder.loaded_abis)}.  "
-            f"Specify an ABI using --contract-abi"
-        )
-    abi_name, decoder_instance = list(decoder.loaded_abis.items())[0]
-    filter_params.update({"abi_name": abi_name})
-    metadata_dict.update(
-        {
-            "topics": _generate_topics(
-                decoder_instance,
-                filter_params.get("event_names", []),
-            )
-        }
-    )
 
 
 def _default_batch_size(backfill_type: BDT) -> int:
@@ -91,8 +66,8 @@ class BackfillPlan:
     backfill_type: BDT  # Data Resources being exported
     network: SN  # Network data is being extracted from
 
+    importer: ImporterCallable
     exporters: dict[str, AbstractResourceExporter]
-    importers: dict[str, ImporterCallable]
 
     metadata_dict: dict[str, Any]  # Metadata that is cached for DB backfills
     filter_params: dict[str, Any]  # Filters to further narrow down the backfilled resources
@@ -123,11 +98,12 @@ class BackfillPlan:
             return None
 
         filter_params, metadata_dict = _unpack_kwargs(kwargs, backfill_type)
-        db_session = sessionmaker(create_engine(kwargs["db_url"]))() if "db_url" in kwargs else None
+        db_session = sessionmaker(create_engine(kwargs["db_url"]))() if kwargs["db_url"] else None
 
-        decoder = cls._initialize_decoder(db_session, metadata_dict)
+        decoder = cls._initialize_decoder(db_session, metadata_dict, network)
 
         if backfill_type == BDT.events:
+            assert decoder is not None, "Decoder must be initialized for Event Backfill"
             cls._inject_event_topics(decoder, filter_params, metadata_dict)
 
         if db_session:
@@ -136,22 +112,11 @@ class BackfillPlan:
                 from_block=start_block,
                 to_block=end_block,
                 conflicting_backfills=fetch_backfills_by_datatype(db_session, backfill_type, network),
-                backfill_kwargs={  # Parameters saved to Sqlalchemy model
-                    "data_type": backfill_type.value,
-                    "network": network.value,
-                    "filter_data": filter_params,
-                    "metadata_dict": metadata_dict,
-                    "decoded_abis": decoder.loaded_abis,
-                },
             )
 
         else:
             exporters = get_file_exporters_for_backfill(backfill_type, kwargs)
-            range_plan = BackfillRangePlan(
-                from_block=start_block, to_block=end_block, conflicts=[], backfill_kwargs=kwargs
-            )
-
-        dataclass_importers = get_importers_for_backfill()
+            range_plan = BackfillRangePlan(from_block=start_block, to_block=end_block, conflicts=[])
 
         return BackfillPlan(
             db_session=db_session,
@@ -159,10 +124,10 @@ class BackfillPlan:
             backfill_type=backfill_type,
             network=network,
             exporters=exporters,
-            importers=dataclass_importers,
+            importer=get_importer_for_backfill(network, backfill_type),
             metadata_dict=metadata_dict,
             filter_params=filter_params,
-            decoder=None,
+            decoder=decoder,
             batch_size=metadata_dict.get("batch_size", _default_batch_size(backfill_type)),
         )
 
@@ -170,14 +135,17 @@ class BackfillPlan:
     def _initialize_decoder(
         db_session: Session | None,
         backfill_metadata: dict[str, Any],
+        network: SN,
     ) -> DecodingDispatcher | None:
         decode_abis = backfill_metadata.pop("decode_abis", [])
 
         if not len(decode_abis):
             return None
-        return DecodingDispatcher.from_database(
+
+        return DecodingDispatcher.from_abis(
             classify_abis=decode_abis,
             db_session=db_session,
+            decoder_os=DecodingDispatcher.decoder_os_for_network(network),
             all_abis=backfill_metadata.get("all_abis", False),
         )
 
@@ -190,18 +158,12 @@ class BackfillPlan:
         if len(decoder.loaded_abis) != 1:
             raise BackfillError(
                 f"Expected 1 ABI for Event backfill, but found {len(decoder.loaded_abis)}.  "
-                f"Specify an ABI using --contract-abi"
+                f"Specify a single ABI using --contract-abi flag"
             )
-        abi_name, decoder_instance = list(decoder.loaded_abis.items())[0]
-        filter_params.update({"abi_name": abi_name})
-        metadata_dict.update(
-            {
-                "topics": _generate_topics(
-                    decoder_instance,
-                    filter_params.get("event_names", []),
-                )
-            }
-        )
+        event_names, topics = _generate_topics(decoder, filter_params.get("event_names", []))
+
+        filter_params.update({"abi_name": decoder.loaded_abis[0], "event_names": event_names})
+        metadata_dict.update({"topics": topics})
 
     def execute_backfill(self, console: Console, killer: GracefulKiller):
         """
@@ -211,32 +173,45 @@ class BackfillPlan:
         :param killer: Graceful Killer
         """
 
-        progress = Progress(*progress_defaults)
+        with Progress(*progress_defaults, console=console) as progress:
+            for range_idx, (range_start, range_end) in enumerate(self.range_plan.backfill_ranges):
+                range_progress = progress.add_task(
+                    description=self.backfill_label(range_idx),
+                    total=range_end - range_start,
+                    searching_block=range_start,
+                )
 
-        for range_idx, (range_start, range_end) in enumerate(self.range_plan.backfill_ranges):
-            range_progress = progress.add_task(
-                description=self.backfill_label(range_idx), total=range_end - range_start, searching_block=range_start
-            )
+                for batch_start in range(range_start, range_end, self.batch_size):
+                    batch_end = min(batch_start + self.batch_size, range_end)
+                    if killer.kill_now:
+                        self.process_failed_backfill(batch_start)
+                        return
 
-            for batch_start in range(range_start, range_end, self.batch_size):
-                batch_end = min(batch_start + self.batch_size, range_end)
-                if killer.kill_now:
-                    self.process_failed_backfill(batch_start)
-                    return
+                    try:
+                        batch_dataclasses = self.importer(
+                            from_block=batch_start,
+                            to_block=batch_end,
+                            **self.metadata_dict,
+                            **self.filter_params,
+                        )
 
-                try:
-                    batch_dataclasses = self.get_dataclasses_for_range(
-                        batch_start=batch_start,
-                        batch_end=batch_end,
-                    )
+                        for data_key, exporter in self.exporters.items():
+                            export_dataclasses = batch_dataclasses.get(data_key, [])
 
-                    self.export_dataclasses(batch_dataclasses)
-                    progress.update(range_progress, advance=batch_end - batch_start, searching_block=batch_end)
+                            if self.decoder:
+                                self.decoder.decode_dataclasses(data_kind=data_key, dataclasses=export_dataclasses)
 
-                except BaseException:  # pylint: disable=broad-except
-                    console.print(f"[red] ----  Unexpected Error Processing Blocks {batch_start} - {batch_end}  ----")
-                    self.process_failed_backfill(batch_start)
-                    return
+                            exporter.write(export_dataclasses)
+
+                        progress.update(range_progress, advance=batch_end - batch_start, searching_block=batch_end)
+
+                    except BaseException as e:  # pylint: disable=broad-except
+                        console.print(
+                            f"[red] ----  Unexpected Error Processing Blocks {batch_start} - {batch_end}  ----"
+                        )
+                        console.print(traceback.format_exception(type(e), e, e.__traceback__))
+                        self.process_failed_backfill(batch_start)
+                        return
 
         console.print("[green]---- Backfill Complete ------")
 
@@ -277,29 +252,15 @@ class BackfillPlan:
             filter_meta_table.add_row(f"[cyan]{key}", f"{val}")
         console.print(filter_meta_table)
 
-        if self.metadata_dict.get("all_abis", False):
-            console.print(f"[bold]Decoding with All {len(self.decoder.loaded_abis)} ABIs in DB:")
-            print_data = pprint_list(sorted(list(self.decoder.loaded_abis.keys())), int(term_width * 0.9))
-            for row in print_data:
-                console.print(f"\t{row}")
-
-        else:
-            print_funcs = self.backfill_type not in [BDT.events, BDT.transfers]
-            print_events = self.backfill_type in [BDT.events, BDT.full_blocks]
-
-            abi_table = self.decoder.decoder_table(print_funcs, print_events)
-            console.print(abi_table)
+        # Print Decoded ABis
+        if self.decoder:
+            self.print_decode_abis(console, term_width)
 
         match self.backfill_type:
             case BDT.events:
-                abi_name, decoder_instance = list(self.decoder.loaded_abis.items())[0]
                 console.print(f"[bold green]Querying Events for Contract: {self.get_filter_param('contract_address')}")
-                console.print(f"[bold]{abi_name} ABI Decoding Events:")
-                event_name_print = pprint_list(
-                    self.filter_params.get("event_names", decoder_instance.get_all_decoded_events(False)),
-                    int(term_width * 0.8),
-                )
-                for row in event_name_print:
+                console.print(f"[bold]{self.filter_params['abi_name']} ABI Decoding Events:")
+                for row in pprint_list(self.filter_params["event_names"], int(term_width * 0.8)):
                     console.print(f"\t{row}")
 
             case BDT.transactions | BDT.traces:
@@ -314,6 +275,19 @@ class BackfillPlan:
                 raise NotImplementedError(f"Cannot Printout {backfill_type} Backfills")
 
         console.print(f"[bold]{'-' * int(term_width * .8)}")
+
+    def print_decode_abis(self, console: Console, term_width: int):
+        if self.metadata_dict.get("all_abis", False):
+            console.print(f"[bold]Decoding with All {len(self.decoder.loaded_abis)} {self.decoder.os} ABIs in DB:")
+            for row in pprint_list(sorted(self.decoder.loaded_abis), int(term_width * 0.9)):
+                console.print(f"\t{row}")
+
+        else:
+            print_funcs = self.backfill_type not in [BDT.events, BDT.transfers]
+            print_events = self.backfill_type in [BDT.events, BDT.full_blocks]
+
+            abi_table = self.decoder.decoder_table(print_funcs, print_events)
+            console.print(abi_table)
 
     def total_blocks(self) -> int:
         """Returns the total number of blocks within backfill plan"""
@@ -343,6 +317,17 @@ class BackfillPlan:
                 f"backfill but not found in metadata"
             )
 
+    def range_kwargs(self) -> dict[str, Any]:
+        return {
+            "data_type": self.backfill_type,
+            "network": self.network,
+            "filter_data": self.filter_params,
+            "metadata_dict": self.metadata_dict,
+            "decoded_abis": self.decoder.loaded_abis
+            if self.decoder and self.metadata_dict.get("all_abis", False)
+            else [],
+        }
+
     def process_failed_backfill(self, end_block: int):
         """
         Updates the backfill plan to account for a failed backfill. Updates the add and remove backfill
@@ -353,10 +338,10 @@ class BackfillPlan:
 
         for index, (from_blk, to_blk) in enumerate(self.range_plan.backfill_ranges):
             if from_blk <= end_block < to_blk:
-                self.range_plan.mark_failed(index, end_block)
+                self.range_plan.mark_failed(index, end_block, self.range_kwargs())
                 break
 
-            self.range_plan.mark_finalized(index)
+            self.range_plan.mark_finalized(index, self.range_kwargs())
 
     def save_to_db(self):
         """Saves backfill plan to database"""
@@ -383,8 +368,7 @@ class BackfillPlan:
 
         match self.backfill_type:
             case BDT.events:
-                abi_name = list(self.decoder.loaded_abis.keys())[0]
-                return f"Backfill {abi_name} Events"
+                return f"Backfill {self.decoder.loaded_abis[0]} Events"
             case _:
                 return f"Backfill {net} {typ}"
 
@@ -398,14 +382,11 @@ class BackfillPlan:
         if len(model_override_dict) == 0:
             return {}
 
-        _, decoder = list(self.decoder.loaded_abis.items())[0]
         model_overrides = {}
-
-        all_events_in_decoder = decoder.get_all_decoded_events()
 
         for event, model in model_override_dict.items():
             if "(" not in event:
-                event = [sig for sig in all_events_in_decoder if event in sig][0]
+                event = [e for e in self.decoder.event_decoders.values() if event in e.name][0]
             split = list(reversed(model.split(".")))
             res = automap_sqlalchemy_model(
                 db_engine=self.db_session.get_bind(),

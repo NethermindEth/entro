@@ -92,10 +92,16 @@ def create_debug_logger(request: FixtureRequest) -> logging.Logger:
     return logger
 
 
-@pytest.fixture()
+@pytest.fixture
 def eth_rpc_url() -> str:
     load_dotenv()
     return os.environ["ETH_JSON_RPC"]
+
+
+@pytest.fixture
+def starknet_rpc_url() -> str:
+    load_dotenv()
+    return os.environ["STARKNET_JSON_RPC"]
 
 
 @pytest.fixture

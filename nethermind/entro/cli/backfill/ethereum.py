@@ -35,10 +35,10 @@ from nethermind.entro.cli.utils import (
     api_key_option,
     max_concurrency_option,
     create_cli_session,
-    progress_defaults,
     batch_size_option,
     page_size_option,
 )
+from nethermind.entro.backfill.utils import progress_defaults
 
 
 # isort: skip_file

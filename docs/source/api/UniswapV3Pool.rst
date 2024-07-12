@@ -67,25 +67,25 @@ API Documentation
 Uniswap V3 Types
 ----------------
 
-.. autopydantic_model:: nethermind.entro.uniswap_v3.types.PoolImmutables
+.. autoclass:: nethermind.entro.types.uniswap_v3.PoolImmutables
     :members:
 
-.. autopydantic_model:: nethermind.entro.uniswap_v3.types.PoolState
-    :members:
-    :exclude-members: uninitialized
-
-.. autopydantic_model:: nethermind.entro.uniswap_v3.types.Slot0
+.. autoclass:: nethermind.entro.types.uniswap_v3.PoolState
     :members:
     :exclude-members: uninitialized
 
-.. autopydantic_model:: nethermind.entro.uniswap_v3.types.Tick
+.. autoclass:: nethermind.entro.types.uniswap_v3.Slot0
     :members:
     :exclude-members: uninitialized
 
-.. autopydantic_model:: nethermind.entro.uniswap_v3.types.OracleObservation
+.. autoclass:: nethermind.entro.types.uniswap_v3.Tick
     :members:
     :exclude-members: uninitialized
 
-.. autopydantic_model:: nethermind.entro.uniswap_v3.types.PositionInfo
+.. autoclass:: nethermind.entro.types.uniswap_v3.OracleObservation
+    :members:
+    :exclude-members: uninitialized
+
+.. autoclass:: nethermind.entro.types.uniswap_v3.PositionInfo
     :members:
     :exclude-members: uninitialized

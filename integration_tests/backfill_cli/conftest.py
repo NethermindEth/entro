@@ -31,7 +31,7 @@ def eth_rpc_cli_config() -> List[str]:
 
 @pytest.fixture()
 def etherscan_cli_config() -> List[str]:
-    return ["--source", "etherscan", "--api-key", os.environ["ETHERSCAN_API_KEY"]]
+    return ["--api-key", os.environ["ETHERSCAN_API_KEY"]]
 
 
 @pytest.fixture()
@@ -42,7 +42,7 @@ def voyager_cli_config() -> List[str]:
 @pytest.fixture()
 def add_abis_to_db(cli_db_url):
     def _add_abis(cli_runner: CliRunner):
-        from nethermind.entro.cli.entry_point import cli_entry_point
+        from nethermind.entro.cli import entro_cli
 
         with cli_runner.isolated_filesystem():
             with open("ERC20.json", "w") as f:
@@ -55,7 +55,7 @@ def add_abis_to_db(cli_db_url):
                 f.write(UNISWAP_V2_PAIR_JSON)
 
             erc20_abi = cli_runner.invoke(
-                cli_entry_point,
+                entro_cli,
                 [
                     "add-abi",
                     "ERC20",
@@ -67,7 +67,7 @@ def add_abis_to_db(cli_db_url):
             )
             assert erc20_abi.exit_code == 0
             erc_721_abi = cli_runner.invoke(
-                cli_entry_point,
+                entro_cli,
                 [
                     "add-abi",
                     "ERC721",
@@ -79,7 +79,7 @@ def add_abis_to_db(cli_db_url):
             )
             assert erc_721_abi.exit_code == 0
             uni_v2_abi = cli_runner.invoke(
-                cli_entry_point,
+                entro_cli,
                 [
                     "add-abi",
                     "UniswapV2Pair",
@@ -91,7 +91,7 @@ def add_abis_to_db(cli_db_url):
             )
             assert uni_v2_abi.exit_code == 0
             uni_v3_abi = cli_runner.invoke(
-                cli_entry_point,
+                entro_cli,
                 [
                     "add-abi",
                     "UniswapV3Pool",

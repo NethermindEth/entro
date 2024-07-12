@@ -11,21 +11,28 @@ Table of Contents
 
 .. toctree::
     :maxdepth: 1
-    :caption: Library Guides
+    :caption: CLI Guide
+    :glob:
 
-    Extracting Block-by-Block Price Data
-    Valuing Uniswap V3 Positions
+    cli_guide/*
+
+.. toctree::
+    :maxdepth: 1
+    :caption: Uniswap Guide
+    :glob:
+
+    uniswap/*
 
 
 .. toctree::
     :maxdepth: 1
-    :caption: Class Reference
+    :caption: API Reference
+    :glob:
 
-    ERC20Token
-    Exceptions
-    PoolFactory
-    PricingOracle
-    UniswapV3Pool
+    api/*
+
+    API Glossary <genindex>
+
 
 Indices and tables
 ------------------

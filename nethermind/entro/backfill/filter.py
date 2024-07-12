@@ -1,11 +1,11 @@
 import logging
-from typing import Any, Sequence, TypedDict
+from typing import Any, Literal, Sequence, TypedDict
 
 from eth_utils import to_checksum_address as tca
 
 from nethermind.entro.database.models import BackfilledRange
 from nethermind.entro.database.writers.utils import model_to_dict
-from nethermind.entro.decoding.evm_decoder import EVMDecoder
+from nethermind.entro.decoding import DecodingDispatcher
 from nethermind.entro.exceptions import BackfillError
 from nethermind.entro.types.backfill import BackfillDataType as BDT
 from nethermind.entro.types.backfill import SupportedNetwork as SN
@@ -24,6 +24,16 @@ class BackfillFilter(TypedDict):
     required: list[str]
     exclusions: list[tuple[str, str]]
 
+
+RESERVED_PARAMS = {
+    "from_block",
+    "to_block",
+    "block_file",
+    "transaction_file",
+    "event_file",
+    "trace_file",
+    "transfer_file",
+}
 
 VALID_FILTERS = {
     BDT.transactions: BackfillFilter(
@@ -233,40 +243,45 @@ def _unpack_kwargs(kwargs: dict[str, Any], backfill_type: BDT) -> tuple[dict[str
 
         if key in filter_keys:
             filter_dict.update({key: val})
+        elif key in RESERVED_PARAMS:
+            continue
         else:
             meta_dict.update({key: val})
 
     return filter_dict, meta_dict
 
 
-def _generate_topics(decoder: EVMDecoder, event_names: list[str]) -> list[str | list[str]]:
+def _generate_topics(
+    decoder: DecodingDispatcher,
+    event_names: list[str],
+) -> tuple[list[str], list[str | list[str]]]:
     """
         Generates the event topics for an event backfill
     :return:
     """
-    if len(event_names) == 0:
-        event_names = decoder.get_all_decoded_events(False)
+    assert len(decoder.loaded_abis) == 1, "Indexed Topic Event Backfills can only use 1 ABI"
 
-    selectors = []
-    for event_name in event_names:
-        event_sig = decoder.get_event_signature(event_name)
-        if event_sig is None:
-            continue
-        selectors.append("0x" + event_sig)
+    _named_events = {e.name: e for e in decoder.event_decoders.values()}
+
+    if len(event_names) == 0:  # Backfill all events in ABI
+        event_names = list(_named_events.keys())
+
+    selectors = ["0x" + _named_events[event].signature.hex() for event in event_names]
 
     if len(selectors) != len(event_names):
         error_msg = (
-            f"{decoder.abi_name} ABI does not contain all of the events specified in the filter. "
-            f"ABI Missing events: {set(event_names) - set(decoder.get_all_decoded_events(False))}"
+            f"{decoder.loaded_abis[0]} ABI does not contain all of the events specified in the filter. "
+            f"ABI Missing events: {set(event_names) - set(_named_events.keys())}"
         )
         logger.error(error_msg)
         raise BackfillError(error_msg)
 
     topics: list[str | list[str]] = []
-    if len(selectors) == 1:
-        # If only one event is being queried, pass event signatures as a string instead of array
+    if len(selectors) == 1 and decoder.decoder_os == "EVM":
+        # If only one event is being queried, pass event signatures as a string instead of array.
+        # Starknet doesn't do this, so only flatten the topics this for EVM chains
         topics.append(selectors[0])
     else:
         topics.append(selectors)
 
-    return topics
+    return event_names, topics

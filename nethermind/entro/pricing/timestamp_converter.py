@@ -10,7 +10,6 @@ from nethermind.entro.backfill.utils import (
     block_identifier_to_block,
     default_rpc,
     get_current_block_number,
-    rpc_response_to_block_model,
 )
 from nethermind.entro.database.models import AbstractBlock, block_model_for_network
 from nethermind.entro.exceptions import BackfillError
@@ -164,12 +163,14 @@ class TimestampConverter:
 
         block_models, db_dialect = [], self.db_session.get_bind().dialect.name
         for resp in block_responses:
-            block_model, _, _ = rpc_response_to_block_model(
-                block=resp,
-                network=self.network,
-                db_dialect=db_dialect,
-            )
-            block_models.append(block_model)
+            ...
+            # TODO: Overhaul with updated Idealis functions
+            # block_model, _, _ = rpc_response_to_block_model(
+            #     block=resp,
+            #     network=self.network,
+            #     db_dialect=db_dialect,
+            # )
+            # block_models.append(block_model)
 
         self.db_session.add_all(block_models)
         self.db_session.commit()

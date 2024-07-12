@@ -19,13 +19,6 @@ from nethermind.entro.types.backfill import BackfillDataType, SupportedNetwork
 from ..exceptions import BackfillError
 from ..utils import to_hex
 from .async_rpc import retry_enabled_batch_post
-from .utils import (
-    add_receipt_to_tx_models,
-    parse_event_request,
-    parse_rpc_block_requests,
-    parse_rpc_receipt_request,
-    rpc_response_to_block_model,
-)
 
 root_logger = logging.getLogger("nethermind")
 logger = root_logger.getChild("entro").getChild("backfill").getChild("json_rpc")

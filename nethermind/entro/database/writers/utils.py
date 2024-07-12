@@ -1,8 +1,9 @@
 import logging
+from enum import Enum
 from typing import Any, Type
 
 from hexbytes import HexBytes
-from sqlalchemy import Connection, Engine, MetaData
+from sqlalchemy import Connection, Engine, MetaData, inspect
 from sqlalchemy.exc import InvalidRequestError
 from sqlalchemy.ext.automap import automap_base
 from sqlalchemy.orm import DeclarativeBase
@@ -15,7 +16,7 @@ logger = root_logger.getChild("entro").getChild("db").getChild("utils")
 
 def model_to_dict(model) -> dict[str, Any]:
     """Converts a SQLAlchemy model to a dictionary"""
-    return {c.name: getattr(model, c.name) for c in model.__table__.columns}
+    return {c.key: getattr(model, c.key) for c in inspect(model).mapper.column_attrs}
 
 
 def db_encode_dict(data: Any) -> Any:
@@ -31,6 +32,9 @@ def db_encode_dict(data: Any) -> Any:
 
     if isinstance(data, (list, tuple)):
         return [db_encode_dict(d) for d in data]
+
+    if isinstance(data, Enum):
+        return data.value
 
     if isinstance(data, bytes):
         return "0x" + data.hex()

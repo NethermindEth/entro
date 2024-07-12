@@ -1,6 +1,15 @@
+import logging
+import traceback
+from typing import Any
+
+from eth_abi import decode as eth_abi_decode
+from eth_abi.exceptions import InsufficientDataBytes, NonEmptyPaddingBytes
 from web3.types import ABI, ABIEvent, ABIEventParams, ABIFunction, ABIFunctionParams
 
 # Redefinitions from eth_utils with correct typing
+
+root_logger = logging.getLogger("nethermind")
+logger = root_logger.getChild("entro").getChild("decoding")
 
 
 def abi_to_signature(abi: ABIFunction | ABIEvent) -> str:
@@ -88,3 +97,31 @@ def signature_to_name(function_sig: str) -> str:
     if index != -1:
         return function_sig[:index]
     return function_sig
+
+
+def decode_evm_abi_from_types(types: list[str], data: bytes | bytearray) -> tuple[Any, ...] | None:
+    """
+    Decodes ABI data from types and data bytes.  Properly Handles various decoding errors by logging and
+    returning none.
+
+    :param types:
+    :param data:
+    :return:
+    """
+    try:
+        return eth_abi_decode(types, data)
+    except InsufficientDataBytes:
+        logger.debug(f"Insufficient data bytes while decoding {data.hex()} for types {types}")
+        return None
+    except NonEmptyPaddingBytes:
+        logger.debug(f"Non-empty padding bytes while decoding {data.hex()} for types {types}")
+        return None
+    except OverflowError:
+        logger.debug(f"Overflow error while decoding {data.hex()} for types {types}")
+        return None
+    except Exception as e:  # pylint: disable=broad-exception-caught
+        logger.error(
+            f"Unknown error while decoding {data.hex()} for types {types}: "
+            f"{traceback.format_exception(type(e), e, e.__traceback__)}"
+        )
+        return None

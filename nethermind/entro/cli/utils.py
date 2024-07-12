@@ -5,14 +5,6 @@ from logging import Logger
 import click
 from rich.console import Console
 from rich.logging import RichHandler
-from rich.progress import (
-    BarColumn,
-    SpinnerColumn,
-    TaskProgressColumn,
-    TextColumn,
-    TimeElapsedColumn,
-    TimeRemainingColumn,
-)
 from sqlalchemy import create_engine
 from sqlalchemy.orm import Session, sessionmaker
 
@@ -20,18 +12,6 @@ from nethermind.entro.types.backfill import DataSources, SupportedNetwork
 
 root_logger = logging.getLogger("nethermind")
 logger = root_logger.getChild("entro").getChild("cli")
-
-
-progress_defaults = [
-    TextColumn("[progress.description]{task.description}"),
-    SpinnerColumn(),
-    BarColumn(),
-    TaskProgressColumn(),
-    TimeElapsedColumn(),
-    TimeRemainingColumn(),
-    TextColumn("[green]Searched: {task.completed}/{task.total}"),
-    TextColumn("[magenta]Searching Block: {task.fields[searching_block]}"),
-]
 
 
 def cli_logger_config(instrument_logger: Logger) -> Console:
@@ -61,7 +41,7 @@ json_rpc_option = click.option(
     "--json-rpc",
     "-rpc",
     "json_rpc",
-    default=os.environ.get("JSON_RPC", "http://localhost:8545"),
+    default=os.environ.get("JSON_RPC"),
     help="JSONRPC URL to use for backfilling.  If not provided, will use the JSON_RPC environment variable",
 )
 db_url_option = click.option(

@@ -1,25 +1,30 @@
 import os
 import signal
-from typing import Any
 
 import requests
 from rich.console import Console
-
-from nethermind.entro.database.models import (
-    AbstractBlock,
-    AbstractTrace,
-    AbstractTransaction,
+from rich.progress import (
+    BarColumn,
+    SpinnerColumn,
+    TaskProgressColumn,
+    TextColumn,
+    TimeElapsedColumn,
+    TimeRemainingColumn,
 )
-from nethermind.entro.database.models.ethereum import Block as EthereumBlock
-from nethermind.entro.database.models.ethereum import Trace as EthereumTrace
-from nethermind.entro.database.models.ethereum import Transaction as EthereumTransaction
-from nethermind.entro.database.models.zk_sync import EraBlock as ZKSyncBlock
-from nethermind.entro.database.models.zk_sync import EraTransaction as ZKSyncTransaction
-from nethermind.entro.database.writers.utils import db_encode_dict, db_encode_hex
-from nethermind.entro.decoding import DecodingDispatcher
+
 from nethermind.entro.types import BlockIdentifier
 from nethermind.entro.types.backfill import SupportedNetwork as SN
-from nethermind.entro.utils import maybe_hex_to_int, to_bytes
+
+progress_defaults = [
+    TextColumn("[progress.description]{task.description}"),
+    SpinnerColumn(),
+    BarColumn(),
+    TaskProgressColumn(),
+    TimeElapsedColumn(),
+    TimeRemainingColumn(),
+    TextColumn("[green]Searched: {task.completed}/{task.total}"),
+    TextColumn("[magenta]Searching Block: {task.fields[searching_block]}"),
+]
 
 
 def default_rpc(network: SN) -> str:
@@ -148,287 +153,3 @@ class GracefulKiller:
         """Prints out a message and sets kill_now to True"""
         self.console.print("[green]Received Shutdown Signal.  Finishing Backfill...")
         self.kill_now = True
-
-
-# ------------------------------
-# RPC Query Object Parsing
-# ------------------------------
-
-
-def parse_rpc_block_requests(
-    block_numbers: list[int] | int, network: SN = SN.ethereum, full_txns: bool = True
-) -> list[dict[str, Any]]:
-    """
-    Parses a list of block numbers into a list of JSON RPC requests for block data.
-
-    :param block_numbers:
-    :param network:
-    :param full_txns:
-    :return:
-    """
-    if isinstance(block_numbers, int):
-        block_numbers = [block_numbers]
-    match network:
-        case SN.starknet:
-            return [
-                {
-                    "id": number,
-                    "jsonrpc": "2.0",
-                    "method": "starknet_getBlockWithTxs" if full_txns else "starknet_getBlockWithTxHashes",
-                    "params": [{"block_number": number}],
-                }
-                for number in block_numbers
-            ]
-        case SN.ethereum | SN.zk_sync_era:
-            return [
-                {
-                    "id": number,
-                    "jsonrpc": "2.0",
-                    "method": "eth_getBlockByNumber",
-                    "params": [hex(number), full_txns],
-                }
-                for number in block_numbers
-            ]
-        case _:
-            raise NotImplementedError(f"Unsupported Network for JSON-RPC Block Backfills: {network}")
-
-
-def parse_rpc_receipt_request(tx_hashes: str | list[str], network: SN = SN.ethereum) -> list[dict[str, Any]]:
-    """
-    Parses a list of transaction hashes into a list of JSON RPC requests for transaction receipts.
-
-    :param tx_hashes:
-    :param network:
-    :return:
-    """
-    if isinstance(tx_hashes, str):
-        tx_hashes = [tx_hashes]
-
-    match network:
-        case SN.starknet:
-            raise NotImplementedError("Starknet Tx Receipts not implemented")
-        case SN.ethereum | SN.zk_sync_era:
-            return [
-                {
-                    "id": 0,
-                    "jsonrpc": "2.0",
-                    "method": "eth_getTransactionReceipt",
-                    "params": [tx_hash],
-                }
-                for tx_hash in tx_hashes
-            ]
-        case _:
-            raise NotImplementedError(f"Unsupported Network for JSON-RPC Tx Receipt Backfills: {network}")
-
-
-def parse_event_request(
-    start_block: int,
-    end_block: int,
-    contract_address: str,
-    topics: list[str | list[str]],
-    network: SN = SN.ethereum,
-) -> dict[str, Any]:
-    """
-    Parses a request for event logs into a JSON RPC request.
-
-    :param start_block:
-    :param end_block:
-    :param contract_address:
-    :param topics:
-    :param network:
-    :return:
-    """
-    match network:
-        case SN.starknet:
-            raise NotImplementedError("Starknet Event Backfills not implemented")
-        case SN.ethereum | SN.zk_sync_era:
-            return {
-                "id": 2,
-                "jsonrpc": "2.0",
-                "method": "eth_getLogs",
-                "params": [
-                    {
-                        "fromBlock": hex(start_block),
-                        "toBlock": hex(end_block),
-                        "address": contract_address,
-                        "topics": topics,
-                    }
-                ],
-            }
-        case _:
-            raise NotImplementedError(f"Unsupported Network for JSON-RPC Event Backfills: {network}")
-
-
-# ----------------------------------------
-# Parsing RPC Responses to DB Models
-# ----------------------------------------
-
-
-def rpc_response_to_trace_model(
-    traces: list[dict[str, Any]],
-    network: SN,
-    db_dialect: str,
-    abi_decoder: DecodingDispatcher,
-) -> list[AbstractTrace]:
-    """
-    Parse a trace from a JSON RPC response into a list of Trace objects.
-    Will run ABI decoding with the provided DecodingDispatcher, for both the trace input and output
-
-    :param traces:
-    :param network:
-    :param db_dialect:
-    :param abi_decoder:
-    :return:
-    """
-    return_traces: list[AbstractTrace] = []
-    for trace in traces:
-        decoded_trace = abi_decoder.decode_trace(trace)
-        match network:
-            case SN.ethereum | SN.zk_sync_era:
-                trace_data = {
-                    "transaction_hash": db_encode_hex(trace["transaction_hash"], db_dialect),
-                    "block_number": trace["block_number"],
-                    "trace_address": trace["trace_address"],
-                    "from_address": db_encode_hex(trace["action"]["from"], db_dialect),
-                    "to_address": db_encode_hex(trace["action"]["to"], db_dialect),
-                    "input": db_encode_hex(trace["action"]["input"], db_dialect),
-                    "gas_used": int(trace["result"]["gasUsed"], 16),
-                    "decoded_function": decoded_trace.function_signature if decoded_trace else None,
-                    "decoded_input": decoded_trace.decoded_input if decoded_trace else None,
-                    "decoded_output": decoded_trace.decoded_output if decoded_trace else None,
-                }
-            case _:
-                raise NotImplementedError(f"Cannot parse RPC Trace Response for network {network}")
-
-        match network:
-            case SN.ethereum:
-                return_traces.append(EthereumTrace(**trace_data))
-
-            case _:
-                raise NotImplementedError(f"Cannot parse Trace for network {network}")
-
-    return return_traces
-
-
-def rpc_response_to_block_model(
-    block: dict[str, Any],
-    network: SN,
-    db_dialect: str,
-    abi_decoder: DecodingDispatcher | None = None,
-) -> tuple[AbstractBlock, list[AbstractTransaction], str | None]:
-    """
-    Parse a block from a JSON RPC response into a Block object and a list of Transaction objects.
-    Runs the block through the ABI Decoder if one is provided.
-
-    :param block:
-    :param network:  Network to parse RPC response.
-    :param db_dialect:
-    :param abi_decoder:
-    :return: (block, list[transactions], last_tx_in_block)
-    """
-
-    tx_count = len(block.get("transactions", []))
-    block_number = maybe_hex_to_int(block["number"])
-    block_timestamp = maybe_hex_to_int(block["timestamp"])
-    match network:
-        case SN.ethereum | SN.zk_sync_era:
-            block_data = {
-                "block_number": block_number,
-                "block_hash": db_encode_hex(block["hash"], db_dialect),
-                "parent_hash": db_encode_hex(block["parentHash"], db_dialect),
-                "timestamp": block_timestamp,
-                "miner": db_encode_hex(block["miner"], db_dialect),
-                "difficulty": maybe_hex_to_int(block["difficulty"]),
-                "gas_limit": maybe_hex_to_int(block["gasLimit"]),
-                "gas_used": maybe_hex_to_int(block["gasUsed"]),
-                "extra_data": db_encode_hex(block["extraData"], db_dialect),
-                "transaction_count": tx_count,
-            }
-        case SN.starknet:
-            raise NotImplementedError("Starknet Block Parsing not implemented")
-        case _:
-            raise NotImplementedError(f"Cannot parse RPC Block Response for network {network}")
-
-    all_txns = []
-
-    if tx_count > 0 and isinstance(block["transactions"][0], dict):
-        if abi_decoder is None:
-            abi_decoder = DecodingDispatcher()
-
-        for tx in block["transactions"]:
-            decoded_input = abi_decoder.decode_transaction(tx)
-
-            match network:
-                case SN.ethereum | SN.zk_sync_era:
-                    all_txns.append(
-                        {
-                            "transaction_hash": db_encode_hex(tx["hash"], db_dialect),
-                            "block_number": block_number,
-                            "transaction_index": maybe_hex_to_int(tx["transactionIndex"]),
-                            "timestamp": block_timestamp,
-                            "nonce": maybe_hex_to_int(tx["nonce"]),
-                            "from_address": db_encode_hex(tx["from"], db_dialect),
-                            "to_address": db_encode_hex(tx["to"], db_dialect) if tx["to"] else None,
-                            "input": db_encode_hex(tx["input"], db_dialect),
-                            "value": maybe_hex_to_int(tx["value"]),
-                            "error": None,
-                            "gas_price": maybe_hex_to_int(tx["gasPrice"]),
-                            "gas_available": maybe_hex_to_int(tx["gas"]),
-                            "gas_used": None,
-                            "decoded_signature": decoded_input.function_signature if decoded_input else None,
-                            "decoded_input": db_encode_dict(decoded_input.decoded_input) if decoded_input else None,
-                        }
-                    )
-                case SN.starknet:
-                    raise NotImplementedError("Starknet Transaction Parsing not implemented")
-                case _:
-                    raise NotImplementedError(f"Cannot parse RPC Transaction Response for network {network}")
-
-    last_tx = block["transactions"][-1] if len(block["transactions"]) > 0 else None
-    last_tx_hash: str | None = last_tx["hash"] if isinstance(last_tx, dict) else last_tx
-
-    match network:
-        case SN.ethereum:
-            return (
-                EthereumBlock(**block_data),
-                [EthereumTransaction(**tx) for tx in all_txns],
-                last_tx_hash,
-            )
-        case SN.zk_sync_era:
-            return (
-                ZKSyncBlock(**block_data),
-                [ZKSyncTransaction(**tx) for tx in all_txns],
-                last_tx_hash,
-            )
-        case _:
-            raise NotImplementedError(f"Cannot parse Block for network {network}")
-
-
-def add_receipt_to_tx_models(
-    transactions: list[AbstractTransaction],
-    receipt_responses: list[dict[str, Any]],
-    strict: bool = False,
-) -> list[AbstractTransaction]:
-    """
-    Adds receipt data to a list of transactions.  Parses in gas_used and error fields.
-
-    :param transactions:
-    :param receipt_responses:
-    :param strict:
-    :return:
-    """
-
-    receipt_dict = {to_bytes(receipt["transactionHash"]): receipt for receipt in receipt_responses}
-
-    for transaction in transactions:
-        tx_hash = to_bytes(transaction.transaction_hash)
-        if tx_hash in receipt_dict:
-            receipt = receipt_dict[tx_hash]
-            transaction.error = None if receipt["status"] == "0x0" else receipt["status"]
-            transaction.gas_used = maybe_hex_to_int(receipt["gasUsed"])
-        elif strict:
-            raise ValueError(f"Receipt for transaction 0x{tx_hash.hex()} not found")
-        else:
-            continue
-
-    return transactions

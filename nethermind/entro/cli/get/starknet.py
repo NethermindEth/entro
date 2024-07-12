@@ -20,9 +20,11 @@ def starknet_group():
 @group_options(
     json_rpc_option,
 )
-def get_starknet_class(class_hash: str, json_rpc: str):
+def get_starknet_class(class_hash: str, json_rpc: str | None = None):
     from nethermind.idealis.rpc.starknet import sync_get_class_abi
     from nethermind.starknet_abi.core import StarknetAbi
+
+    assert json_rpc is not None, "Environment var JSON_RPC or --json-rpc flag must be set"
 
     class_abi = sync_get_class_abi(to_bytes(class_hash), json_rpc)
     if isinstance(class_abi, str):
@@ -51,7 +53,9 @@ def get_starknet_class(class_hash: str, json_rpc: str):
     for event_name, abi_event in abi.events.items():
         highlight = IndexedParamHighligher()
         console.print(
-            f"  [bold magenta]{event_name}[not bold default]", highlight(abi_event.id_str().replace("Event", ""))
+            f"  [bold magenta]{event_name}[not bold default]",
+            highlight(abi_event.id_str().replace("Event", "")),
+            sep="",
         )
 
 
@@ -60,7 +64,7 @@ def get_starknet_class(class_hash: str, json_rpc: str):
 @group_options(
     json_rpc_option,
 )
-def get_starknet_contract_implementation(contract_address: str, json_rpc: str):
+def get_starknet_contract_implementation(contract_address: str, json_rpc: str | None = None):
     from aiohttp import ClientSession
 
     from nethermind.idealis.rpc.starknet import (
@@ -69,6 +73,8 @@ def get_starknet_contract_implementation(contract_address: str, json_rpc: str):
     )
     from nethermind.idealis.types.starknet import ContractImplementation
     from nethermind.idealis.utils.starknet import PessimisticDecoder
+
+    assert json_rpc is not None, "Environment Variable JSON_RPC or --json-rpc flag must be set"
 
     current_block = sync_get_current_block(json_rpc)
 

@@ -12,10 +12,6 @@ from sqlalchemy.orm import Session
 from web3.contract import Contract
 from web3.exceptions import BadFunctionCallOutput
 
-from nethermind.entro.backfill.json_rpc import (
-    decode_events_for_requests,
-    parse_event_request,
-)
 from nethermind.entro.backfill.utils import block_identifier_to_block
 from nethermind.entro.database.models.uniswap import UniV3MintEvent
 from nethermind.entro.database.writers import EventWriter
@@ -221,26 +217,27 @@ def fetch_positions(
 
     logger.info("Backfilling Mint Events to generate Position Keys")
 
-    mint_event_requests = [
-        parse_event_request(
-            start_block=start_block,
-            end_block=start_block + 100_000,
-            contract_address=contract.address,
-            topics=["0x7a53080ba414158be7ec69b987b5fb7d07dee101fe85488f0853ae16239d0bde"],
-            network=SupportedNetwork.ethereum,
-        )
-        for start_block in range(initialization_block, at_block, 100_000)
-    ]
-
-    decode_events_for_requests(
-        request_objects=mint_event_requests,
-        json_rpc=contract.w3.provider.endpoint_uri,  # type: ignore
-        event_writer=EventWriter(db_session.get_bind(), SupportedNetwork.ethereum),
-        decoder=DecodingDispatcher.from_database(["UniswapV3Pool"], db_session),
-        batch_size=50_000,
-        progress=progress,
-        task_name="Backfilling Mint Events",
-    )
+    #  TODO: Overhaul Event Query with Updated Idealis functions
+    # mint_event_requests = [
+    #     parse_event_request(
+    #         start_block=start_block,
+    #         end_block=start_block + 100_000,
+    #         contract_address=contract.address,
+    #         topics=["0x7a53080ba414158be7ec69b987b5fb7d07dee101fe85488f0853ae16239d0bde"],
+    #         network=SupportedNetwork.ethereum,
+    #     )
+    #     for start_block in range(initialization_block, at_block, 100_000)
+    # ]
+    #
+    # decode_events_for_requests(
+    #     request_objects=mint_event_requests,
+    #     json_rpc=contract.w3.provider.endpoint_uri,  # type: ignore
+    #     event_writer=EventWriter(db_session.get_bind(), SupportedNetwork.ethereum),
+    #     decoder=DecodingDispatcher.from_abis(["UniswapV3Pool"], db_session),
+    #     batch_size=50_000,
+    #     progress=progress,
+    #     task_name="Backfilling Mint Events",
+    # )
 
     position_keys = db_session.execute(
         select(

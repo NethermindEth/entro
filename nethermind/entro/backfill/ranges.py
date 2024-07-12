@@ -15,7 +15,6 @@ class BackfillRangePlan:
     backfill_ranges: list[tuple[int, int]]
     backfill_mode: Literal["new", "extend", "join", "empty"]
     conflicts: list[BackfilledRange]
-    backfill_kwargs: dict[str, Any]
 
     remove_backfills: list[BackfilledRange]
     add_backfill: BackfilledRange | None = None
@@ -25,10 +24,8 @@ class BackfillRangePlan:
         from_block: int,
         to_block: int,
         conflicts: list[BackfilledRange],
-        backfill_kwargs: dict[str, Any],
     ):
         self.conflicts = conflicts
-        self.backfill_kwargs = backfill_kwargs
         self.remove_backfills = []
         self.add_backfill = None
 
@@ -86,7 +83,6 @@ class BackfillRangePlan:
         from_block: int,
         to_block: int,
         conflicting_backfills: Sequence[BackfilledRange],
-        backfill_kwargs: dict[str, Any],
     ) -> "BackfillRangePlan":
         """
         Generates a backfill plan for a given block range and conflicting backfills.
@@ -94,7 +90,6 @@ class BackfillRangePlan:
         :param from_block:
         :param to_block:
         :param conflicting_backfills:
-        :param backfill_kwargs:  List of kwargs to pass during ORM model construction
         :return:
         """
 
@@ -111,7 +106,6 @@ class BackfillRangePlan:
             from_block=from_block,
             to_block=to_block,
             conflicts=sorted(in_range_backfills, key=lambda x: x.start_block),
-            backfill_kwargs=backfill_kwargs,
         )
 
     def _process_extend(self, finished_range: tuple[int, int]):
@@ -127,7 +121,7 @@ class BackfillRangePlan:
         else:
             raise BackfillError("Cannot Join Backfill to Non-Adjacent Range")
 
-    def mark_finalized(self, range_index: int):
+    def mark_finalized(self, range_index: int, range_kwargs: dict[str, Any]):
         """
         Marks a given range as finalized, updating remove and add backfills accordingly
 
@@ -149,7 +143,7 @@ class BackfillRangePlan:
                     backfill_id=uuid.uuid4().hex,
                     start_block=finalized_range[0],
                     end_block=finalized_range[1],
-                    **self.backfill_kwargs,
+                    **range_kwargs,
                 )
 
             case "extend":
@@ -172,7 +166,7 @@ class BackfillRangePlan:
                     self.add_backfill.end_block = next_bfill.end_block
                     self.remove_backfills.append(self.conflicts.pop(0))
 
-    def mark_failed(self, range_index, final_block):
+    def mark_failed(self, range_index: int, final_block: int, range_kwargs: dict[str, Any]):
         """
         Marks a backfill range as failed, saving current state to database.
 
@@ -198,7 +192,7 @@ class BackfillRangePlan:
                         backfill_id=uuid.uuid4().hex,
                         start_block=fail_range[0],
                         end_block=final_block,
-                        **self.backfill_kwargs,
+                        **range_kwargs,
                     )
                 case "extend":
                     if fail_range[0] == self.conflicts[0].end_block:
@@ -209,7 +203,7 @@ class BackfillRangePlan:
                             backfill_id=uuid.uuid4().hex,
                             start_block=fail_range[0],
                             end_block=final_block,
-                            **self.backfill_kwargs,
+                            **range_kwargs,
                         )
                 case "join":
                     if self.add_backfill:
@@ -219,5 +213,5 @@ class BackfillRangePlan:
                             backfill_id=uuid.uuid4().hex,
                             start_block=fail_range[0],
                             end_block=final_block,
-                            **self.backfill_kwargs,
+                            **range_kwargs,
                         )

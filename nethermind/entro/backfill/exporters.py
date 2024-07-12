@@ -1,5 +1,8 @@
 import atexit
+import csv
+import json
 import logging
+import os.path
 import queue
 import threading
 import time
@@ -20,7 +23,7 @@ from nethermind.entro.database.models import (
     transfer_model_for_network,
 )
 from nethermind.entro.database.models.uniswap import UNI_EVENT_MODELS
-from nethermind.entro.database.writers.utils import db_encode_hex
+from nethermind.entro.database.writers.utils import db_encode_dict, db_encode_hex
 from nethermind.entro.exceptions import BackfillError
 from nethermind.entro.types.backfill import (
     BackfillDataType,
@@ -58,15 +61,8 @@ class AbstractResourceExporter:
 
     def _encode_dataclass_as_dict(self, dataclass: Dataclass) -> dict[str, Any]:
         dataclass_dict = asdict(dataclass)
-        encoded_dataclass_dict = {}
 
-        for key, value in dataclass_dict.items():
-            if isinstance(value, bytes) or (isinstance(value, str) and value.startswith("0x")):
-                encoded_dataclass_dict.update({key: to_hex(value)})
-            else:
-                encoded_dataclass_dict.update({key: value})
-
-        return encoded_dataclass_dict
+        return dataclass_dict
 
     def __init__(self):
         self.init_time = time.time()
@@ -82,6 +78,8 @@ class AbstractResourceExporter:
 
 class FileResourceExporter(AbstractResourceExporter):
     file_name: str
+    write_headers: bool = False
+    csv_separator: str = "|"
 
     def __init__(self, file_name: str, append: bool = True):
         super().__init__()
@@ -92,18 +90,52 @@ class FileResourceExporter(AbstractResourceExporter):
         self.export_mode = ExportMode.csv
         self.file_name = file_name
         self.file_handle = open(file_name, "at" if append else "wt")
+        file_size = os.path.getsize(file_name)
+        if file_size == 0:
+            self.write_headers = True
 
-    def _encode_dataclass(self, dataclass: Dataclass) -> str:
+    def _csv_encode_value(self, encode_val: Any) -> Any:
+        if encode_val is None:
+            return ""
+
+        if isinstance(encode_val, str):
+            return encode_val
+
+        if isinstance(encode_val, (int, float)):
+            return str(encode_val)
+
+        if isinstance(encode_val, list):
+            return json.dumps([self._csv_encode_value(val) for val in encode_val])
+
+        if isinstance(encode_val, bytes):
+            return to_hex(encode_val, pad=32)
+
+        if isinstance(encode_val, dict):
+            return json.dumps({key: db_encode_dict(val) for key, val in encode_val.items()})
+
+        if isinstance(encode_val, Enum):
+            return encode_val.value
+
+        raise TypeError(f"Cannot Encode {encode_val} to CSV")
+
+    def _encode_dataclass(self, dataclass: Dataclass) -> tuple[list[str], str]:
         encoded_dict = self._encode_dataclass_as_dict(dataclass)
 
+        csv_encoded = [self._csv_encode_value(val) for val in encoded_dict.values()]
+
         if self.export_mode == ExportMode.csv:
-            return ",".join(encoded_dict.values())
+            return list(encoded_dict.keys()), self.csv_separator.join(csv_encoded)
         else:
             raise NotImplementedError(f"Export Mode {self.export_mode} is not implemented")
 
     def write(self, resources: list[Dataclass]):
+        # TODO: Optimize the CSV encoding disaster...
         for resource in resources:
-            csv_row = self._encode_dataclass(resource)
+            headers, csv_row = self._encode_dataclass(resource)
+            if self.write_headers:
+                self.file_handle.write(self.csv_separator.join(headers) + "\n")
+                self.write_headers = False
+
             self.file_handle.write(csv_row + "\n")
 
         self.resources_saved += len(resources)
@@ -129,7 +161,7 @@ class DBResourceExporter(AbstractResourceExporter):
         self,
         engine: Engine | Connection,
         default_model: Type[DeclarativeBase],
-        integrity_mode: IntegrityMode = "ignore",
+        integrity_mode: str = "ignore",
     ):
         super().__init__()
 
@@ -295,6 +327,11 @@ def get_file_exporters_for_backfill(backfill_type: BackfillDataType, kwargs: dic
             if "block_file" in kwargs:
                 return {"blocks": FileResourceExporter(kwargs["block_file"])}
             raise BackfillError("block export file required for block backfill")
+
+        case BackfillDataType.events:
+            if "event_file" in kwargs:
+                return {"events": FileResourceExporter(kwargs["event_file"])}
+            raise BackfillError("event export file required for event backfill")
 
         case BackfillDataType.transactions:
             if "transaction_file" in kwargs and "block_file" in kwargs:

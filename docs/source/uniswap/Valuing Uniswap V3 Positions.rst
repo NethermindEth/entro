@@ -88,7 +88,7 @@ Simulating Synthetic Swap Dataset
     >>> plt.hist(trade_amounts, bins=30, alpha=0.5, color="lightblue", edgecolor="black")
     >>> plt.show()
 
-.. image:: _static/trade-sizing.png
+.. image:: ../_static/trade-sizing.png
 
 The next step is to convert these USD trade sizes into raw token_0 and token_1 amounts, and execute
 the swaps on the pool
@@ -146,4 +146,4 @@ Visualizing Position Valuations
     >>> pos_1.plot.line(x="block_number", y="token_1_value", secondary_y=True, ax=ax)
     >>> plt.show()
 
-.. figure:: _static/position-valuation.png
+.. figure:: ../_static/position-valuation.png

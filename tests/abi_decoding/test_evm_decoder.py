@@ -2,7 +2,7 @@ import json
 
 from eth_utils import to_checksum_address as tca
 
-from nethermind.entro.decoding.evm_decoder import EVMDecoder
+from nethermind.entro.decoding.event_decoders import EVMDecoder
 from nethermind.entro.utils import to_bytes
 from tests.resources.ABI import ERC20_ABI_JSON, ERC721_ABI_JSON
 

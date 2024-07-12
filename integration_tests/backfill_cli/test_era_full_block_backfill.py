@@ -47,7 +47,7 @@ def test_full_backfill_zk_sync_era(
         erc_20_res = runner.invoke(
             entro_cli,
             [
-                "decoding",
+                "decode",
                 "add-abi",
                 "ERC20",
                 "ERC20.json",
@@ -59,7 +59,7 @@ def test_full_backfill_zk_sync_era(
         erc_721_res = runner.invoke(
             entro_cli,
             [
-                "decoding",
+                "decode",
                 "add-abi",
                 "ERC721",
                 "ERC721.json",
@@ -72,7 +72,7 @@ def test_full_backfill_zk_sync_era(
         classic_res = runner.invoke(
             entro_cli,
             [
-                "decoding",
+                "decode",
                 "add-abi",
                 "SyncSwapClassicPair",
                 "SyncSwapClassicPair.json",
@@ -84,7 +84,7 @@ def test_full_backfill_zk_sync_era(
         stable_res = runner.invoke(
             entro_cli,
             [
-                "decoding",
+                "decode",
                 "add-abi",
                 "SyncSwapStablePair",
                 "SyncSwapStablePair.json",
