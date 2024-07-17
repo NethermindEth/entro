@@ -279,7 +279,7 @@ class DecodingDispatcher:
             return
 
         try:
-            self.event_decoders[event_selector].update({add_decoder_index: decoder})  # type: ignore
+            self.event_decoders[event.signature].update({add_decoder_index: decoder})  # type: ignore
         except AttributeError:
             existing_decoder = self.event_decoders[event.signature]
 

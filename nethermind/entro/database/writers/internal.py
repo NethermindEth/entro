@@ -18,11 +18,14 @@ def write_abi(abi: ContractABI, db_session: Session | None):
         if not os.path.exists(app_dir := get_app_dir("entro")):
             os.mkdir(app_dir)
 
-        with open(contract_path := os.path.join(app_dir, "contract-abis.json"), "rt") as abi_file:
-            if os.path.getsize(contract_path) == 0:
-                abi_json = []
-            else:
-                abi_json: list[dict[str, Any]] = json.load(abi_file)
+        if os.path.exists(contract_path := os.path.join(app_dir, "contract-abis.json")):
+            with open(contract_path := os.path.join(app_dir, "contract-abis.json"), "rt") as abi_file:
+                if os.path.getsize(contract_path) == 0:
+                    abi_json = []
+                else:
+                    abi_json: list[dict[str, Any]] = json.load(abi_file)
+        else:
+            abi_json = []
 
         # TODO: Clean this up & Add better error handling.  A ^C in this block could corrupt stored ABIs...
 
