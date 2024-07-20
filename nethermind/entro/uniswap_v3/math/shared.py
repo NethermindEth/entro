@@ -70,10 +70,10 @@ def call_evm_contract(
     :return: Response bytes formatted as HexString
     """
     try:
-        tx_result = evm_instance.call_raw(
+        tx_result = evm_instance.message_call(
             caller="0x0123456789012345678901234567890123456789",
             to=to_address,
-            data=list(data),
+            calldata=data,
         )
     except RuntimeError:
         raise exception_class if exception_class else RuntimeError  # pylint: disable=raise-missing-from

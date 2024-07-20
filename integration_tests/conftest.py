@@ -50,10 +50,10 @@ def integration_postgres_db():
     )
     connection.set_isolation_level(ISOLATION_LEVEL_AUTOCOMMIT)
     connection.cursor().execute("CREATE DATABASE entro;")
+    connection.close
 
     yield
 
-    connection.close()
     container.stop()
 
 

@@ -49,11 +49,12 @@ def test_backfilling_start_at_end_at(
     create_debug_logger,
 ):
     backfill_plan = BackfillPlan.generate(
-        db_session=integration_db_session,
-        backfill_type=BackfillDataType.blocks,
         network=SupportedNetwork.ethereum,
+        backfill_type=BackfillDataType.blocks,
+        supported_datasources=["json_rpc", "etherscan"],
         start_block=18_000_020,
         end_block=18_000_060,
+        db_url=integration_db_session.get_bind().url,
     )
 
     assert backfill_plan.range_plan.backfill_ranges == [(18_000_020, 18_000_060)]
@@ -120,11 +121,12 @@ def test_extending_range_failed_backfill(integration_postgres_db, integration_db
     integration_db_session.commit()
 
     extension_backfill = BackfillPlan.generate(
-        db_session=integration_db_session,
-        backfill_type=BackfillDataType.blocks,
         network=SupportedNetwork.ethereum,
+        backfill_type=BackfillDataType.blocks,
+        supported_datasources=["json_rpc", "etherscan"],
         start_block=14_000_000,
         end_block=18_000_000,
+        db_url=integration_db_session.get_bind().url,
     )
 
     extension_backfill.process_failed_backfill(16_000_000)
@@ -153,20 +155,22 @@ def test_multi_range_failed_backfills(integration_postgres_db, integration_db_se
     )
     integration_db_session.commit()
 
-    single_range_fail_plan = BackfillPlan.generate(
-        db_session=integration_db_session,
-        backfill_type=BackfillDataType.blocks,
+    single_range_fail_plan = BackfillPlan.from_cli(
         network=SupportedNetwork.ethereum,
+        backfill_type=BackfillDataType.blocks,
+        supported_datasources=["json_rpc", "etherscan"],
         start_block=10_000_000,
         end_block=18_000_000,
+        db_url=integration_db_session.get_bind().url,
     )
 
-    dual_range_fail_plan = BackfillPlan.generate(
-        db_session=integration_db_session,
-        backfill_type=BackfillDataType.blocks,
+    dual_range_fail_plan = BackfillPlan.from_cli(
         network=SupportedNetwork.ethereum,
+        backfill_type=BackfillDataType.blocks,
+        supported_datasources=["json_rpc", "etherscan"],
         start_block=10_000_000,
         end_block=18_000_000,
+        db_url=integration_db_session.get_bind().url,
     )
 
     single_range_fail_plan.process_failed_backfill(11_000_000)

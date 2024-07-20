@@ -15,9 +15,9 @@ from nethermind.entro.database.models import (
 from nethermind.entro.database.writers import EventWriter, ModelWriter
 from nethermind.entro.decoding import DecodingDispatcher
 from nethermind.entro.types.backfill import BackfillDataType, SupportedNetwork
+from nethermind.idealis.utils import to_hex
 
 from ..exceptions import BackfillError
-from ..utils import to_hex
 from .async_rpc import retry_enabled_batch_post
 
 root_logger = logging.getLogger("nethermind")

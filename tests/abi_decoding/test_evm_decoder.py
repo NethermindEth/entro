@@ -2,8 +2,8 @@ import json
 
 from eth_utils import to_checksum_address as tca
 
-from nethermind.entro.decoding.event_decoders import EVMDecoder
-from nethermind.entro.utils import to_bytes
+from nethermind.entro.decoding.event_decoders import EVMEventDecoder
+from nethermind.idealis.utils import to_bytes
 from tests.resources.ABI import ERC20_ABI_JSON, ERC721_ABI_JSON
 
 ERC_20_ABI = json.loads(ERC20_ABI_JSON)
@@ -11,7 +11,7 @@ ERC721_ABI = json.loads(ERC721_ABI_JSON)
 
 
 def test_decoder_initialization():
-    decoder_instance = EVMDecoder("ERC20", ERC_20_ABI)
+    decoder_instance = EVMEventDecoder("ERC20", ERC_20_ABI)
 
     loaded_functions = [func.function_signature for func in decoder_instance.function_decoders.values()]
     loaded_events = [event.event_signature for event in decoder_instance.event_decoders.values()]
@@ -25,7 +25,7 @@ def test_decoder_initialization():
 
 
 def test_decode_transfers():
-    decoder_instance = EVMDecoder("ERC20", ERC_20_ABI)
+    decoder_instance = EVMEventDecoder("ERC20", ERC_20_ABI)
 
     address_1 = "000000000000000000000000f8e81D47203A594245E36C48e151709F0C19fBe8"
     address_2 = "000000000000000000000000bEbc44782C7dB0a1A60Cb6fe97d0b483032FF1C7"

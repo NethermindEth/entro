@@ -9,11 +9,11 @@ from nethermind.entro.types.backfill import (
     ImporterCallable,
     SupportedNetwork,
 )
-from nethermind.entro.utils import to_bytes
 from nethermind.idealis.rpc.starknet import (
     get_blocks_with_txns,
     get_events_for_contract,
 )
+from nethermind.idealis.utils import to_bytes
 
 
 def starknet_transaction_importer(from_block: int, to_block: int, **kwargs) -> dict[str, list[Dataclass]]:

@@ -140,7 +140,8 @@ def list_abis(db_url: str | None):
     evm_abis = get_abis(db_session)
     starknet_abis = get_abis(db_session, decoder_os="Cairo")
     longest_abi_name = max(len(abi.abi_name) for abi in evm_abis + starknet_abis)
-    click.echo("  ABI Name" + " " * (longest_abi_name - 4) + "Priority")
+
+    # click.echo("  ABI Name" + " " * (longest_abi_name - 4) + "Priority")
     pager_text = [
         "-------- EVM ABIs -------\n",
         *[f"{abi.abi_name} {'-' * (longest_abi_name - len(abi.abi_name) + 2)}> {abi.priority}\n" for abi in evm_abis],

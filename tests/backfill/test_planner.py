@@ -2,11 +2,11 @@ import uuid
 
 import pytest
 
-from nethermind.entro.backfill.planner import (
-    BackfillRangePlan,
+from nethermind.entro.backfill.filter import (
     _filter_conflicting_backfills,
     _verify_filters,
 )
+from nethermind.entro.backfill.planner import BackfillRangePlan
 from nethermind.entro.database.models import BackfilledRange
 from nethermind.entro.exceptions import BackfillError
 from nethermind.entro.types.backfill import BackfillDataType

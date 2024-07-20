@@ -42,7 +42,7 @@ json_rpc_option = click.option(
     "-rpc",
     "json_rpc",
     default=os.environ.get("JSON_RPC"),
-    help="JSONRPC URL to use for backfilling.  If not provided, will use the JSON_RPC environment variable",
+    help="RPC url to use for backfilling.  If not provided, will use the JSON_RPC environment variable",
 )
 db_url_option = click.option(
     "--db-url",

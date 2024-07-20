@@ -11,7 +11,8 @@ from nethermind.entro.database.writers.utils import db_encode_dict
 from nethermind.entro.decoding import DecodedEvent
 from nethermind.entro.decoding.utils import signature_to_name
 from nethermind.entro.types.backfill import SupportedNetwork
-from nethermind.entro.utils import camel_to_snake, maybe_hex_to_int
+from nethermind.entro.utils import camel_to_snake
+from nethermind.idealis.utils import hex_to_int
 
 from .base_writer import BaseWriter, IntegrityModes
 from .utils import db_encode_hex
@@ -106,9 +107,9 @@ class EventWriter(BaseWriter):
         """Writes an event to the database."""
 
         shared_params = {
-            "block_number": maybe_hex_to_int(raw_log["blockNumber"]),
-            "log_index": maybe_hex_to_int(raw_log["logIndex"]),
-            "transaction_index": maybe_hex_to_int(raw_log["transactionIndex"]),
+            "block_number": hex_to_int(raw_log["blockNumber"]),
+            "log_index": hex_to_int(raw_log["logIndex"]),
+            "transaction_index": hex_to_int(raw_log["transactionIndex"]),
             "contract_address": db_encode_hex(raw_log["address"], self.db_dialect),
         }
 

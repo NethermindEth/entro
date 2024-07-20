@@ -14,10 +14,10 @@ from nethermind.entro.database.readers.prices import get_pool_creation_backfills
 from nethermind.entro.decoding import DecodingDispatcher
 from nethermind.entro.exceptions import BackfillError, OracleError
 from nethermind.entro.types.backfill import BackfillDataType, SupportedNetwork
+from nethermind.idealis.utils import hex_to_int
 
 from ..database.writers import EventWriter
 from ..types.prices import AbstractTokenMarket, SupportedPricingPool, TokenMarketInfo
-from ..utils import maybe_hex_to_int
 from .async_rpc import retry_enabled_batch_post
 from .json_rpc import cli_get_logs, decode_events_for_requests
 from .planner import BackfillPlan
@@ -165,9 +165,9 @@ def get_price_events_for_range(
             continue
         return_vals.append(
             {
-                "block_number": maybe_hex_to_int(log["blockNumber"]),
-                "log_index": maybe_hex_to_int(log["logIndex"]),
-                "transaction_index": maybe_hex_to_int(log["transactionIndex"]),
+                "block_number": hex_to_int(log["blockNumber"]),
+                "log_index": hex_to_int(log["logIndex"]),
+                "transaction_index": hex_to_int(log["transactionIndex"]),
                 **decoding_result.event_data,
             }
         )
