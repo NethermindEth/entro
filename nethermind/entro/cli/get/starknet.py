@@ -7,7 +7,7 @@ from rich.console import Console
 from rich.panel import Panel
 from rich.highlighter import RegexHighlighter
 
-from nethermind.entro.cli.utils import cli_logger_config, group_options, json_rpc_option
+from nethermind.entro.cli.utils import cli_logger_config, group_options, json_rpc_option, rich_json
 from nethermind.idealis.utils import to_bytes, to_hex, zero_pad_hexstr
 
 root_logger = logging.getLogger("nethermind")
@@ -194,13 +194,13 @@ def get_decoded_transaction(transaction_hash, json_rpc, full_trace, raw):
         trace_table.add_column("Value")
 
         if full_trace:
-            trace_table.add_row("Decoded Inputs", json.dumps(call_trace.decoded_inputs))
-            trace_table.add_row("Decoded Outputs", json.dumps(call_trace.decoded_outputs))
+            trace_table.add_row("Decoded Inputs", rich_json(call_trace.decoded_inputs))
+            trace_table.add_row("Decoded Outputs", rich_json(call_trace.decoded_outputs))
             trace_table.add_row("Class Hash", to_hex(call_trace.class_hash))
 
         if raw:
-            trace_table.add_row("Calldata", json.dumps([to_hex(c) for c in call_trace.calldata]))
-            trace_table.add_row("Result", json.dumps([to_hex(r) for r in call_trace.result]))
+            trace_table.add_row("Calldata", rich_json([to_hex(c) for c in call_trace.calldata]))
+            trace_table.add_row("Result", rich_json([to_hex(r) for r in call_trace.result]))
             trace_table.add_row("Selector", to_hex(call_trace.selector))
         if trace_table.row_count > 0:
             tree_text.append(trace_table)
@@ -223,11 +223,11 @@ def get_decoded_transaction(transaction_hash, json_rpc, full_trace, raw):
 
             event_table.add_row("Name", f"[bold blue]{event.event_name}")
             event_table.add_row("Contract", f"0x{event.contract_address.hex()}")
-            event_table.add_row("Decoded", json.dumps(event.decoded_params))
+            event_table.add_row("Decoded", rich_json(event.decoded_params))
 
             if raw:
-                event_table.add_row("Keys", json.dumps([to_hex(k) for k in event.keys]))
-                event_table.add_row("Data", json.dumps([to_hex(d) for d in event.data]))
+                event_table.add_row("Keys", rich_json([to_hex(k) for k in event.keys]))
+                event_table.add_row("Data", rich_json([to_hex(d) for d in event.data]))
                 event_table.add_row("Class Hash", to_hex(event.class_hash))
 
             yield event_table

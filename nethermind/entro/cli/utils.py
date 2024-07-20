@@ -1,3 +1,4 @@
+import json
 import logging
 import os
 from logging import Logger
@@ -12,6 +13,14 @@ from nethermind.entro.types.backfill import DataSources, SupportedNetwork
 
 root_logger = logging.getLogger("nethermind")
 logger = root_logger.getChild("entro").getChild("cli")
+
+
+def rich_json(value: dict | list) -> str:
+    json_str = json.dumps(value)
+    json_str = json_str.replace('true', '"True"')  # TODO: Clean up this handling more
+    json_str = json_str.replace('false', '"False"')
+
+    return json_str
 
 
 def cli_logger_config(instrument_logger: Logger) -> Console:
