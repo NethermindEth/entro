@@ -17,18 +17,18 @@ logger = root_logger.getChild("entro").getChild("cli")
 
 def rich_json(value: dict | list) -> str:
     json_str = json.dumps(value)
-    json_str = json_str.replace('true', '"True"')  # TODO: Clean up this handling more
-    json_str = json_str.replace('false', '"False"')
+    json_str = json_str.replace("true", '"True"')  # TODO: Clean up this handling more
+    json_str = json_str.replace("false", '"False"')
 
     return json_str
 
 
 def cli_logger_config(instrument_logger: Logger) -> Console:
     rich_console = Console()
-    logger.handlers.clear()
+    instrument_logger.handlers.clear()
 
-    logger.addHandler(RichHandler(show_path=False, console=rich_console))
-    logger.setLevel(logging.WARNING)
+    instrument_logger.addHandler(RichHandler(show_path=False, console=rich_console))
+    instrument_logger.setLevel(logging.INFO)
     return rich_console
 
 
@@ -148,6 +148,12 @@ token_address_option = click.option(
 #    Backfill Configuration Parameters
 # -------------------------------------------------------
 
+no_interaction_option = click.option(
+    "--no-interaction",
+    is_flag=True,
+    default=False,
+    help="If provided, will run backfill without interactive prompts & progress bar",
+)
 decode_abis_option = click.option(
     "--decode_abis",
     "-abi",

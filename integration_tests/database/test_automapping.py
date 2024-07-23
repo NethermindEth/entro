@@ -19,7 +19,7 @@ def test_automap_ethereum_tables(integration_postgres_db, integration_db_session
     assert len(ethereum_models) == 2
 
 
-def test_automap_invalid_tables(integration_postgres_db, integration_db_session):
+def test_automap_invalid_tables(integration_db_session):
     db_engine = integration_db_session.get_bind()
 
     migrate_up(db_engine)

@@ -58,7 +58,7 @@ def integration_postgres_db():
 
 
 @pytest.fixture
-def integration_db_url() -> str:
+def integration_db_url(integration_postgres_db) -> str:
     return f"postgresql+psycopg2://postgres:{os.environ['PG_PASS']}@127.0.0.1:{os.environ['PG_PORT']}/entro"
 
 

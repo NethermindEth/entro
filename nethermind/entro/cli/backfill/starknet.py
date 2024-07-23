@@ -11,7 +11,6 @@ from nethermind.entro.cli.utils import (
     block_file_option,
     cli_logger_config,
     contract_address_option,
-    create_cli_session,
     db_url_option,
     decode_abis_option,
     event_file_option,
@@ -19,6 +18,7 @@ from nethermind.entro.cli.utils import (
     from_block_option,
     group_options,
     json_rpc_option,
+    no_interaction_option,
     to_block_option,
     transaction_file_option,
 )
@@ -45,6 +45,7 @@ def starknet_group():
     event_file_option,
     decode_abis_option,
     all_abis_option,
+    no_interaction_option,
 )
 def full_blocks(
     **kwargs,
@@ -63,8 +64,8 @@ def full_blocks(
         logger.error(e)
         return
 
-    backfill_plan.print_backfill_plan(console)
-    if backfill_plan.confirm:
+    if not backfill_plan.no_interaction:
+        backfill_plan.print_backfill_plan(console)
         p = Prompt.ask("Execute Backfill? [y/n] ", console=console, choices=["y", "n"])
         if p == "n":
             return
@@ -91,6 +92,7 @@ def transactions():
     event_name_option,
     batch_size_option,
     event_file_option,
+    no_interaction_option,
 )
 def events(**kwargs):
     """Backfill & ABI Decode StarkNet Events for a Contract"""
@@ -108,8 +110,8 @@ def events(**kwargs):
         logger.error(e)
         return
 
-    backfill_plan.print_backfill_plan(console)
-    if backfill_plan.confirm:
+    if not backfill_plan.no_interaction:
+        backfill_plan.print_backfill_plan(console)
         p = Prompt.ask("Execute Backfill? [y/n] ", console=console, choices=["y", "n"])
         if p == "n":
             return

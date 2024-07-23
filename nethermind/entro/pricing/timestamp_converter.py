@@ -1,9 +1,13 @@
+import asyncio
+import os
 from bisect import bisect_right
 from dataclasses import dataclass
 from datetime import date, datetime, timezone
+from typing import Sequence
 
-from sqlalchemy import select
-from sqlalchemy.orm import Session
+from aiohttp import ClientSession
+from sqlalchemy import create_engine, select
+from sqlalchemy.orm import Session, sessionmaker
 
 from nethermind.entro.backfill.async_rpc import retry_enabled_batch_post
 from nethermind.entro.backfill.utils import (
@@ -12,54 +16,53 @@ from nethermind.entro.backfill.utils import (
     get_current_block_number,
 )
 from nethermind.entro.database.models import AbstractBlock, block_model_for_network
+from nethermind.entro.database.readers.internal import (
+    first_block_timestamp,
+    get_block_timestamps,
+)
+from nethermind.entro.database.writers.internal import write_block_timestamps
 from nethermind.entro.exceptions import BackfillError
 from nethermind.entro.types import BlockIdentifier
-from nethermind.entro.types.backfill import SupportedNetwork
+from nethermind.entro.types.backfill import (
+    BlockProtocol,
+    BlockTimestamp,
+    SupportedNetwork,
+)
 
 
-@dataclass(slots=True)
-class BlockTimestamp:
-    """More efficient way of storing block timestamps than a dict"""
-
-    block_number: int
-    timestamp: datetime
-
-
-def _get_timestamps_from_db(
-    db_session: Session,
+def get_blocks_for_network(
+    block_numbers: list[int],
+    json_rpc: str,
     network: SupportedNetwork,
-    resolution: int,
-    from_block: int = 0,
-) -> list[BlockTimestamp]:
+) -> Sequence[BlockProtocol]:
     """
-    Gets block timestamps from the database for a given network and resolution.
+    Given a network and a sequence of block numbers, returns the block dataclasses for the provided network
+    """
 
-    :param db_session: Database session
-    :param network: Network to get timestamps for
-    :param resolution: Resolution of timestamps
-    :param from_block: Inclusive Block number to search from
-    :return: List of BlockTimestamps
-    """
-    network_block: AbstractBlock = block_model_for_network(network)  # type: ignore
-    select_stmt = (
-        select(network_block.block_number, network_block.timestamp)  # type: ignore
-        .filter(
-            network_block.block_number % resolution == 0,
-            network_block.block_number >= from_block,
-        )
-        .order_by(network_block.block_number)  # type: ignore
-    )
-    return [
-        BlockTimestamp(
-            block_number=row[0],
-            timestamp=(
-                datetime.fromtimestamp(row[1], tz=timezone.utc)
-                if row[0] != 0
-                else datetime(2015, 7, 30, 15, 26, 28, tzinfo=timezone.utc)
-            ),
-        )
-        for row in db_session.execute(select_stmt).all()
-    ]
+    from nethermind.idealis.rpc.starknet.core import get_blocks
+
+    async def _get_blocks() -> Sequence[BlockProtocol]:
+        client_session = ClientSession()
+        match network:
+            case SupportedNetwork.starknet:
+                return await get_blocks(block_numbers, json_rpc, client_session)
+            case _:
+                raise ValueError(f"Unsupported Network: {network}")
+
+    return asyncio.run(_get_blocks())
+
+
+def _default_resolution(network: SupportedNetwork) -> int:
+    "Default block resolution.  Networks with faster block times will have larger block resolutions"
+    match network:
+        case SupportedNetwork.ethereum:
+            return 10_000
+        case SupportedNetwork.zk_sync_era:
+            return 20_000
+        case SupportedNetwork.starknet:
+            return 100
+        case _:
+            raise ValueError(f"Unsupported Network: {network}")
 
 
 class TimestampConverter:
@@ -95,7 +98,7 @@ class TimestampConverter:
         Network to convert timestamps for.  Defaults to Ethereum Mainnet 
     """
 
-    db_session: Session
+    db_session: Session | None
     """ 
         DB Session to use when pulling from DB. If None, wont interact with DB and will cache timestamps 
         to a csv file in the CWD instead.
@@ -104,16 +107,22 @@ class TimestampConverter:
     def __init__(
         self,
         network: SupportedNetwork,
-        db_session: Session,
-        resolution: int = 10_000,
-        json_rpc: str = default_rpc(network),
+        db_url: str | None = None,
+        resolution: int | None = None,
+        json_rpc: str | None = None,
     ):
         self.network = network
-        self.timestamp_resolution = resolution
-        self.json_rpc = json_rpc
-        self.db_session = db_session
+        self.timestamp_resolution = resolution or _default_resolution(network)
 
-        self.timestamp_data = _get_timestamps_from_db(db_session=db_session, network=network, resolution=resolution)
+        if json_rpc:
+            os.environ["JSON_RPC"] = json_rpc
+            self.json_rpc = json_rpc
+        else:
+            self.json_rpc = default_rpc(network)
+
+        self.db_session = sessionmaker(create_engine(db_url))() if db_url else None
+
+        self.timestamp_data = get_block_timestamps(db_session=self.db_session, network=network, resolution=resolution)
 
         self.update_timestamps()
 
@@ -145,47 +154,35 @@ class TimestampConverter:
         :param blocks:
         :return:
         """
-        request_objects = [
-            {
-                "jsonrpc": "2.0",
-                "method": "eth_getBlockByNumber",
-                "params": [hex(block), False],
-                "id": 1,
-            }
-            for block in blocks
-        ]
 
-        block_responses = retry_enabled_batch_post(
-            request_objects=request_objects, json_rpc=self.json_rpc, max_concurrency=20
+        new_block_dataclasses = get_blocks_for_network(
+            block_numbers=blocks,
+            json_rpc=self.json_rpc,
+            network=self.network,
         )
-        if block_responses == "failed":
-            raise BackfillError("Failed to backfill timestamps")
 
-        block_models, db_dialect = [], self.db_session.get_bind().dialect.name
-        for resp in block_responses:
-            ...
-            # TODO: Overhaul with updated Idealis functions
-            # block_model, _, _ = rpc_response_to_block_model(
-            #     block=resp,
-            #     network=self.network,
-            #     db_dialect=db_dialect,
-            # )
-            # block_models.append(block_model)
+        if self.db_session:
+            # Convert dataclasses to models & Save to DB
+            # TODO: handle this for DB caching of timestamps
+            pass
 
-        self.db_session.add_all(block_models)
-        self.db_session.commit()
-
-        return [
+        block_timestamps = [
             BlockTimestamp(
                 block_number=block.block_number,
                 timestamp=(
                     datetime.fromtimestamp(block.timestamp, tz=timezone.utc)
                     if block.block_number != 0
-                    else datetime(2015, 7, 30, 15, 26, 28, tzinfo=timezone.utc)
+                    else first_block_timestamp(self.network)
                 ),
             )
-            for block in block_models
+            for block in new_block_dataclasses
         ]
+
+        if self.db_session is None:
+            # Dont save block dataclasses to DB, save BlockTimestamp dataclasses to disk
+            write_block_timestamps(block_timestamps, self.network)
+
+        return block_timestamps
 
     def block_to_datetime(self, block_number: int) -> datetime:
         """

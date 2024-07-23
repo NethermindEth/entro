@@ -4,10 +4,15 @@ import logging
 
 import click
 from rich.console import Console
-from rich.panel import Panel
 from rich.highlighter import RegexHighlighter
+from rich.panel import Panel
 
-from nethermind.entro.cli.utils import cli_logger_config, group_options, json_rpc_option, rich_json
+from nethermind.entro.cli.utils import (
+    cli_logger_config,
+    group_options,
+    json_rpc_option,
+    rich_json,
+)
 from nethermind.idealis.utils import to_bytes, to_hex, zero_pad_hexstr
 
 root_logger = logging.getLogger("nethermind")

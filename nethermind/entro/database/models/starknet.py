@@ -1,6 +1,6 @@
 from typing import Any
 
-from sqlalchemy import JSON, Integer, PrimaryKeyConstraint, Text
+from sqlalchemy import JSON, BigInteger, Integer, Numeric, PrimaryKeyConstraint, Text
 from sqlalchemy.orm import Mapped, mapped_column
 
 from nethermind.entro.database.models.base import (
@@ -8,9 +8,11 @@ from nethermind.entro.database.models.base import (
     AbstractERC20Transfer,
     AbstractEvent,
     AbstractTransaction,
+    BlockNumberPK,
     Hash32,
     IndexedAddress,
 )
+from nethermind.idealis.types.starknet.enums import BlockDataAvailabilityMode
 
 # pylint: disable=missing-class-docstring
 
@@ -18,9 +20,23 @@ from nethermind.entro.database.models.base import (
 class Block(AbstractBlock):
     __tablename__ = "blocks"
 
-    state_root: Mapped[Hash32]
+    block_number: Mapped[BlockNumberPK]
+    timestamp: Mapped[int] = mapped_column(BigInteger, nullable=False)
 
-    status: Mapped[str | None]
+    block_hash: Mapped[Hash32]
+    parent_hash: Mapped[Hash32]
+    new_root: Mapped[Hash32]
+    sequencer_address: Mapped[Hash32]
+
+    l1_gas_price_wei: Mapped[int] = mapped_column(Numeric, nullable=False)
+    l1_gas_price_fri: Mapped[int] = mapped_column(Numeric, nullable=False)
+    l1_data_gas_price_wei: Mapped[int | None] = mapped_column(Numeric, nullable=True)
+    l1_data_gas_price_fri: Mapped[int | None] = mapped_column(Numeric, nullable=True)
+    l1_da_mode: Mapped[BlockDataAvailabilityMode]
+
+    starknet_version: Mapped[str]
+    transaction_count: Mapped[int]
+    total_fee: Mapped[int] = mapped_column(Numeric, nullable=False)
 
     __table_args__ = {"schema": "starknet_data"}
 

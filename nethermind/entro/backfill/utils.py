@@ -12,6 +12,7 @@ from rich.progress import (
     TimeRemainingColumn,
 )
 
+from nethermind.idealis.exceptions import RPCError
 from nethermind.entro.types import BlockIdentifier
 from nethermind.entro.types.backfill import SupportedNetwork as SN
 
@@ -44,7 +45,7 @@ def default_rpc(network: SN) -> str:
         case SN.zk_sync_era:
             return "https://mainnet.era.zksync.io"
         case SN.starknet:
-            return "https://starknet-mainnet.public.blastapi.io"
+            return "https://free-rpc.nethermind.io/mainnet-juno/"
         case _:
             raise NotImplementedError(f"Network {network} does not")
 
@@ -83,7 +84,10 @@ def get_current_block_number(network: SN) -> int:
                 json={"jsonrpc": "2.0", "id": 0, "method": "eth_blockNumber"},
                 timeout=30,
             ).json()
-            return int(response["result"], 16)
+            try:
+                return int(response["result"], 16)
+            except KeyError:
+                raise RPCError(f"Error fetching current block number for Ethereum: {response}")
 
         case SN.starknet:
             rpc = os.environ.get("JSON_RPC", default_rpc(network))
@@ -93,7 +97,10 @@ def get_current_block_number(network: SN) -> int:
                 json={"id": 1, "jsonrpc": "2.0", "method": "starknet_blockNumber"},
                 timeout=30,
             ).json()
-            return int(response["result"])
+            try:
+                return int(response["result"])
+            except KeyError:
+                raise RPCError(f"Error fetching current block number for Starknet: {response}")
 
         case _:
             raise NotImplementedError(f"Network {network} not implemented")

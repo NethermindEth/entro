@@ -5,6 +5,7 @@ import os
 from pathlib import Path
 
 import pytest
+import sqlalchemy
 
 from nethermind.entro.database.models.base import Base
 
@@ -67,20 +68,10 @@ def walk_directory(directory) -> list[str]:
 
 
 model_paths = walk_directory(PARENT_DIRECTORY / "nethermind" / "entro" / "database" / "models")
+un_prefixed_models = [model_path.replace("nethermind.entro.database.models.", "") for model_path in model_paths]
 
 
-# Step 1:
-# Recursively look through the python_eth_amm/database/models directory & generate list of DB Models
-
-# Step 2 pytest.mark.parametrize the list of DB Models to the test function
-# Call inspect.getmembers on the module to get all the class attributes (ignore methods)
-# Call class.__dict__() to get the declared attributes of the class
-# If there are attributes in the getmembers that are not present in the __dict__ then they are inherited attributes
-# If inherited attributes not in [__tablename__, etc...] raise error since attribute needs to be overriden with
-#   sqlalchemy type that can be mapped to DB
-
-
-@pytest.mark.parametrize("database_model", model_paths)
+@pytest.mark.parametrize("database_model", un_prefixed_models)
 def test_sqlalchemy_models_override_all_dataclass_fields(database_model):
     """
     Test that all dataclass fields in a SQLAlchemy model are overridden with SQLAlchemy types.
@@ -91,6 +82,7 @@ def test_sqlalchemy_models_override_all_dataclass_fields(database_model):
     db_model(**dataclasses.to_dict(dataclass)) syntax
     """
     Base.metadata.clear()
+    database_model = f"nethermind.entro.database.models.{database_model}"
 
     module_name, db_model_name = database_model.rsplit(".", 1)
 
@@ -101,9 +93,9 @@ def test_sqlalchemy_models_override_all_dataclass_fields(database_model):
     spec.loader.exec_module(module)
 
     class_def = getattr(module, db_model_name)
-    unique_keys = {k for k in class_def.__table__.columns.keys() if not k.startswith("_")}
-
-    assert set(class_def.__table__.columns.keys()) == unique_keys
+    database_model_columns: list[sqlalchemy.Column] = [
+        col for key, col in class_def.__table__.columns.items() if not key.startswith("_")
+    ]
 
     dataclass_path = database_model.rsplit(".", 2)[1:-1]
     dataclass_mod_path = f"nethermind.idealis.types." + ".".join(dataclass_path)
@@ -119,4 +111,18 @@ def test_sqlalchemy_models_override_all_dataclass_fields(database_model):
 
     dataclass = getattr(dataclass_module, dataclass_search_name)
     fields = dataclasses.fields(dataclass)
-    print(fields)
+
+    print(f"Dataclass Fields: {fields}")
+    print(f"Database Model Columns: {database_model_columns}")
+
+    assert len(fields) == len(database_model_columns)
+
+    db_col_map = {col.name: col for col in database_model_columns}
+
+    for dataclass_field in fields:
+        assert dataclass_field.name in db_col_map
+
+        db_column = db_col_map[dataclass_field.name]
+
+        if isinstance(dataclass_field.type, int):
+            assert db_column.type.python_type == int

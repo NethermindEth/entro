@@ -1,4 +1,5 @@
 import logging
+import os
 import shutil
 import traceback
 from dataclasses import dataclass
@@ -76,7 +77,7 @@ class BackfillPlan:
 
     batch_size: int  # Number of blocks to backfill at a time
     max_concurrency: int = 10  # Maximum number of concurrent requests
-    confirm: bool = True  # Whether to confirm the backfill before executing
+    no_interaction: bool = False  # Whether to confirm the backfill before executing
 
     @classmethod
     def from_cli(
@@ -129,6 +130,7 @@ class BackfillPlan:
             filter_params=filter_params,
             decoder=decoder,
             batch_size=metadata_dict.get("batch_size", _default_batch_size(backfill_type)),
+            no_interaction=kwargs.get("no_interaction", False),
         )
 
     @staticmethod
@@ -173,7 +175,7 @@ class BackfillPlan:
         :param killer: Graceful Killer
         """
 
-        with Progress(*progress_defaults, console=console) as progress:
+        with Progress(*progress_defaults, console=console, disable=self.no_interaction) as progress:
             for range_idx, (range_start, range_end) in enumerate(self.range_plan.backfill_ranges):
                 range_progress = progress.add_task(
                     description=self.backfill_label(range_idx),
@@ -195,23 +197,23 @@ class BackfillPlan:
                             **self.filter_params,
                         )
 
-                        for data_key, exporter in self.exporters.items():
-                            export_dataclasses = batch_dataclasses.get(data_key, [])
-
-                            if self.decoder:
-                                self.decoder.decode_dataclasses(data_kind=data_key, dataclasses=export_dataclasses)
-
-                            exporter.write(export_dataclasses)
-
-                        progress.update(range_progress, advance=batch_end - batch_start, searching_block=batch_end)
-
-                    except BaseException as e:  # pylint: disable=broad-except
+                    except Exception as e:  # pylint: disable=broad-except
                         console.print(
                             f"[red] ----  Unexpected Error Processing Blocks {batch_start} - {batch_end}  ----"
                         )
-                        console.print(traceback.format_exception(type(e), e, e.__traceback__))
+                        console.print_exception()
                         self.process_failed_backfill(batch_start)
                         return
+
+                    for data_key, exporter in self.exporters.items():
+                        export_dataclasses = batch_dataclasses.get(data_key, [])
+
+                        if self.decoder:
+                            self.decoder.decode_dataclasses(data_kind=data_key, dataclasses=export_dataclasses)
+
+                        exporter.write(export_dataclasses)
+
+                    progress.update(range_progress, advance=batch_end - batch_start, searching_block=batch_end)
 
         console.print("[green]---- Backfill Complete ------")
 

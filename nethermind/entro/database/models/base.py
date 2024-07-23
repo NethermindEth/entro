@@ -50,8 +50,7 @@ class AbstractBlock(Base):
     timestamp: Mapped[int] = mapped_column(BigInteger, nullable=False)
 
     transaction_count: Mapped[int]
-    effective_gas_price: Mapped[int | None] = mapped_column(Numeric, nullable=True)
-    gas_used: Mapped[int | None] = mapped_column(BigInteger, nullable=True)
+    # gas_used: Mapped[int | None] = mapped_column(BigInteger, nullable=True)
 
 
 class AbstractTransaction(Base):

@@ -1,3 +1,5 @@
+import datetime
+from dataclasses import dataclass
 from enum import Enum
 from typing import Any, Protocol, TypeVar
 
@@ -18,6 +20,11 @@ class ImporterCallable(Protocol):
     def __call__(self, from_block: int, to_block: int, **kwargs) -> dict[str, list[Dataclass]]:
         # Return {'blocks': [BlockDataclass, ...], 'transactions': [TransactionDataclass, ...]}
         ...
+
+
+class BlockProtocol(Protocol):
+    block_number: int
+    timestamp: int
 
 
 class BackfillDataType(Enum):
@@ -68,3 +75,11 @@ class SupportedNetwork(Enum):
                 return "zkSync Era"
             case _:
                 return self.value.capitalize()
+
+
+@dataclass(slots=True)
+class BlockTimestamp:
+    """More efficient way of storing block timestamps than a dict"""
+
+    block_number: int
+    timestamp: datetime.datetime

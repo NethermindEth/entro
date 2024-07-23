@@ -20,10 +20,6 @@ def cli_db_url(integration_db_url) -> List[str]:
 @pytest.fixture()
 def eth_rpc_cli_config() -> List[str]:
     return [
-        "--source",
-        "json_rpc",
-        "--network",
-        "ethereum",
         "--json-rpc",
         os.environ["ETH_JSON_RPC"],
     ]
@@ -36,7 +32,7 @@ def etherscan_cli_config() -> List[str]:
 
 @pytest.fixture()
 def voyager_cli_config() -> List[str]:
-    return ["--source", "voyager", "--api-key", os.environ["VOYAGER_API_KEY"]]
+    return ["--api-key", os.environ["VOYAGER_API_KEY"]]
 
 
 @pytest.fixture()

@@ -13,13 +13,13 @@ DEFAULT_KWARGS = {
     "data_type": BackfillDataType.blocks.value,
     "network": SupportedNetwork.ethereum.value,
     "filter_data": {},
-    "metadata_dict": {"max_concurrency": 200},
+    "metadata_dict": {"max_concurrency": 20},
     "decoded_abis": [],
 }
 
 
 @pytest.fixture(scope="function")
-def setup_backfills(integration_postgres_db, integration_db_session, cli_db_url):
+def setup_backfills(integration_db_session, cli_db_url):
     backfills = [
         BackfilledRange(
             backfill_id=uuid.uuid4().hex,
@@ -41,21 +41,23 @@ def setup_backfills(integration_postgres_db, integration_db_session, cli_db_url)
 
 
 def test_backfilling_start_at_end_at(
-    integration_postgres_db,
     cli_db_url,
-    eth_rpc_cli_config,
-    integration_db_session,
+    eth_rpc_url,
+    integration_db_url,
     setup_backfills,
     create_debug_logger,
 ):
-    backfill_plan = BackfillPlan.generate(
+    backfill_plan = BackfillPlan.from_cli(
         network=SupportedNetwork.ethereum,
         backfill_type=BackfillDataType.blocks,
         supported_datasources=["json_rpc", "etherscan"],
-        start_block=18_000_020,
-        end_block=18_000_060,
-        db_url=integration_db_session.get_bind().url,
+        from_block=18_000_020,
+        to_block=18_000_060,
+        db_url=integration_db_url,
+        json_rpc=eth_rpc_url,
     )
+
+    assert backfill_plan is not None
 
     assert backfill_plan.range_plan.backfill_ranges == [(18_000_020, 18_000_060)]
     assert backfill_plan.total_blocks() == 40
@@ -84,6 +86,7 @@ def test_start_inside_end_inside(
         entro_cli,
         [
             "backfill",
+            "ethereum",
             "blocks",
             "-from",
             18_000_010,
@@ -106,7 +109,7 @@ def test_start_inside_end_inside(
     assert backfills[0].end_block == 18_000_080
 
 
-def test_extending_range_failed_backfill(integration_postgres_db, integration_db_session):
+def test_extending_range_failed_backfill(integration_postgres_db, integration_db_session, eth_rpc_url):
     migrate_up(integration_db_session.get_bind())
 
     extend_id = uuid.uuid4().hex
@@ -120,14 +123,17 @@ def test_extending_range_failed_backfill(integration_postgres_db, integration_db
     )
     integration_db_session.commit()
 
-    extension_backfill = BackfillPlan.generate(
+    extension_backfill = BackfillPlan.from_cli(
         network=SupportedNetwork.ethereum,
         backfill_type=BackfillDataType.blocks,
         supported_datasources=["json_rpc", "etherscan"],
-        start_block=14_000_000,
-        end_block=18_000_000,
+        from_block=14_000_000,
+        to_block=18_000_000,
         db_url=integration_db_session.get_bind().url,
+        json_rpc=eth_rpc_url,
     )
+
+    assert extension_backfill is not None
 
     extension_backfill.process_failed_backfill(16_000_000)
 
@@ -142,7 +148,7 @@ def test_extending_range_failed_backfill(integration_postgres_db, integration_db
     assert bfills[0].end_block == 16_000_000
 
 
-def test_multi_range_failed_backfills(integration_postgres_db, integration_db_session):
+def test_multi_range_failed_backfills(integration_db_url, eth_rpc_url):
     migrate_up(integration_db_session.get_bind())
     conflict_id = uuid.uuid4().hex
     integration_db_session.add(
@@ -159,18 +165,20 @@ def test_multi_range_failed_backfills(integration_postgres_db, integration_db_se
         network=SupportedNetwork.ethereum,
         backfill_type=BackfillDataType.blocks,
         supported_datasources=["json_rpc", "etherscan"],
-        start_block=10_000_000,
-        end_block=18_000_000,
-        db_url=integration_db_session.get_bind().url,
+        from_block=10_000_000,
+        to_block=18_000_000,
+        db_url=integration_db_url,
+        json_rpc=eth_rpc_url,
     )
 
     dual_range_fail_plan = BackfillPlan.from_cli(
         network=SupportedNetwork.ethereum,
         backfill_type=BackfillDataType.blocks,
         supported_datasources=["json_rpc", "etherscan"],
-        start_block=10_000_000,
-        end_block=18_000_000,
-        db_url=integration_db_session.get_bind().url,
+        from_block=10_000_000,
+        to_block=18_000_000,
+        db_url=integration_db_url,
+        json_rpc=eth_rpc_url,
     )
 
     single_range_fail_plan.process_failed_backfill(11_000_000)
