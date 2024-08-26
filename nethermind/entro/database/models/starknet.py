@@ -1,6 +1,6 @@
 from typing import Any
 
-from sqlalchemy import JSON, BigInteger, Integer, Numeric, PrimaryKeyConstraint, Text
+from sqlalchemy import JSON, BigInteger, Numeric, PrimaryKeyConstraint, Text
 from sqlalchemy.orm import Mapped, mapped_column
 
 from nethermind.entro.database.models.base import (
@@ -10,9 +10,17 @@ from nethermind.entro.database.models.base import (
     AbstractTransaction,
     BlockNumberPK,
     Hash32,
+    Hash32PK,
     IndexedAddress,
+    IndexedBlockNumber,
 )
-from nethermind.idealis.types.starknet.enums import BlockDataAvailabilityMode
+from nethermind.idealis.types.starknet import DecodedOperation
+from nethermind.idealis.types.starknet.enums import (
+    BlockDataAvailabilityMode,
+    StarknetFeeUnit,
+    StarknetTxType,
+    TransactionStatus,
+)
 
 # pylint: disable=missing-class-docstring
 
@@ -25,7 +33,7 @@ class Block(AbstractBlock):
 
     block_hash: Mapped[Hash32]
     parent_hash: Mapped[Hash32]
-    new_root: Mapped[Hash32]
+    state_root: Mapped[Hash32]
     sequencer_address: Mapped[Hash32]
 
     l1_gas_price_wei: Mapped[int] = mapped_column(Numeric, nullable=False)
@@ -57,18 +65,35 @@ class DefaultEvent(AbstractEvent):
 class Transaction(AbstractTransaction):
     __tablename__ = "transactions"
 
+    transaction_hash: Mapped[Hash32PK]
+    block_number: Mapped[IndexedBlockNumber]
+    transaction_index: Mapped[int]
+
+    type: Mapped[StarknetTxType]
     nonce: Mapped[int]
-    max_fee: Mapped[int]
-    type: Mapped[str]  # "DECLARE", "DEPLOY", "DEPLOY_ACCOUNT", "INVOKE", "L1_HANDLER"
-    signature: Mapped[str]
+    signature: Mapped[list[bytes]] = mapped_column(JSON)
+    version: Mapped[int]
+    timestamp: Mapped[int]
+    status: Mapped[TransactionStatus]
 
-    sender_address: Mapped[IndexedAddress]
-    calldata: Mapped[list[str] | None] = mapped_column(JSON, nullable=True)
+    max_fee: Mapped[int] = mapped_column(Numeric)
+    actual_fee: Mapped[int] = mapped_column(Numeric)
+    fee_unit: Mapped[StarknetFeeUnit]
+    execution_resources: Mapped[dict[str, Any]] = mapped_column(JSON)
+    gas_used: Mapped[int] = mapped_column(BigInteger)
 
-    # Receipt Data
-    actual_fee: Mapped[int | None]
-    execution_resources: Mapped[dict[str, int] | None] = mapped_column(JSON, nullable=True)
-    gas_used: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    tip: Mapped[int] = mapped_column(Numeric)  # Not In Use
+    resource_bounds: Mapped[dict[str, int] | None] = mapped_column(JSON, nullable=True)
+    paymaster_data: Mapped[list[bytes]] = mapped_column(JSON)
+    account_deployment_data: Mapped[list[bytes]] = mapped_column(JSON)
+
+    contract_address: Mapped[IndexedAddress | None]
+    selector: Mapped[bytes]
+    calldata: Mapped[list[bytes]] = mapped_column(JSON)
+    class_hash: Mapped[bytes | None]  # Deploy Account & Declare V2
+
+    user_operations: Mapped[list[DecodedOperation]] = mapped_column(JSON)
+    revert_error: Mapped[str | None]
 
     __table_args__ = {"schema": "starknet_data"}
 

@@ -14,8 +14,6 @@ from web3.exceptions import BadFunctionCallOutput
 
 from nethermind.entro.backfill.utils import block_identifier_to_block
 from nethermind.entro.database.models.uniswap import UniV3MintEvent
-from nethermind.entro.database.writers import EventWriter
-from nethermind.entro.decoding import DecodingDispatcher
 from nethermind.entro.exceptions import UniswapV3Revert
 from nethermind.entro.tokens import ERC20Token
 from nethermind.entro.types import BlockIdentifier
@@ -381,7 +379,11 @@ def fetch_simulation_state(
     immutables: PoolImmutables,
     slot0: Slot0,
     at_block: BlockIdentifier,
-) -> tuple[dict[int, Tick], dict[tuple[ChecksumAddress, int, int], PositionInfo], list[OracleObservation],]:
+) -> tuple[
+    dict[int, Tick],
+    dict[tuple[ChecksumAddress, int, int], PositionInfo],
+    list[OracleObservation],
+]:
     """
     Fetches the current simulation state from RPC, with Rich Progress Bars and Logging
 

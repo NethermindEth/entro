@@ -1,33 +1,32 @@
 import asyncio
 import os
 from bisect import bisect_right
-from dataclasses import dataclass
 from datetime import date, datetime, timezone
 from typing import Sequence
 
 from aiohttp import ClientSession
-from sqlalchemy import create_engine, select
+from rich.progress import Progress
+from sqlalchemy import create_engine
 from sqlalchemy.orm import Session, sessionmaker
 
-from nethermind.entro.backfill.async_rpc import retry_enabled_batch_post
 from nethermind.entro.backfill.utils import (
     block_identifier_to_block,
     default_rpc,
     get_current_block_number,
 )
-from nethermind.entro.database.models import AbstractBlock, block_model_for_network
 from nethermind.entro.database.readers.internal import (
     first_block_timestamp,
     get_block_timestamps,
 )
 from nethermind.entro.database.writers.internal import write_block_timestamps
-from nethermind.entro.exceptions import BackfillError
 from nethermind.entro.types import BlockIdentifier
 from nethermind.entro.types.backfill import (
     BlockProtocol,
     BlockTimestamp,
     SupportedNetwork,
 )
+from nethermind.idealis.rpc.ethereum.execution import get_blocks as get_ethereum_blocks
+from nethermind.idealis.rpc.starknet.core import get_blocks as get_starknet_blocks
 
 
 def get_blocks_for_network(
@@ -39,21 +38,23 @@ def get_blocks_for_network(
     Given a network and a sequence of block numbers, returns the block dataclasses for the provided network
     """
 
-    from nethermind.idealis.rpc.starknet.core import get_blocks
-
     async def _get_blocks() -> Sequence[BlockProtocol]:
         client_session = ClientSession()
         match network:
             case SupportedNetwork.starknet:
-                return await get_blocks(block_numbers, json_rpc, client_session)
+                blocks = await get_starknet_blocks(block_numbers, json_rpc, client_session)
+            case SupportedNetwork.ethereum:
+                blocks, _ = await get_ethereum_blocks(block_numbers, json_rpc, client_session)
             case _:
                 raise ValueError(f"Unsupported Network: {network}")
+        await client_session.close()
+        return blocks
 
     return asyncio.run(_get_blocks())
 
 
 def _default_resolution(network: SupportedNetwork) -> int:
-    "Default block resolution.  Networks with faster block times will have larger block resolutions"
+    """Default block resolution.  Networks with faster block times will have larger block resolutions"""
     match network:
         case SupportedNetwork.ethereum:
             return 10_000
@@ -110,6 +111,7 @@ class TimestampConverter:
         db_url: str | None = None,
         resolution: int | None = None,
         json_rpc: str | None = None,
+        auto_update: bool = True,
     ):
         self.network = network
         self.timestamp_resolution = resolution or _default_resolution(network)
@@ -122,11 +124,16 @@ class TimestampConverter:
 
         self.db_session = sessionmaker(create_engine(db_url))() if db_url else None
 
-        self.timestamp_data = get_block_timestamps(db_session=self.db_session, network=network, resolution=resolution)
+        self.timestamp_data = get_block_timestamps(
+            db_session=self.db_session,
+            network=network,
+            resolution=self.timestamp_resolution,
+        )
 
-        self.update_timestamps()
+        if auto_update:
+            self.update_timestamps()
 
-    def update_timestamps(self):
+    def update_timestamps(self, progress_bar: Progress | None = None):
         """
         Updates the timestamp_data list with the latest block timestamps.  If db_session is not None, this will
         update the DB as well.
@@ -141,48 +148,67 @@ class TimestampConverter:
         if not blocks_to_query:
             return
 
-        new_timestamps = self.get_timestamps_from_rpc(blocks_to_query)
+        new_timestamps = self.get_timestamps_from_rpc(blocks_to_query, progress_bar)
 
         self.timestamp_data.extend(new_timestamps)
         self.timestamp_data.sort(key=lambda x: x.block_number)
         self.last_update_block = current_block
 
-    def get_timestamps_from_rpc(self, blocks: list[int]) -> list[BlockTimestamp]:
+    def get_timestamps_from_rpc(self, blocks: list[int], progress_bar: Progress | None = None) -> list[BlockTimestamp]:
         """
         Gets block timestamps from the RPC for a given list of blocks, and saves block models to the database
 
-        :param blocks:
+        :param blocks:  List of block numbers to get timestamps for
+        :param progress_bar: Optional Progress bar to display backfill status
         :return:
         """
 
-        new_block_dataclasses = get_blocks_for_network(
-            block_numbers=blocks,
-            json_rpc=self.json_rpc,
-            network=self.network,
-        )
+        output_timestamps = []
 
-        if self.db_session:
-            # Convert dataclasses to models & Save to DB
-            # TODO: handle this for DB caching of timestamps
-            pass
-
-        block_timestamps = [
-            BlockTimestamp(
-                block_number=block.block_number,
-                timestamp=(
-                    datetime.fromtimestamp(block.timestamp, tz=timezone.utc)
-                    if block.block_number != 0
-                    else first_block_timestamp(self.network)
-                ),
+        if progress_bar:
+            timestamp_task = progress_bar.add_task(
+                description=f"Fetching {self.network.pretty()} Timestamps",
+                total=len(blocks),
+                searching_block=blocks[0],
             )
-            for block in new_block_dataclasses
-        ]
+        else:
+            timestamp_task = None
+
+        sorted_blocks = sorted(blocks)
+        for batch in [sorted_blocks[i : i + 50] for i in range(0, len(sorted_blocks), 50)]:
+            if progress_bar:
+                progress_bar.update(timestamp_task, advance=len(batch), searching_block=batch[0])
+
+            new_block_dataclasses = get_blocks_for_network(
+                block_numbers=batch,
+                json_rpc=self.json_rpc,
+                network=self.network,
+            )
+
+            if self.db_session:
+                # Convert dataclasses to models & Save to DB
+                # TODO: handle this for DB caching of timestamps
+                pass
+
+            block_timestamps = [
+                BlockTimestamp(
+                    block_number=block.block_number,
+                    timestamp=(
+                        datetime.fromtimestamp(block.timestamp, tz=timezone.utc)
+                        if block.block_number != 0
+                        else first_block_timestamp(self.network)
+                    ),
+                )
+                for block in new_block_dataclasses
+            ]
+
+            output_timestamps.extend(block_timestamps)
 
         if self.db_session is None:
             # Dont save block dataclasses to DB, save BlockTimestamp dataclasses to disk
-            write_block_timestamps(block_timestamps, self.network)
+            write_block_timestamps(output_timestamps, self.network)
 
-        return block_timestamps
+        return output_timestamps
 
     def block_to_datetime(self, block_number: int) -> datetime:
         """

@@ -24,6 +24,9 @@ SKIPPED_FILES = [
     "__init__.py",
 ]
 
+# pylint: disable
+# mypy: ignore-errors
+
 
 def construct_import_path(file_path):
     # Convert file path to import path
@@ -52,7 +55,7 @@ def walk_directory(directory) -> list[str]:
             try:
                 spec = importlib.util.spec_from_file_location(module_path, file_path)
                 module = importlib.util.module_from_spec(spec)
-                spec.loader.exec_module(module)
+                spec.loader.exec_module(module)  # type: ignore
 
                 for name, obj in inspect.getmembers(module, inspect.isclass):
                     if issubclass(obj, Base):
@@ -124,5 +127,6 @@ def test_sqlalchemy_models_override_all_dataclass_fields(database_model):
 
         db_column = db_col_map[dataclass_field.name]
 
+        # Can add extra validation checks here...
         if isinstance(dataclass_field.type, int):
             assert db_column.type.python_type == int

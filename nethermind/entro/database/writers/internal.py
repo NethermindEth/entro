@@ -14,6 +14,11 @@ from .utils import model_to_dict
 
 
 def write_abi(abi: ContractABI, db_session: Session | None):
+    """
+    Writes a ContractABI model to the datastore.  If a db_session is supplied, writes to the DB, otherwise,
+    caches to a file in the default app directory for the given OS
+    """
+
     if db_session:
         db_session.add(abi)
         db_session.commit()
@@ -24,9 +29,9 @@ def write_abi(abi: ContractABI, db_session: Session | None):
         if os.path.exists(contract_path := os.path.join(app_dir, "contract-abis.json")):
             with open(contract_path := os.path.join(app_dir, "contract-abis.json"), "rt") as abi_file:
                 if os.path.getsize(contract_path) == 0:
-                    abi_json = []
+                    abi_json: list[dict[str, Any]] = []
                 else:
-                    abi_json: list[dict[str, Any]] = json.load(abi_file)
+                    abi_json = json.load(abi_file)
         else:
             abi_json = []
 
@@ -52,9 +57,9 @@ def write_block_timestamps(
     if os.path.exists(file_path := os.path.join(app_dir, f"{network.name}-timestamps.json")):
         with open(file_path, "rt") as timestamp_file:
             if os.path.getsize(file_path) == 0:
-                timestamp_json = []
+                timestamp_json: list[dict[str, Any]] = []
             else:
-                timestamp_json: list[dict[str, Any]] = json.load(timestamp_file)
+                timestamp_json = json.load(timestamp_file)
     else:
         timestamp_json = []
 

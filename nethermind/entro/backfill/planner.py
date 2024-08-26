@@ -1,7 +1,5 @@
 import logging
-import os
 import shutil
-import traceback
 from dataclasses import dataclass
 from typing import Any, Type, Union
 
@@ -20,9 +18,15 @@ from nethermind.entro.backfill.importers import get_importer_for_backfill
 from nethermind.entro.database.readers.internal import fetch_backfills_by_datatype
 from nethermind.entro.database.writers.utils import automap_sqlalchemy_model
 from nethermind.entro.decoding import DecodingDispatcher
-from nethermind.entro.exceptions import BackfillError, DecodingError
+from nethermind.entro.exceptions import BackfillError
+from nethermind.entro.types import BlockIdentifier
 from nethermind.entro.types.backfill import BackfillDataType as BDT
-from nethermind.entro.types.backfill import Dataclass, DataSources, ImporterCallable
+from nethermind.entro.types.backfill import (
+    Dataclass,
+    DataSources,
+    ExporterDataType,
+    ImporterCallable,
+)
 from nethermind.entro.types.backfill import SupportedNetwork as SN
 from nethermind.entro.utils import pprint_list
 
@@ -32,9 +36,6 @@ from .utils import GracefulKiller, progress_defaults
 
 root_logger = logging.getLogger("nethermind")
 logger = root_logger.getChild("entro").getChild("backfill").getChild("planner")
-
-
-# pylint: disable=raise-missing-from
 
 
 def _default_batch_size(backfill_type: BDT) -> int:
@@ -68,7 +69,7 @@ class BackfillPlan:
     network: SN  # Network data is being extracted from
 
     importer: ImporterCallable
-    exporters: dict[str, AbstractResourceExporter]
+    exporters: dict[ExporterDataType, AbstractResourceExporter]
 
     metadata_dict: dict[str, Any]  # Metadata that is cached for DB backfills
     filter_params: dict[str, Any]  # Filters to further narrow down the backfilled resources
@@ -80,13 +81,17 @@ class BackfillPlan:
     no_interaction: bool = False  # Whether to confirm the backfill before executing
 
     @classmethod
-    def from_cli(
+    def from_cli(  # pylint: disable=too-many-locals
         cls,
         network: SN,
         backfill_type: BDT,
         supported_datasources: list[str],
         **kwargs,
     ) -> Union["BackfillPlan", None]:
+        """
+        Generate a BackfillPlan from CLI arguments.  This method will initialize the necessary exporters, importers,
+        and decoders for the backfill plan.  Supports both DB backfills/caching, and naiive file backfills.
+        """
         start_block, end_block = _clean_block_inputs(kwargs["from_block"], kwargs["to_block"], backfill_type, network)
 
         datasource = None
@@ -106,6 +111,9 @@ class BackfillPlan:
         if backfill_type == BDT.events:
             assert decoder is not None, "Decoder must be initialized for Event Backfill"
             cls._inject_event_topics(decoder, filter_params, metadata_dict)
+            if metadata_dict.get("db_models"):
+                model_overrides = dict(metadata_dict["db_models"])
+                cls._load_model_overrides(db_session, model_overrides)
 
         if db_session:
             exporters = get_db_exporters_for_backfill(backfill_type, db_session.get_bind(), network, kwargs)
@@ -133,6 +141,56 @@ class BackfillPlan:
             no_interaction=kwargs.get("no_interaction", False),
         )
 
+    @classmethod
+    def from_database(
+        cls,
+        db_session: Session,
+        backfill_type: BDT,
+        network: SN,
+        from_block: BlockIdentifier = 0,
+        to_block: BlockIdentifier = "latest",
+        filter_params: dict[str, Any] | None = None,
+        backfill_metadata: dict[str, Any] | None = None,
+    ) -> Union["BackfillPlan", None]:
+        """
+        Programatically Generate a BackfillPlan using a database session, pulling existing DB backfills &
+        computing nessecary extension/update ranges.
+        """
+        start_block, end_block = _clean_block_inputs(from_block, to_block, backfill_type, network)
+
+        filter_params = filter_params or {}
+        backfill_metadata = backfill_metadata or {}
+
+        decoder = cls._initialize_decoder(db_session, backfill_metadata, network)
+
+        if backfill_type == BDT.events:
+            assert decoder is not None, "Decoder must be initialized for Event Backfill"
+            cls._inject_event_topics(decoder, filter_params, backfill_metadata)
+            if backfill_metadata.get("db_models"):
+                model_overrides = dict(backfill_metadata["db_models"])
+                cls._load_model_overrides(db_session, model_overrides)
+
+        exporters = get_db_exporters_for_backfill(backfill_type, db_session.get_bind(), network, backfill_metadata)
+        range_plan = BackfillRangePlan.compute_db_backfills(
+            from_block=start_block,
+            to_block=end_block,
+            conflicting_backfills=fetch_backfills_by_datatype(db_session, backfill_type, network),
+        )
+
+        return BackfillPlan(
+            db_session=db_session,
+            range_plan=range_plan,
+            backfill_type=backfill_type,
+            network=network,
+            exporters=exporters,
+            importer=get_importer_for_backfill(network, backfill_type),
+            metadata_dict=backfill_metadata,
+            filter_params=filter_params,
+            decoder=decoder,
+            batch_size=backfill_metadata.get("batch_size", _default_batch_size(backfill_type)),
+            no_interaction=True,
+        )
+
     @staticmethod
     def _initialize_decoder(
         db_session: Session | None,
@@ -141,7 +199,7 @@ class BackfillPlan:
     ) -> DecodingDispatcher | None:
         decode_abis = backfill_metadata.pop("decode_abis", [])
 
-        if not len(decode_abis):
+        if not decode_abis:
             return None
 
         return DecodingDispatcher.from_abis(
@@ -167,15 +225,40 @@ class BackfillPlan:
         filter_params.update({"abi_name": decoder.loaded_abis[0], "event_names": event_names})
         metadata_dict.update({"topics": topics})
 
-    def execute_backfill(self, console: Console, killer: GracefulKiller):
+    @staticmethod
+    def _load_model_overrides(
+        db_session: Session, db_model_overrides: dict[str, str]
+    ) -> dict[str, Type[DeclarativeBase]]:
+        """
+        Generates the event topics and model overrides for an event backfill
+
+        :return: {event_topic: override SqlAlchemy Model Path}
+        """
+        model_overrides = {}
+
+        for event_signature, model in db_model_overrides.items():
+            split = list(reversed(model.split(".")))
+            res = automap_sqlalchemy_model(
+                db_engine=db_session.get_bind(),
+                table_names=[split[0]],
+                schema=split[1] if split[1:] else "public",
+            )
+            model_overrides.update({event_signature: res[split[0]]})
+
+        return model_overrides
+
+    def execute_backfill(self, console: Console, killer: GracefulKiller, display_progress: bool | None = None):
+        # pylint: disable=too-many-locals
+
         """
         Executes the backfill plan
 
         :param console: Rich Console
         :param killer: Graceful Killer
+        :param display_progress: Whether to display progress bar during backfill.  If None, uses self.no_interaction
         """
 
-        with Progress(*progress_defaults, console=console, disable=self.no_interaction) as progress:
+        with Progress(*progress_defaults, console=console, disable=display_progress or self.no_interaction) as progress:
             for range_idx, (range_start, range_end) in enumerate(self.range_plan.backfill_ranges):
                 range_progress = progress.add_task(
                     description=self.backfill_label(range_idx),
@@ -190,7 +273,7 @@ class BackfillPlan:
                         return
 
                     try:
-                        batch_dataclasses = self.importer(
+                        batch_dataclasses: dict[ExporterDataType, list[Dataclass]] = self.importer(  # type: ignore
                             from_block=batch_start,
                             to_block=batch_end,
                             **self.metadata_dict,
@@ -201,15 +284,19 @@ class BackfillPlan:
                         console.print(
                             f"[red] ----  Unexpected Error Processing Blocks {batch_start} - {batch_end}  ----"
                         )
-                        console.print_exception()
+                        if self.no_interaction:
+                            logger.error(e)
+                        else:
+                            console.print_exception()
+
                         self.process_failed_backfill(batch_start)
                         return
 
-                    for data_key, exporter in self.exporters.items():
-                        export_dataclasses = batch_dataclasses.get(data_key, [])
+                    for data_kind, exporter in self.exporters.items():
+                        export_dataclasses = batch_dataclasses.get(data_kind, [])
 
                         if self.decoder:
-                            self.decoder.decode_dataclasses(data_kind=data_key, dataclasses=export_dataclasses)
+                            self.decoder.decode_dataclasses(data_kind, export_dataclasses)
 
                         exporter.write(export_dataclasses)
 
@@ -279,8 +366,11 @@ class BackfillPlan:
         console.print(f"[bold]{'-' * int(term_width * .8)}")
 
     def print_decode_abis(self, console: Console, term_width: int):
+        """Prints the ABI Decoding Information to Rich Console"""
+        assert self.decoder, "Decoder must be initialized to ABI decode during backfills"
+
         if self.metadata_dict.get("all_abis", False):
-            console.print(f"[bold]Decoding with All {len(self.decoder.loaded_abis)} {self.decoder.os} ABIs in DB:")
+            console.print(f"[bold]Decoding with All {len(self.decoder.loaded_abis)} {self.decoder.decoder_os} ABIs")
             for row in pprint_list(sorted(self.decoder.loaded_abis), int(term_width * 0.9)):
                 console.print(f"\t{row}")
 
@@ -320,14 +410,15 @@ class BackfillPlan:
             )
 
     def range_kwargs(self) -> dict[str, Any]:
+        """Returns additional arguments to be passed to the BackfilledRange Model in DB/File Cache"""
         return {
             "data_type": self.backfill_type,
             "network": self.network,
             "filter_data": self.filter_params,
             "metadata_dict": self.metadata_dict,
-            "decoded_abis": self.decoder.loaded_abis
-            if self.decoder and self.metadata_dict.get("all_abis", False)
-            else [],
+            "decoded_abis": (
+                self.decoder.loaded_abis if self.decoder and self.metadata_dict.get("all_abis", False) else []
+            ),
         }
 
     def process_failed_backfill(self, end_block: int):
@@ -358,9 +449,10 @@ class BackfillPlan:
 
     def backfill_label(self, range_index: int = 0):  # pylint: disable=unused-argument
         """
-        Returns a label for the backfilled range.  For a mainnet transaction backfill with the ranges
-        [(0, 100), (100, 200)], the label label at range index 0 would be
-        "Backfill Ethereum Transactions Between (0 - 100)"
+        Returns a label for the backfilled range.  For a mainnet transaction backfill, this would be
+        "Backfill Ethereum Transactions"  For a Starknet Transfer event backfill, this would be
+        "Backfill Transfer Events"
+
         :param range_index:
         :return:
         """
@@ -370,31 +462,7 @@ class BackfillPlan:
 
         match self.backfill_type:
             case BDT.events:
+                assert self.decoder, "Decoder must be initialized for Event Backfill"
                 return f"Backfill {self.decoder.loaded_abis[0]} Events"
             case _:
                 return f"Backfill {net} {typ}"
-
-    def load_model_overrides(self) -> dict[str, Type[DeclarativeBase]]:
-        """
-        Generates the event topics and model overrides for an event backfill
-
-        :return: (topics, event_model_overrides)
-        """
-        model_override_dict: dict[str, str] = self.metadata_dict.get("db_models", {})
-        if len(model_override_dict) == 0:
-            return {}
-
-        model_overrides = {}
-
-        for event, model in model_override_dict.items():
-            if "(" not in event:
-                event = [e for e in self.decoder.event_decoders.values() if event in e.name][0]
-            split = list(reversed(model.split(".")))
-            res = automap_sqlalchemy_model(
-                db_engine=self.db_session.get_bind(),
-                table_names=[split[0]],
-                schema=split[1] if split[1:] else "public",
-            )
-            model_overrides.update({event: res[split[0]]})
-
-        return model_overrides

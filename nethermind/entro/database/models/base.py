@@ -49,9 +49,6 @@ class AbstractBlock(Base):
     block_hash: Mapped[Hash32]
     timestamp: Mapped[int] = mapped_column(BigInteger, nullable=False)
 
-    transaction_count: Mapped[int]
-    # gas_used: Mapped[int | None] = mapped_column(BigInteger, nullable=True)
-
 
 class AbstractTransaction(Base):
     """Abstract base class for transaction tables"""
@@ -64,12 +61,6 @@ class AbstractTransaction(Base):
     timestamp: Mapped[int] = mapped_column(BigInteger)
 
     gas_used: Mapped[int | None] = mapped_column(Numeric, nullable=True)
-
-    error: Mapped[str | None]
-    """  
-        Error message if transaction failed, None otherwise.  If Error Message is not supplied, 
-        error will be set as 'True'
-    """
 
 
 class AbstractEvent(Base):

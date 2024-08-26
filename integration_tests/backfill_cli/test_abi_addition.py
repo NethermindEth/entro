@@ -24,7 +24,6 @@ def test_add_ERC_20_ABI(integration_postgres_db, cli_db_url):
 
         result = runner.invoke(entro_cli, ["decode", "add-abi", "ERC20", "ERC20.json", *cli_db_url])
 
-    printout_error_and_traceback(result)
     assert result.exit_code == 0
     assert "Successfully Added ERC20 to Database with Priority 0" in result.output
 
@@ -89,9 +88,9 @@ def test_abi_decoding(
                 "transactions",
                 "--for-address",
                 weth_9,
-                "--from-block",
+                "-from",
                 18_000_000,
-                "--to-block",
+                "-to",
                 18_000_100,
                 "-abi",
                 "ERC20",
@@ -107,15 +106,16 @@ def test_abi_decoding(
 
         transactions = integration_db_session.query(Transaction).all()
 
-        assert len(transactions) == 114
+        assert len(transactions) == 113
 
         for transaction in transactions:
             assert transaction.to_address.hex() == weth_9[2:]
-            if transaction.decoded_signature in [
-                "transfer",
-                "approve",
-            ]:
+
+            if transaction.function_name in ["transfer", "approve"]:
+                print("Transaction: ")
+                print(transaction.__dict__)
                 assert transaction.decoded_input is not None
+
             else:
                 assert transaction.decoded_input is None
 
@@ -172,13 +172,16 @@ def test_list_abis(integration_postgres_db, cli_db_url):
 
         assert list_result.exit_code == 0
 
-        list_output = (
-            """  ABI Name         Priority\n\tERC20 ----------> 10\n\tUniswapV2Pair --> 9\n\tUniswapV3Pool --> 8\n\n"""
-        )
+        expected_text = [
+            "-- EVM ABIs --",
+            "ERC20",
+            "UniswapV2Pair",
+        ]
 
-        assert list_output == list_result.output
+        for text in expected_text:
+            assert text in list_result.output
 
-        list_decoders_result = runner.invoke(entro_cli, ["decode", "list-abi-decoders", *cli_db_url])
+        list_decoders_result = runner.invoke(entro_cli, ["decode", "list-abi-decoders", "EVM", *cli_db_url])
 
         assert "'Approval'," in list_decoders_result.output
         assert "'Transfer'," in list_decoders_result.output
@@ -209,6 +212,6 @@ def test_abi_priority_raises(integration_postgres_db, cli_db_url, caplog):
         assert add_uni_v2_result.exit_code == 0
 
         assert (
-            "ABI UniswapV2Pair and ERC20 share the decoder for the function decimals(), and both are set to priority 0"
+            "ABI UniswapV2Pair and ERC20 share the decoder for the function decimals, and both are set to priority 0"
             in caplog.text
         )

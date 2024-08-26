@@ -34,7 +34,13 @@ def test_backfill_mint_events_for_weth_wbtc_pool(
 
         result = runner.invoke(
             entro_cli,
-            ["decode", "add-abi", "UniswapV3Pool", "UniswapV3Pool.json", *cli_db_url],
+            [
+                "decode",
+                "add-abi",
+                "UniswapV3Pool",
+                "UniswapV3Pool.json",
+                *cli_db_url,
+            ],
         )
 
         assert result.exit_code == 0
@@ -43,7 +49,8 @@ def test_backfill_mint_events_for_weth_wbtc_pool(
         entro_cli,
         [
             "backfill",
-            "ethereum" "events",
+            "ethereum",
+            "events",
             "-from",
             17_800_000,
             "-to",

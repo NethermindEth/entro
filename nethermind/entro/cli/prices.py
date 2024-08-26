@@ -1,15 +1,9 @@
 import logging
 
 import click
-from rich.console import Console
-from rich.logging import RichHandler
 
-from nethermind.entro.backfill.prices import download_pool_creations
-
-from ..types import BlockIdentifier
 from .utils import (
     batch_size_option,
-    create_cli_session,
     db_url_option,
     from_block_option,
     group_options,
@@ -21,6 +15,9 @@ from .utils import (
 
 root_logger = logging.getLogger("nethermind")
 logger = root_logger.getChild("entro").getChild("prices")
+
+# isort: skip_file
+# pylint: disable=too-many-arguments,import-outside-toplevel,too-many-locals
 
 
 @click.group("prices", short_help="Backfill ERC20 Token Prices")
@@ -40,9 +37,14 @@ def initialize(
     Initialize the pricing oracle, backfilling Pool Cretaion events & allowing pricing
     oracle to compute ERC20 prices from onchain events
     """
+    from nethermind.entro.cli.utils import cli_logger_config, create_cli_session
+    from nethermind.entro.backfill.prices.get_prices import cli_download_pool_creations
+
+    console = cli_logger_config(root_logger)
+
     db_session = create_cli_session(db_url)
 
-    download_pool_creations(db_session=db_session, json_rpc=json_rpc)
+    cli_download_pool_creations(console, db_session, json_rpc)
 
 
 @prices_group.command(name="list")
@@ -53,6 +55,9 @@ def list_command(
     db_url: str,
 ):
     """List backfilled prices & ranges in database"""
+    from nethermind.entro.cli.utils import cli_logger_config, create_cli_session
+
+    console = cli_logger_config(root_logger)
 
     db_session = create_cli_session(db_url)
 
@@ -66,6 +71,10 @@ def update(
     """
     Update the prices currently stored in the database to the latest block number
     """
+
+    from nethermind.entro.cli.utils import cli_logger_config, create_cli_session
+
+    console = cli_logger_config(root_logger)
 
     db_session = create_cli_session(db_url)
 
@@ -85,18 +94,16 @@ def backfill(
     db_url: str,
     json_rpc: str,
     token_address: str,
-    from_block: BlockIdentifier,
-    to_block: BlockIdentifier,
+    from_block,
+    to_block,
     **kwargs,
 ):
     """
     Backfill prices for a given token
     """
-    rich_console = Console()
-    if not package_logger.hasHandlers():
-        package_logger.addHandler(RichHandler(show_path=False, console=rich_console))
-        package_logger.setLevel(logging.WARNING)
+    from nethermind.entro.cli.utils import cli_logger_config, create_cli_session
 
+    console = cli_logger_config(root_logger)
     db_session = create_cli_session(db_url)
 
 
@@ -112,13 +119,12 @@ def backfill(
 def backfill_eth_price(
     db_url: str,
     json_rpc: str,
-    from_block: BlockIdentifier,
-    to_block: BlockIdentifier,
+    from_block,
+    to_block,
     **kwargs,
 ):
-    rich_console = Console()
-    if not package_logger.hasHandlers():
-        package_logger.addHandler(RichHandler(show_path=False, console=rich_console))
-        package_logger.setLevel(logging.WARNING)
+    from nethermind.entro.cli.utils import cli_logger_config, create_cli_session
+
+    console = cli_logger_config(root_logger)
 
     db_session = create_cli_session(db_url)

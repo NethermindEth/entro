@@ -1,7 +1,6 @@
 from typing import Any
 
 from sqlalchemy import JSON, BigInteger, Numeric, PrimaryKeyConstraint, Text
-from sqlalchemy.dialects.postgresql import BYTEA
 from sqlalchemy.orm import Mapped, mapped_column
 
 from nethermind.entro.database.models.base import (
@@ -25,11 +24,18 @@ class Block(AbstractBlock):
     __tablename__ = "blocks"
 
     parent_hash: Mapped[Hash32]
+    state_root: Mapped[Hash32]
     miner: Mapped[Address]
-    difficulty: Mapped[int] = mapped_column(Numeric(32, 0), nullable=True)
-    gas_limit: Mapped[int] = mapped_column(BigInteger, nullable=False)
+    extra_data: Mapped[CalldataBytes]  # Variable length bytes
+    nonce: Mapped[CalldataBytes]  # Variable length bytes
 
-    extra_data: Mapped[str] = mapped_column(Text().with_variant(BYTEA, "postgresql"), nullable=False)
+    difficulty: Mapped[int] = mapped_column(Numeric(32, 0), nullable=True)
+    total_difficulty: Mapped[int] = mapped_column(Numeric(32, 0), nullable=True)
+    size: Mapped[int]
+
+    base_fee_per_gas: Mapped[int] = mapped_column(Numeric(16, 0), nullable=False)
+    gas_limit: Mapped[int] = mapped_column(BigInteger, nullable=False)
+    gas_used: Mapped[int] = mapped_column(BigInteger, nullable=False)
 
     __table_args__ = {"schema": "ethereum_data"}
 
@@ -51,18 +57,21 @@ class Transaction(AbstractTransaction):
     __tablename__ = "transactions"
 
     nonce: Mapped[int]
-    from_address: Mapped[IndexedAddress]
-    to_address: Mapped[IndexedNullableAddress]
-    input: Mapped[CalldataBytes | None]
+    type: Mapped[int | None]
 
     value: Mapped[int] = mapped_column(Numeric(24, 0))
+    gas_price: Mapped[int | None] = mapped_column(Numeric(16, 0), nullable=True)
+    gas_supplied: Mapped[int | None] = mapped_column(BigInteger, nullable=True)
+    gas_used: Mapped[int | None] = mapped_column(BigInteger, nullable=True)
+    max_priority_fee: Mapped[int | None] = mapped_column(Numeric(16, 0), nullable=True)
+    max_fee: Mapped[int | None] = mapped_column(Numeric(16, 0), nullable=True)
 
-    gas_available: Mapped[int | None] = mapped_column(BigInteger)
-    gas_price: Mapped[int] = mapped_column(Numeric(16, 0))
-    gas_used: Mapped[int | None] = mapped_column(BigInteger)
+    to_address: Mapped[IndexedNullableAddress]
+    from_address: Mapped[IndexedNullableAddress]
 
-    decoded_signature: Mapped[str | None]
+    input: Mapped[CalldataBytes | None]
     decoded_input: Mapped[dict[str, Any] | None] = mapped_column(JSON, nullable=True)
+    function_name: Mapped[str | None] = mapped_column(Text, index=True)
 
     __table_args__ = {"schema": "ethereum_data"}
 

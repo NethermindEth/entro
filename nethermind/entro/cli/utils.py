@@ -1,13 +1,9 @@
-import json
 import logging
 import os
 from logging import Logger
 
 import click
-from rich.console import Console
-from rich.logging import RichHandler
-from sqlalchemy import create_engine
-from sqlalchemy.orm import Session, sessionmaker
+from sqlalchemy.orm import Session
 
 from nethermind.entro.types.backfill import DataSources, SupportedNetwork
 
@@ -15,15 +11,27 @@ root_logger = logging.getLogger("nethermind")
 logger = root_logger.getChild("entro").getChild("cli")
 
 
+# isort: skip_file
+# pylint: disable=too-many-arguments,import-outside-toplevel,too-many-locals
+
+
 def rich_json(value: dict | list) -> str:
+    """Convert a dictionary or list to a JSON string, with some additional handling for avoiding rich tags"""
+    import json
+
     json_str = json.dumps(value)
-    json_str = json_str.replace("true", '"True"')  # TODO: Clean up this handling more
+    json_str = json_str.replace("true", '"True"')
     json_str = json_str.replace("false", '"False"')
 
     return json_str
 
 
-def cli_logger_config(instrument_logger: Logger) -> Console:
+def cli_logger_config(instrument_logger: Logger):
+    """Create a rich console & logging handler, attach to the instrument_logger, and return the console"""
+
+    from rich.console import Console
+    from rich.logging import RichHandler
+
     rich_console = Console()
     instrument_logger.handlers.clear()
 
@@ -61,11 +69,11 @@ db_url_option = click.option(
     help="SQLAlchemy DB URL to use for backfilling.  If not provided, will use the DB_URL environment variable",
 )
 
-api_key_option = click.option(
-    "--api-key",
-    "api_key",
-    default=os.environ.get("API_KEY"),
-    help="API key if using centralized APIs as a data source",
+etherscan_api_key_option = click.option(
+    "--etherscan-api-key",
+    "etherscan_api_key",
+    default=os.environ.get("ETHERSCAN_API_KEY"),
+    help="API key for backfilling data from Etherscan API",
 )
 
 
@@ -237,9 +245,23 @@ trace_file_option = click.option(
     help="File to save trace data",
 )
 
+# -------------------------------------------------------
+# Misc Backfill Options
+# -------------------------------------------------------
+
+resolution_option = click.option(  # Timestamp Resolution for TimestampConverter backfills
+    "--resolution",
+    type=int,
+    default=None,
+    help="Resolution in blocks. Lower resolutions are more accurate, but take longer to backfill",
+)
+
 
 def create_cli_session(db_url: str) -> Session:
     """Creates a new database session"""
+
+    from sqlalchemy import create_engine
+    from sqlalchemy.orm import sessionmaker
 
     if db_url is None:
         logger.error("Database URL not specified... Set with '--db-url' option or 'DB_URL' environment variable")

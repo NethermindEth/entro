@@ -26,14 +26,14 @@ def json_to_dataclass(json_str, cls):
 def get_transaction_hash_for_dataclass(dataclass: Dataclass) -> bytes | None:
     """Returns the transaction hash for a dataclass"""
 
-    if "transaction_hash" in dataclass:
-        return to_bytes(dataclass.transaction_hash, pad=32)
+    if hasattr(dataclass, "transaction_hash"):
+        return to_bytes(getattr(dataclass, "transaction_hash"), pad=32)
 
-    if "tx_hash" in dataclass:
-        return to_bytes(dataclass.tx_hash, pad=32)
+    if hasattr(dataclass, "tx_hash"):
+        return to_bytes(getattr(dataclass, "tx_hash"), pad=32)
 
-    if "hash" in dataclass:  # Iffy...
-        return to_bytes(dataclass.hash, pad=32)
+    if hasattr(dataclass, "hash"):
+        return to_bytes(getattr(dataclass, "hash"), pad=32)
 
     return None
 
@@ -41,13 +41,13 @@ def get_transaction_hash_for_dataclass(dataclass: Dataclass) -> bytes | None:
 def get_block_number_for_dataclass(dataclass: Dataclass) -> int | None:
     """Returns the block number for a dataclass"""
 
-    if "block_number" in dataclass:
-        return int(dataclass.block_number)
+    if hasattr(dataclass, "block_number"):
+        return int(getattr(dataclass, "block_number"))
 
-    if "block" in dataclass:
-        return int(dataclass.block)
+    if hasattr(dataclass, "block"):
+        return int(getattr(dataclass, "block"))
 
-    if "number" in dataclass:
-        return int(dataclass.number)
+    if hasattr(dataclass, "number"):
+        return int(getattr(dataclass, "number"))
 
     return None

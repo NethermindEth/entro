@@ -7,11 +7,11 @@ import click.utils
 from sqlalchemy import and_, select
 from sqlalchemy.orm import Session
 
+from nethermind.entro.database.models.base import AbstractBlock
+from nethermind.entro.database.models import block_model_for_network
 from nethermind.entro.database.models.internal import BackfilledRange, ContractABI
 from nethermind.entro.types.backfill import BackfillDataType as BDT
-from nethermind.entro.types.backfill import BlockTimestamp
-from nethermind.entro.types.backfill import SupportedNetwork
-from nethermind.entro.types.backfill import SupportedNetwork as SN
+from nethermind.entro.types.backfill import BlockTimestamp, SupportedNetwork
 
 from .utils import execute_scalars_query
 
@@ -19,7 +19,7 @@ from .utils import execute_scalars_query
 def fetch_backfills_by_datatype(
     db_session: Session,
     data_type: BDT,
-    network: SN,
+    network: SupportedNetwork,
 ) -> Sequence[BackfilledRange]:
     """Selects ORM models of all backfills in DB matching the network & datatype"""
     select_stmt = (
@@ -66,7 +66,7 @@ def get_abis(
             .filter(
                 and_(
                     ContractABI.abi_name.in_(abi_names) if abi_names else ContractABI.abi_name != None,
-                    ContractABI.os == decoder_os,
+                    ContractABI.decoder_os == decoder_os,
                 )
             )
             .order_by(ContractABI.priority.desc(), ContractABI.abi_name)
@@ -82,19 +82,20 @@ def get_abis(
 
     with open(contract_path := os.path.join(app_dir, "contract-abis.json"), "rt") as abi_file:
         if os.path.getsize(contract_path) == 0:
-            abi_json = []
+            abi_json: list[dict[str, Any]] = []
         else:
-            abi_json: list[dict[str, Any]] = json.load(abi_file)
+            abi_json = json.load(abi_file)
 
         contract_abis = [ContractABI(**abi) for abi in abi_json]
 
         if abi_names:
-            return [abi for abi in contract_abis if abi.abi_name in abi_names if abi.os == decoder_os]
+            return [abi for abi in contract_abis if abi.abi_name in abi_names if abi.decoder_os == decoder_os]
 
-        return [abi for abi in contract_abis if abi.os == decoder_os]
+        return [abi for abi in contract_abis if abi.decoder_os == decoder_os]
 
 
 def first_block_timestamp(network: SupportedNetwork) -> datetime.datetime:
+    """Returns the first block timestamp for a given network"""
     match network:
         case SupportedNetwork.ethereum:
             # Thursday, July 30, 2015 3:26:28 PM
@@ -152,10 +153,10 @@ def get_block_timestamps(
         return []
 
     with open(file_path, "rt") as timestamp_file:
-        if os.path.getsize(file_path) == 0:
-            timestamp_json = []
-        else:
+        if os.path.getsize(file_path) != 0:
             timestamp_json: list[dict[str, Any]] = json.load(timestamp_file)
+        else:
+            timestamp_json = []
 
         timestamps = [
             BlockTimestamp(

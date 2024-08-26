@@ -2,10 +2,12 @@ import logging
 from typing import Any
 
 from eth_typing import ChecksumAddress
+from rich.console import Console
 from rich.progress import Progress
 from sqlalchemy.orm import Session
 
-from nethermind.entro.backfill.utils import progress_defaults
+from nethermind.entro.backfill.planner import BackfillPlan
+from nethermind.entro.backfill.utils import GracefulKiller
 from nethermind.entro.database.models.prices import (
     SUPPORTED_POOL_CREATION_EVENTS,
     MarketSpotPrice,
@@ -14,56 +16,46 @@ from nethermind.entro.database.readers.prices import get_pool_creation_backfills
 from nethermind.entro.decoding import DecodingDispatcher
 from nethermind.entro.exceptions import BackfillError, OracleError
 from nethermind.entro.types.backfill import BackfillDataType, SupportedNetwork
-from nethermind.idealis.utils import hex_to_int
-
-from ..database.writers import EventWriter
-from ..types.prices import AbstractTokenMarket, SupportedPricingPool, TokenMarketInfo
-from .async_rpc import retry_enabled_batch_post
-from .json_rpc import cli_get_logs, decode_events_for_requests
-from .planner import BackfillPlan
-from .utils import GracefulKiller
+from nethermind.entro.types.prices import (
+    AbstractTokenMarket,
+    SupportedPricingPool,
+    TokenMarketInfo,
+)
 
 root_logger = logging.getLogger("nethermind")
 logger = root_logger.getChild("entro").getChild("backfill").getChild("prices")
 
 
-def download_pool_creations(
+def cli_download_pool_creations(
+    console: Console,
     db_session: Session,
     json_rpc: str,
 ):
     """
     Downloads pool creations from the Ethereum blockchain and saves them to the database.
-
-    :param db_session:
-    :param json_rpc:
-
-    :return:
     """
 
-    with Progress(*progress_defaults) as progress:
-        for factory_addr, pool_data in SUPPORTED_POOL_CREATION_EVENTS.items():
-            backfill_plan = BackfillPlan.from_cli(
-                db_session=db_session,
-                network=SupportedNetwork.ethereum,
-                start_block=pool_data["start_block"],
-                end_block="latest",
-                backfill_type=BackfillDataType.events,
-                decode_abis=[pool_data["abi_name"]],
-                contract_address=factory_addr,
-                event_names=[pool_data["event_name"]],
-                batch_size=100_000,
-            )
-            if backfill_plan is None:
-                raise OracleError("Failed to Backfill Pool Creation Events")
+    killer = GracefulKiller(console=console)
+    for factory_addr, pool_data in SUPPORTED_POOL_CREATION_EVENTS.items():
+        backfill_plan = BackfillPlan.from_database(
+            db_session=db_session,
+            network=SupportedNetwork.ethereum,
+            backfill_type=BackfillDataType.events,
+            from_block=pool_data["start_block"],
+            to_block="latest",
+            filter_params={
+                "contract_address": factory_addr,
+                "decode_abis": [pool_data["abi_name"]],
+                "event_names": [pool_data["event_name"]],
+            },
+            backfill_metadata={"batch_size": 100_000, "json_rpc": json_rpc},
+        )
 
-            cli_get_logs(
-                backfill_plan=backfill_plan,
-                db_engine=db_session.get_bind(),
-                json_rpc=json_rpc,
-                progress=progress,
-            )
+        if backfill_plan is None:
+            raise OracleError("Failed to Backfill Pool Creation Events")
 
-            backfill_plan.save_to_db()
+        backfill_plan.execute_backfill(console, killer, display_progress=True)
+        backfill_plan.save_to_db()
 
 
 def update_pool_creations(
@@ -92,34 +84,9 @@ def update_pool_creations(
             "to update Pool Creation Events"
         )
 
-    event_writer = EventWriter(db_session.get_bind(), network)
-
     for pool_bfill in pool_creation_bfills:
-        request = parse_event_request(
-            start_block=pool_bfill.end_block,
-            end_block=latest_block,
-            contract_address=str(pool_bfill.filter_data["contract_address"]),
-            topics=(pool_bfill.metadata_dict["topics"]),
-            network=network,
-        )
-        decoder = DecodingDispatcher.from_abis(
-            classify_abis=[str(pool_bfill.filter_data["abi_name"])], db_session=db_session
-        )
-        bfill_status = decode_events_for_requests(
-            request_objects=[request],
-            json_rpc=json_rpc,
-            event_writer=event_writer,
-            decoder=decoder,
-        )
-        if isinstance(bfill_status, int):
-            pool_bfill.end_block = bfill_status
-            db_session.commit()
-            raise OracleError(
-                "Error Backfilling Pool Creation Events. Try running the CLI command `entro prices initialize`"
-            )
-
-        pool_bfill.end_block = latest_block
-        db_session.commit()
+        # TODO: Add BackfillPlan.from_cache()  & BackfillPlan.update()
+        pass
 
 
 def get_price_events_for_range(
@@ -142,35 +109,7 @@ def get_price_events_for_range(
     return_vals: list[dict[str, Any]] = []
 
     # If Events are Backfilled in DB, Trim down the required query range
-
-    event_responses = retry_enabled_batch_post(
-        request_objects=[
-            parse_event_request(
-                start_block=start,
-                end_block=end,
-                contract_address=contract_address,
-                topics=topics,
-                network=network,
-            )
-        ],
-        json_rpc=json_rpc,
-        max_concurrency=1,
-    )
-    if not isinstance(event_responses, list):
-        raise BackfillError(f"Failed to Backfill Price Events Between ({start} - {end})")
-
-    for log in event_responses:
-        decoding_result = decoder.decode_log(log)
-        if decoding_result is None:
-            continue
-        return_vals.append(
-            {
-                "block_number": hex_to_int(log["blockNumber"]),
-                "log_index": hex_to_int(log["logIndex"]),
-                "transaction_index": hex_to_int(log["transactionIndex"]),
-                **decoding_result.event_data,
-            }
-        )
+    # Generate BackfillPlan for the Swap events
 
     return return_vals
 
@@ -188,13 +127,8 @@ def backfill_spot_prices(
     Backfills spot prices for all token markets.  This function will query the blockchain for all swap events
     for a given token market, and store them in the database.  If the events are already backfilled, this function
     will skip the query, and move on to the next token market.
-
-    :param db_session:
-    :param json_rpc:
-    :param network:
-    :param progress:
-    :return:
     """
+
     batch_size = backfill_plan.metadata_dict.get("batch_size", 5_000)
     ref_token = backfill_plan.get_metadata("reference_token")
 
@@ -205,6 +139,7 @@ def backfill_spot_prices(
     killer = GracefulKiller(console=progress.console)
 
     decoder = backfill_plan.decoder
+    assert decoder is not None, "Decoder must be provided for backfilling spot prices"
     price_event_topics = backfill_plan.get_metadata("topics")
 
     for range_idx, (start_block, end_block) in enumerate(backfill_plan.range_plan.backfill_ranges):
@@ -241,7 +176,7 @@ def backfill_spot_prices(
                     f"market {market_info.market_address}"
                 )
                 killer.kill_now = True
-                backfill_plan.range_plan.mark_failed(range_idx, start_slice)
+                backfill_plan.process_failed_backfill(start_slice)
                 break
 
             sorted_events = sorted(pricing_events, key=lambda x: (x["block_number"], x["log_index"]))
@@ -276,4 +211,4 @@ def backfill_spot_prices(
         if killer.kill_now:
             return
 
-        backfill_plan.range_plan.mark_finalized(range_idx)
+        backfill_plan.range_plan.mark_finalized(range_idx, backfill_plan.range_kwargs())

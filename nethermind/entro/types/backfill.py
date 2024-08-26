@@ -1,28 +1,47 @@
 import datetime
-from dataclasses import dataclass
+from dataclasses import asdict, dataclass
 from enum import Enum
-from typing import Any, Protocol, TypeVar
+from typing import Any, ClassVar, Protocol, TypeVar
 
 # Disabling stupid naming check that wants enums to use UPPER_CASE
 # pylint: disable=invalid-name
 
 
-# This allows type-checkers to enforce dataclass type checks
-class DataclassType(Protocol):
-    __dataclass_fields__: dict[str, Any]
+class ExporterDataType(Enum):
+    """Data Type Key for Exporters"""
+
+    blocks = "blocks"
+    transactions = "transactions"
+    events = "events"
+    traces = "traces"
+    transfers = "transfers"
 
 
-Dataclass = TypeVar("Dataclass", bound=DataclassType)
+def dataclass_as_dict(dataclass_instance: "Dataclass") -> dict[str, Any]:
+    """Helper function with clearer name & MyPy typing"""
+    return asdict(dataclass_instance)
 
 
-# Importer Callable checks that the callable Fn passed matches the signature defined in __call__
+class DataclassProtocol(Protocol):
+    """Allows type-checkers to enforce dataclass type checks"""
+
+    __dataclass_fields__: ClassVar[dict]
+
+
+Dataclass = TypeVar("Dataclass", bound=DataclassProtocol)
+
+
 class ImporterCallable(Protocol):
-    def __call__(self, from_block: int, to_block: int, **kwargs) -> dict[str, list[Dataclass]]:
+    """Verify callable Fn passed matches the signature defined in __call__"""
+
+    def __call__(self, from_block: int, to_block: int, **kwargs) -> dict[ExporterDataType, list[Dataclass]]:
         # Return {'blocks': [BlockDataclass, ...], 'transactions': [TransactionDataclass, ...]}
         ...
 
 
 class BlockProtocol(Protocol):
+    """Protocol verifying Block Dataclasses have set of common fields"""
+
     block_number: int
     timestamp: int
 
@@ -56,7 +75,7 @@ class DataSources(Enum):
     """Enum storing supported backfill data sources"""
 
     json_rpc = "json_rpc"
-    etherscan = "etherscan"
+    etherscan_api_key = "etherscan_api_key"
 
 
 class SupportedNetwork(Enum):

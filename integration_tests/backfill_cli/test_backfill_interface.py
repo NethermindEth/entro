@@ -43,6 +43,7 @@ def setup_backfills(integration_db_session, cli_db_url):
 def test_backfilling_start_at_end_at(
     cli_db_url,
     eth_rpc_url,
+    integration_db_session,
     integration_db_url,
     setup_backfills,
     create_debug_logger,
@@ -62,7 +63,7 @@ def test_backfilling_start_at_end_at(
     assert backfill_plan.range_plan.backfill_ranges == [(18_000_020, 18_000_060)]
     assert backfill_plan.total_blocks() == 40
 
-    backfill_plan.range_plan.mark_finalized(0)
+    backfill_plan.range_plan.mark_finalized(0, DEFAULT_KWARGS)
 
     backfill_plan.save_to_db()
 
@@ -148,7 +149,7 @@ def test_extending_range_failed_backfill(integration_postgres_db, integration_db
     assert bfills[0].end_block == 16_000_000
 
 
-def test_multi_range_failed_backfills(integration_db_url, eth_rpc_url):
+def test_multi_range_failed_backfills(integration_db_session, integration_db_url, eth_rpc_url):
     migrate_up(integration_db_session.get_bind())
     conflict_id = uuid.uuid4().hex
     integration_db_session.add(
@@ -183,8 +184,8 @@ def test_multi_range_failed_backfills(integration_db_url, eth_rpc_url):
 
     single_range_fail_plan.process_failed_backfill(11_000_000)
 
-    dual_range_fail_plan.range_plan.mark_finalized(0)
-    dual_range_fail_plan.range_plan.mark_failed(1, 17_000_000)
+    dual_range_fail_plan.range_plan.mark_finalized(0, DEFAULT_KWARGS)
+    dual_range_fail_plan.range_plan.mark_failed(1, 17_000_000, DEFAULT_KWARGS)
 
     assert len(single_range_fail_plan.range_plan.remove_backfills) == 0
     assert single_range_fail_plan.range_plan.add_backfill.start_block == 10_000_000

@@ -1,23 +1,20 @@
-import asyncio
-
-from aiohttp import ClientSession
-
-from nethermind.entro.exceptions import BackfillError
 from nethermind.entro.types.backfill import (
     BackfillDataType,
-    Dataclass,
     ImporterCallable,
     SupportedNetwork,
 )
-from nethermind.idealis.rpc.starknet import (
-    get_blocks_with_txns,
-    get_events_for_contract,
-)
-from nethermind.idealis.utils import to_bytes
+
+from .ethereum import ethereum_block_importer, ethereum_transaction_importer
 
 # Network Importer Callables
-from .starknet import starknet_transaction_importer, starknet_event_importer, starknet_block_importer
-from .ethereum import ethereum_block_importer
+from .starknet import (
+    starknet_block_importer,
+    starknet_event_importer,
+    starknet_transaction_importer,
+)
+
+# pylint: disable=missing-function-docstring
+
 
 def get_importer_for_backfill(
     network: SupportedNetwork,
@@ -54,6 +51,8 @@ def get_transaction_importer(network: SupportedNetwork) -> ImporterCallable:
     match network:
         case network.starknet:
             return starknet_transaction_importer
+        case network.ethereum:
+            return ethereum_transaction_importer
         case _:
             raise ValueError(f"Cannot find Transaction Importer for {network}")
 

@@ -17,7 +17,7 @@ class ContractABI(Base):
     abi_name: Mapped[str]
     abi_json: Mapped[list[dict[str, Any]]] = mapped_column(JSON)
     priority: Mapped[int]
-    os: Mapped[str]  # 'EVM' or 'Cairo'
+    decoder_os: Mapped[str]  # 'EVM' or 'Cairo'
 
     __table_args__ = (
         PrimaryKeyConstraint("abi_name"),

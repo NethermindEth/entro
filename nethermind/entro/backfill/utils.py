@@ -12,9 +12,9 @@ from rich.progress import (
     TimeRemainingColumn,
 )
 
-from nethermind.idealis.exceptions import RPCError
 from nethermind.entro.types import BlockIdentifier
 from nethermind.entro.types.backfill import SupportedNetwork as SN
+from nethermind.idealis.exceptions import RPCError
 
 progress_defaults = [
     TextColumn("[progress.description]{task.description}"),
@@ -87,6 +87,7 @@ def get_current_block_number(network: SN) -> int:
             try:
                 return int(response["result"], 16)
             except KeyError:
+
                 raise RPCError(f"Error fetching current block number for Ethereum: {response}")
 
         case SN.starknet:
@@ -131,7 +132,7 @@ def block_identifier_to_block(
             return 0
         case "safe":
             raise NotImplementedError(
-                "Generalized Safe block not implemented.  Compute safe block manually and use " "integer block numbers"
+                "Generalized Safe block not implemented.  Compute safe block manually and use integer block numbers"
             )
         case "finalized":
             raise NotImplementedError(

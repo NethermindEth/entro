@@ -4,7 +4,7 @@ from typing import Any
 
 from eth_abi import decode as eth_abi_decode
 from eth_abi.exceptions import InsufficientDataBytes, NonEmptyPaddingBytes
-from web3.types import ABI, ABIEvent, ABIEventParams, ABIFunction, ABIFunctionParams
+from eth_typing.abi import ABI, ABIComponent, ABIEvent, ABIFunction
 
 # Redefinitions from eth_utils with correct typing
 
@@ -28,7 +28,7 @@ def abi_to_signature(abi: ABIFunction | ABIEvent) -> str:
     return f"{abi['name']}({','.join(collapsed)})"
 
 
-def collapse_if_tuple(abi_params: ABIFunctionParams | ABIEventParams) -> str:
+def collapse_if_tuple(abi_params: ABIComponent) -> str:
     """
     Converts a tuple from a dict to a parenthesized list of its types.
 

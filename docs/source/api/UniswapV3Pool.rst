@@ -69,23 +69,24 @@ Uniswap V3 Types
 
 .. autoclass:: nethermind.entro.types.uniswap_v3.PoolImmutables
     :members:
+    :exclude-members: uninitialized, __init__
 
 .. autoclass:: nethermind.entro.types.uniswap_v3.PoolState
     :members:
-    :exclude-members: uninitialized
+    :exclude-members: uninitialized, __init__
 
 .. autoclass:: nethermind.entro.types.uniswap_v3.Slot0
     :members:
-    :exclude-members: uninitialized
+    :exclude-members: uninitialized, __init__
 
 .. autoclass:: nethermind.entro.types.uniswap_v3.Tick
     :members:
-    :exclude-members: uninitialized
+    :exclude-members: uninitialized, __init__
 
 .. autoclass:: nethermind.entro.types.uniswap_v3.OracleObservation
     :members:
-    :exclude-members: uninitialized
+    :exclude-members: uninitialized, __init__
 
 .. autoclass:: nethermind.entro.types.uniswap_v3.PositionInfo
     :members:
-    :exclude-members: uninitialized
+    :exclude-members: uninitialized, __init__

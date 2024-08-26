@@ -61,6 +61,8 @@ class EraTransaction(AbstractTransaction):
     decoded_signature: Mapped[str | None]
     decoded_input: Mapped[dict[str, Any] | None] = mapped_column(JSON)
 
+    error: Mapped[str | None]
+
     __table_args__ = {"schema": "zk_sync_data"}
 
 

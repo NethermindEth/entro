@@ -31,6 +31,11 @@ class TokenMarketInfo:
 
 
 class AbstractTokenMarket:
+    """
+    Abstract class for token markets.  Provides standardized interface for computing quotes
+    across different pricing pools
+    """
+
     @abstractmethod
     def decode_price_from_event(self, event: dict[str, Any], reference_token: ChecksumAddress) -> float:
         """

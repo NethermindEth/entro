@@ -2,6 +2,7 @@ import itertools
 import logging
 from typing import Any, Callable, Sequence
 
+from eth_typing.abi import ABIEvent  # Dict containing all params in Event Definition
 from eth_utils import to_checksum_address
 from eth_utils.abi import event_signature_to_log_topic
 from web3._utils.abi import (
@@ -10,7 +11,6 @@ from web3._utils.abi import (
     normalize_event_input_types,
 )
 from web3._utils.events import get_event_abi_types_for_decoding
-from web3.types import ABIEvent  # Dict containing all params in Event Definition
 
 from nethermind.entro.decoding.utils import decode_evm_abi_from_types
 from nethermind.entro.exceptions import DecodingError
@@ -25,6 +25,10 @@ logger = root_logger.getChild("entro").getChild("decoding")
 
 
 class CairoEventDecoder(AbiEvent):
+    """
+    Represents a single Starknet Cairo Event.  Parses input & output types to efficiently decode Starknet events
+    """
+
     priority: int
     abi_name: str
     indexed_params: int
@@ -44,18 +48,27 @@ class CairoEventDecoder(AbiEvent):
         self.indexed_params = len(self.keys)
 
     def decode(self, data: list[bytes], keys: list[bytes]) -> DecodedEvent | None:
+        """Decode Starknet Event from binary calldata"""
         return super().decode(
-            data=[int.from_bytes(d, "big") for d in data], keys=[int.from_bytes(k, "big") for k in keys]
+            data=[int.from_bytes(d, "big") for d in data],
+            keys=[int.from_bytes(k, "big") for k in keys],
         )
 
     def id_str(self, full_signature: bool = True) -> str:
+        """
+        If full_signature is True, returns Event name with parameter names and types.
+        If False, returns event name
+        """
+
         if full_signature:
             return super().id_str()
         return self.name
 
 
 class EVMEventDecoder:
-    """Stores precomputed data for Decoding Functions and Traces"""
+    """
+    Stores precomputed data for Efficiently Decoding EVM Events
+    """
 
     event_signature: str
     signature: bytes
@@ -64,10 +77,10 @@ class EVMEventDecoder:
     priority: int
     indexed_params: int
 
-    data_types: list[str]
-    data_names: list[str]
-    topic_types: list[str]
-    topic_names: list[str]
+    _data_types: list[str]
+    _data_names: list[str]
+    _topic_types: list[str]
+    _topic_names: list[str]
 
     formatters: dict[str, Callable[[Any], Any]] = {}
 
@@ -98,10 +111,10 @@ class EVMEventDecoder:
             f"Adding Event Decoder for {event_signature} with Topic Types: {log_topics_types} and "
             f"Data Types: {log_data_types}"
         )
-        self.data_names = log_data_names
-        self.data_types = log_data_types
-        self.topic_names = log_topic_names
-        self.topic_types = log_topics_types
+        self._data_names = log_data_names
+        self._data_types = log_data_types
+        self._topic_names = log_topic_names
+        self._topic_types = log_topics_types
         self.abi_name = abi_name
         self.event_signature = event_signature
         self.signature = selector
@@ -122,8 +135,8 @@ class EVMEventDecoder:
         :param keys: List of topic bytes
         :return: DecodedEventDataclass
         """
-        decoded_data = decode_evm_abi_from_types(self.data_types, b"".join(data))
-        decoded_topics = decode_evm_abi_from_types(self.topic_types, b"".join(keys[1:]))
+        decoded_data = decode_evm_abi_from_types(self._data_types, b"".join(data))
+        decoded_topics = decode_evm_abi_from_types(self._topic_types, b"".join(keys[1:]))
 
         if decoded_data is None or decoded_topics is None:
             logger.debug(
@@ -132,13 +145,13 @@ class EVMEventDecoder:
             )
             return None
 
-        formatted_data = self.apply_formatters(decoded_data, self.data_types)
-        formatted_topics = self.apply_formatters(decoded_topics, self.topic_types)
+        formatted_data = self.apply_formatters(decoded_data, self._data_types)
+        formatted_topics = self.apply_formatters(decoded_topics, self._topic_types)
 
         return DecodedEvent(
             abi_name=self.abi_name,
             name=self.name,
-            data=dict(itertools.chain(zip(self.topic_names, formatted_topics), zip(self.data_names, formatted_data))),
+            data=dict(itertools.chain(zip(self._topic_names, formatted_topics), zip(self._data_names, formatted_data))),
             event_signature=self.event_signature,
         )
 
@@ -160,6 +173,7 @@ class EVMEventDecoder:
         return formatted_values
 
     def id_str(self, full_signature: bool = True) -> str:
+        """If full_signature is True, returns EventName(types,...) Otherwise, returns event name"""
         if full_signature:
             return self.event_signature
         return self.name

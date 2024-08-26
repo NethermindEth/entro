@@ -1,11 +1,6 @@
-import asyncio
-import json
 import logging
-
 import click
-from rich.console import Console
-from rich.highlighter import RegexHighlighter
-from rich.panel import Panel
+
 
 from nethermind.entro.cli.utils import (
     cli_logger_config,
@@ -18,10 +13,13 @@ from nethermind.idealis.utils import to_bytes, to_hex, zero_pad_hexstr
 root_logger = logging.getLogger("nethermind")
 logger = root_logger.getChild("cli").getChild("starknet")
 
+# isort: skip_file
+# pylint: disable=too-many-arguments,import-outside-toplevel,too-many-locals
+
 
 @click.group(name="starknet")
 def starknet_group():
-    ...
+    """Starknet CLI Commands"""
 
 
 @starknet_group.command("class")
@@ -30,8 +28,13 @@ def starknet_group():
     json_rpc_option,
 )
 def get_starknet_class(class_hash: str, json_rpc: str | None = None):
+    """Get ABI for a Starknet Class & Print a formatted list of functions and events"""
+    import json
     from nethermind.idealis.rpc.starknet import sync_get_class_abi
     from nethermind.starknet_abi.core import StarknetAbi
+    from rich.console import Console
+    from rich.highlighter import RegexHighlighter
+    from rich.panel import Panel
 
     assert json_rpc is not None, "Environment var JSON_RPC or --json-rpc flag must be set"
 
@@ -42,15 +45,17 @@ def get_starknet_class(class_hash: str, json_rpc: str | None = None):
             class_abi = json.loads(class_abi)
         except json.JSONDecodeError:
             logging.error(f"Invalid ABI for class 0x{class_hash_bytes.hex()}.  Could not parse ABI JSON...")
-            return None
+            return
 
     try:
         abi = StarknetAbi.from_json(abi_json=class_abi, class_hash=class_hash_bytes, abi_name="")
-    except BaseException as e:
+    except BaseException as e:  # pylint: disable=broad-except
         logging.error(f"Error parsing ABI for class 0x{class_hash}...  {e}")
-        return None
+        return
 
     class IndexedParamHighligher(RegexHighlighter):
+        """Highlight any text inside <> brackets as yellow"""
+
         base_style = "repr."
         highlights = [r"(?P<uuid><[^>]+>)"]  # uuid group formats text as repr.uuid (yellow)
 
@@ -75,7 +80,11 @@ def get_starknet_class(class_hash: str, json_rpc: str | None = None):
     json_rpc_option,
 )
 def get_starknet_contract_implementation(contract_address: str, json_rpc: str | None = None):
+    """Get the implementation history for a Starknet Contract"""
+    import asyncio
+    import json
     from aiohttp import ClientSession
+    from rich.panel import Panel
 
     from nethermind.idealis.rpc.starknet import (
         generate_contract_implementation,
@@ -83,6 +92,8 @@ def get_starknet_contract_implementation(contract_address: str, json_rpc: str | 
     )
     from nethermind.idealis.types.starknet import ContractImplementation
     from nethermind.idealis.utils.starknet import PessimisticDecoder
+
+    console = cli_logger_config(root_logger)
 
     assert json_rpc is not None, "Environment Variable JSON_RPC or --json-rpc flag must be set"
 
@@ -103,8 +114,14 @@ def get_starknet_contract_implementation(contract_address: str, json_rpc: str | 
         await session.close()
         return impl
 
-    impl = asyncio.run(_get_contract_impl(to_bytes(contract_address)))
-    console = Console()
+    contract_bytes = to_bytes(contract_address, pad=32)
+    impl = asyncio.run(_get_contract_impl(contract_bytes))
+    if impl is None:
+        logger.error(
+            f"Could not generate implementation history for contract 0x{contract_bytes.hex()} at "
+            f"starknet block {current_block}"
+        )
+        return
 
     console.print(Panel(f"[bold]Implementation History for Contract [magenta]{contract_address}"))
     console.print_json(json.dumps(impl.history))
@@ -121,11 +138,14 @@ def get_decoded_transaction(transaction_hash, json_rpc, full_trace, raw):
     """
     Decode Starknet Transaction Trace & Events
     """
+    import asyncio
     from aiohttp import ClientSession
     from rich import box
     from rich.console import Group, group
     from rich.table import Table
     from rich.tree import Tree
+    from rich.console import Console
+    from rich.panel import Panel
 
     from nethermind.idealis.parse.shared.trace import group_traces
     from nethermind.idealis.parse.starknet.trace import replace_delegate_calls_for_tx
@@ -190,8 +210,8 @@ def get_decoded_transaction(transaction_hash, json_rpc, full_trace, raw):
 
     def add_to_tree(call_tree: Tree, call_trace: Trace, children: list[tuple[Trace, list]] | None):
         tree_text = [
-            f"[bold blue] {call_trace.function_name} [default] -- "
-            f"[green] {to_hex(call_trace.contract_address) if full_trace else pprint_hash(call_trace.contract_address)}",
+            f"[bold blue] {call_trace.function_name} [default] -- [green] "
+            f"{to_hex(call_trace.contract_address) if full_trace else pprint_hash(call_trace.contract_address)}",
         ]
 
         trace_table = Table(show_header=False, show_lines=False, box=box.ROUNDED, highlight=True)
@@ -220,20 +240,20 @@ def get_decoded_transaction(transaction_hash, json_rpc, full_trace, raw):
     add_to_tree(root_call_tree, grouped_traces[0], grouped_traces[1])
 
     @group()
-    def event_tables(events: list[Event]):
-        for event in events:
+    def event_tables(list_events: list[Event]):
+        for list_event in list_events:
             event_table = Table(box=box.ROUNDED, show_header=False, highlight=True)
             event_table.add_column("Param", style="bold magenta")
             event_table.add_column("Value")
 
-            event_table.add_row("Name", f"[bold blue]{event.event_name}")
-            event_table.add_row("Contract", f"0x{event.contract_address.hex()}")
-            event_table.add_row("Decoded", rich_json(event.decoded_params))
+            event_table.add_row("Name", f"[bold blue]{list_event.event_name}")
+            event_table.add_row("Contract", f"0x{list_event.contract_address.hex()}")
+            event_table.add_row("Decoded", rich_json(list_event.decoded_params))
 
             if raw:
-                event_table.add_row("Keys", rich_json([to_hex(k) for k in event.keys]))
-                event_table.add_row("Data", rich_json([to_hex(d) for d in event.data]))
-                event_table.add_row("Class Hash", to_hex(event.class_hash))
+                event_table.add_row("Keys", rich_json([to_hex(k) for k in list_event.keys]))
+                event_table.add_row("Data", rich_json([to_hex(d) for d in list_event.data]))
+                event_table.add_row("Class Hash", to_hex(list_event.class_hash))
 
             yield event_table
 

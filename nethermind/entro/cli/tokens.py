@@ -1,6 +1,10 @@
 import click
 
 
+# isort: skip_file
+# pylint: disable=too-many-arguments,import-outside-toplevel,too-many-locals
+
+
 @click.command(name="list")
 def list_command():
     """List all tokens in the database"""

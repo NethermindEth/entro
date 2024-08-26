@@ -39,7 +39,7 @@ def debug_logger(request: FixtureRequest):
     file_handler = logging.FileHandler(log_file)
     file_handler.setFormatter(formatter)
 
-    logger = logging.getLogger("python_eth_amm")
+    logger = logging.getLogger("nethermind")
     logger.addHandler(file_handler)
     logger.setLevel(logging.DEBUG)
 
