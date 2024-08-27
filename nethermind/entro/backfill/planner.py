@@ -317,8 +317,6 @@ class BackfillPlan:
         )
         term_width = shutil.get_terminal_size().columns
 
-        console.print(f"[bold]------ Backfill Plan for {network} {backfill_type} ------")
-
         block_range_table = Table(title="Backfill Block Ranges", min_width=80)
         block_range_table.add_column("Start Block")
         block_range_table.add_column("End Block")

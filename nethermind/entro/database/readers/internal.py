@@ -7,8 +7,8 @@ import click.utils
 from sqlalchemy import and_, select
 from sqlalchemy.orm import Session
 
-from nethermind.entro.database.models.base import AbstractBlock
 from nethermind.entro.database.models import block_model_for_network
+from nethermind.entro.database.models.base import AbstractBlock
 from nethermind.entro.database.models.internal import BackfilledRange, ContractABI
 from nethermind.entro.types.backfill import BackfillDataType as BDT
 from nethermind.entro.types.backfill import BlockTimestamp, SupportedNetwork

@@ -1,4 +1,6 @@
 import logging
+from typing import Literal
+
 import click
 
 
@@ -143,8 +145,8 @@ def list_abis(db_url: str | None):
     console = cli_logger_config(root_logger)
 
     db_session = create_cli_session(db_url) if db_url else None
-    evm_abis = get_abis(db_session)
-    starknet_abis = get_abis(db_session, decoder_os="Cairo")
+    evm_abis = sorted(get_abis(db_session), key=lambda x: x.priority, reverse=True)
+    starknet_abis = sorted(get_abis(db_session, decoder_os="Cairo"), key=lambda x: x.priority, reverse=True)
 
     if db_session:
         db_session.close()
@@ -190,3 +192,22 @@ def list_abi_decoders(decoder_type, db_url, full_signatures):
 
     if decoder.loaded_abis:
         console.print(decoder.decoder_table(full_signatures=full_signatures))
+
+
+@decode_group.command()
+@group_options(db_url_option)
+@click.argument("abi_name")
+@click.argument("decoder_type", type=click.Choice(["EVM", "Cairo"]))
+def delete_abi(abi_name: str, decoder_type: Literal["EVM", "Cairo"], db_url: str | None):
+    """Deletes an ABI from the data cache"""
+    from nethermind.entro.cli.utils import cli_logger_config, create_cli_session
+    from nethermind.entro.database.writers.internal import delete_abi
+
+    cli_logger_config(root_logger)
+
+    db_session = create_cli_session(db_url) if db_url else None
+
+    delete_abi(abi_name, db_session, decoder_type)
+
+    if db_session:
+        db_session.close()

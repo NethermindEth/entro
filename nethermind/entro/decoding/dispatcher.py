@@ -417,11 +417,10 @@ class DecodingDispatcher:
                 assert hasattr(tx, "calldata") and isinstance(
                     tx.calldata, list
                 ), "Cairo Transactions must have calldata array"
-                assert hasattr(tx, "signature") and isinstance(
-                    tx.signature, bytes
-                ), "Cairo Transactions must have Signature"
 
-                function_decoder = self.function_decoders.get(tx.signature)
+                assert hasattr(tx, "selector"), "Cairo Transactions must have selector"
+
+                function_decoder = self.function_decoders.get(tx.selector)
                 if function_decoder is None:
                     return
                 decode_result = function_decoder.decode(calldata=tx.calldata)

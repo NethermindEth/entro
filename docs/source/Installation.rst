@@ -32,7 +32,7 @@ improvements over ganache, or any other EVM implementations.
 The evm instance is used during testing & development, and is not required for normal usage of the library.  To
 enable this functionality, pass the option exact_math=True to the PoolFactory object.
 
-.. code-block:: console
+.. code-block:: shell
 
     $ git clone https://github.com/nethermindETH/entro.git
     $ cd entro
@@ -50,7 +50,7 @@ Installing & Manually Running Pre-Commit
 Linting & Pre-commits
 ^^^^^^^^^^^^^^^^^^^^^
 
-.. code-block:: console
+.. code-block:: shell
 
     $ poetry run pre-commit install
     $ poetry run pre-commit run --all-files
@@ -74,7 +74,7 @@ Test Environment
 Running Tests
 ^^^^^^^^^^^^^
 
-.. code-block:: console
+.. code-block:: shell
 
     $ poetry run pytest tests/
 

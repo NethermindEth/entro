@@ -163,7 +163,7 @@ no_interaction_option = click.option(
     help="If provided, will run backfill without interactive prompts & progress bar",
 )
 decode_abis_option = click.option(
-    "--decode_abis",
+    "--decode-abis",
     "-abi",
     "decode_abis",
     multiple=True,

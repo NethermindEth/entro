@@ -17,6 +17,7 @@ from nethermind.entro.exceptions import DecodingError
 from nethermind.entro.types.decoding import DecodedEvent
 from nethermind.starknet_abi import AbiEvent
 from nethermind.starknet_abi.abi_types import StarknetType
+from nethermind.starknet_abi.exceptions import InvalidCalldataError, TypeDecodeError
 
 from .utils import abi_to_signature
 
@@ -49,10 +50,14 @@ class CairoEventDecoder(AbiEvent):
 
     def decode(self, data: list[bytes], keys: list[bytes]) -> DecodedEvent | None:
         """Decode Starknet Event from binary calldata"""
-        return super().decode(
-            data=[int.from_bytes(d, "big") for d in data],
-            keys=[int.from_bytes(k, "big") for k in keys],
-        )
+        try:
+            return super().decode(
+                data=[int.from_bytes(d, "big") for d in data],
+                keys=[int.from_bytes(k, "big") for k in keys],
+            )
+
+        except (InvalidCalldataError, TypeDecodeError):
+            return None
 
     def id_str(self, full_signature: bool = True) -> str:
         """

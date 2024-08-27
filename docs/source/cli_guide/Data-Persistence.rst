@@ -1,8 +1,11 @@
 Data Persistence
 ================
 
-CSV File Formats
-****************
+
+.. _starknet-data-formats:
+
+Starknet CSV File Formats
+*************************
 
 Blocks
 ------

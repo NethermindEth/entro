@@ -77,6 +77,10 @@ def full_blocks(**kwargs):
 
     backfill_plan.execute_backfill(console=console, killer=killer)
 
+    if backfill_plan.db_session:
+        backfill_plan.save_to_db()
+        backfill_plan.db_session.close()
+
 
 @starknet_group.command()
 @group_options(
@@ -120,6 +124,10 @@ def transactions(**kwargs):
     killer = GracefulKiller(console)
 
     backfill_plan.execute_backfill(console=console, killer=killer)
+
+    if backfill_plan.db_session:
+        backfill_plan.save_to_db()
+        backfill_plan.db_session.close()
 
 
 @starknet_group.command()
@@ -165,6 +173,10 @@ def events(**kwargs):
     killer = GracefulKiller(console)
 
     backfill_plan.execute_backfill(console=console, killer=killer)
+
+    if backfill_plan.db_session:
+        backfill_plan.save_to_db()
+        backfill_plan.db_session.close()
 
 
 @starknet_group.command()
