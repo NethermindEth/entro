@@ -1,0 +1,1152 @@
+
+
+<!DOCTYPE html>
+
+
+<html lang="en" data-content_root="" >
+
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="generator" content="Docutils 0.19: https://docutils.sourceforge.io/" />
+
+    <title>UniswapV3Pool &#8212; Nethermind Entro Documentation</title>
+  
+  
+  
+  <script data-cfasync="false">
+    document.documentElement.dataset.mode = localStorage.getItem("mode") || "";
+    document.documentElement.dataset.theme = localStorage.getItem("theme") || "";
+  </script>
+  
+  <!-- Loaded before other Sphinx assets -->
+  <link href="../_static/styles/theme.css?digest=dfe6caa3a7d634c4db9b" rel="stylesheet" />
+<link href="../_static/styles/bootstrap.css?digest=dfe6caa3a7d634c4db9b" rel="stylesheet" />
+<link href="../_static/styles/pydata-sphinx-theme.css?digest=dfe6caa3a7d634c4db9b" rel="stylesheet" />
+
+  
+  <link href="../_static/vendor/fontawesome/6.5.2/css/all.min.css?digest=dfe6caa3a7d634c4db9b" rel="stylesheet" />
+  <link rel="preload" as="font" type="font/woff2" crossorigin href="../_static/vendor/fontawesome/6.5.2/webfonts/fa-solid-900.woff2" />
+<link rel="preload" as="font" type="font/woff2" crossorigin href="../_static/vendor/fontawesome/6.5.2/webfonts/fa-brands-400.woff2" />
+<link rel="preload" as="font" type="font/woff2" crossorigin href="../_static/vendor/fontawesome/6.5.2/webfonts/fa-regular-400.woff2" />
+
+    <link rel="stylesheet" type="text/css" href="../_static/pygments.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/styles/sphinx-book-theme.css" />
+  
+  <!-- Pre-loaded scripts that we'll load fully later -->
+  <link rel="preload" as="script" href="../_static/scripts/bootstrap.js?digest=dfe6caa3a7d634c4db9b" />
+<link rel="preload" as="script" href="../_static/scripts/pydata-sphinx-theme.js?digest=dfe6caa3a7d634c4db9b" />
+  <script src="../_static/vendor/fontawesome/6.5.2/js/all.min.js?digest=dfe6caa3a7d634c4db9b"></script>
+
+    <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js"></script>
+    <script src="../_static/doctools.js"></script>
+    <script src="../_static/sphinx_highlight.js"></script>
+    <script src="../_static/scripts/sphinx-book-theme.js"></script>
+    <script async="async" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <script>DOCUMENTATION_OPTIONS.pagename = 'api/UniswapV3Pool';</script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="prev" title="Pricing Oracle" href="PricingOracle.html" />
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <meta name="docsearch:language" content="en"/>
+  </head>
+  
+  
+  <body data-bs-spy="scroll" data-bs-target=".bd-toc-nav" data-offset="180" data-bs-root-margin="0px 0px -60%" data-default-mode="">
+
+  
+  
+  <div id="pst-skip-link" class="skip-link d-print-none"><a href="#main-content">Skip to main content</a></div>
+  
+  <div id="pst-scroll-pixel-helper"></div>
+  
+  <button type="button" class="btn rounded-pill" id="pst-back-to-top">
+    <i class="fa-solid fa-arrow-up"></i>Back to top</button>
+
+  
+  <input type="checkbox"
+          class="sidebar-toggle"
+          id="pst-primary-sidebar-checkbox"/>
+  <label class="overlay overlay-primary" for="pst-primary-sidebar-checkbox"></label>
+  
+  <input type="checkbox"
+          class="sidebar-toggle"
+          id="pst-secondary-sidebar-checkbox"/>
+  <label class="overlay overlay-secondary" for="pst-secondary-sidebar-checkbox"></label>
+  
+  <div class="search-button__wrapper">
+    <div class="search-button__overlay"></div>
+    <div class="search-button__search-container">
+<form class="bd-search d-flex align-items-center"
+      action="../search.html"
+      method="get">
+  <i class="fa-solid fa-magnifying-glass"></i>
+  <input type="search"
+         class="form-control"
+         name="q"
+         id="search-input"
+         placeholder="Search..."
+         aria-label="Search..."
+         autocomplete="off"
+         autocorrect="off"
+         autocapitalize="off"
+         spellcheck="false"/>
+  <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd>K</kbd></span>
+</form></div>
+  </div>
+
+  <div class="pst-async-banner-revealer d-none">
+  <aside id="bd-header-version-warning" class="d-none d-print-none" aria-label="Version warning"></aside>
+</div>
+
+  
+    <header class="bd-header navbar navbar-expand-lg bd-navbar d-print-none">
+    </header>
+  
+
+  <div class="bd-container">
+    <div class="bd-container__inner bd-page-width">
+      
+      
+      
+      <div class="bd-sidebar-primary bd-sidebar">
+        
+
+  
+  <div class="sidebar-header-items sidebar-primary__section">
+    
+    
+    
+    
+  </div>
+  
+    <div class="sidebar-primary-items__start sidebar-primary__section">
+        <div class="sidebar-primary-item">
+
+  
+     
+  
+
+<a class="navbar-brand logo" href="https://nethermind.io">
+  
+  
+  
+  
+  
+    
+    
+      
+    
+    
+    <img src="../_static/logo-light.svg" class="logo__image only-light" alt="Nethermind Entro Documentation - Home"/>
+    <script>document.write(`<img src="../_static/logo-dark.svg" class="logo__image only-dark" alt="Nethermind Entro Documentation - Home"/>`);</script>
+  
+  
+</a></div>
+        <div class="sidebar-primary-item">
+
+ <script>
+ document.write(`
+   <button class="btn search-button-field search-button__button" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+    <i class="fa-solid fa-magnifying-glass"></i>
+    <span class="search-button__default-text">Search</span>
+    <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+   </button>
+ `);
+ </script></div>
+        <div class="sidebar-primary-item"><nav class="bd-links bd-docs-nav" aria-label="Main">
+    <div class="bd-toc-item navbar-nav active">
+        <p aria-level="2" class="caption" role="heading"><span class="caption-text">Intro</span></p>
+<ul class="nav bd-sidenav">
+<li class="toctree-l1"><a class="reference internal" href="../Installation.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../Quickstart.html">Quickstart</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../Changelog.html">Releases</a></li>
+</ul>
+<p aria-level="2" class="caption" role="heading"><span class="caption-text">CLI Guide</span></p>
+<ul class="nav bd-sidenav">
+<li class="toctree-l1"><a class="reference internal" href="../cli_guide/Data-Persistence.html">Data Persistence</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../cli_guide/Decoding.html">Decoding</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../cli_guide/Ethereum.html">Ethereum Commands</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../cli_guide/Starknet.html">Starknet Commands</a></li>
+</ul>
+<p aria-level="2" class="caption" role="heading"><span class="caption-text">Uniswap Guide</span></p>
+<ul class="nav bd-sidenav">
+<li class="toctree-l1"><a class="reference internal" href="../uniswap/Extracting%20Block-by-Block%20Price%20Data.html">Extracting Block-by-Block Price Data</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../uniswap/Uniswap%20Quickstart.html">Uniswap Quickstart</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../uniswap/Valuing%20Uniswap%20V3%20Positions.html">Valuing Uniswap V3 Liquidity Positions</a></li>
+</ul>
+<p aria-level="2" class="caption" role="heading"><span class="caption-text">API Reference</span></p>
+<ul class="current nav bd-sidenav">
+<li class="toctree-l1"><a class="reference internal" href="ERC20Token.html">Standard Token Interface</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Exceptions.html">Exceptions</a></li>
+<li class="toctree-l1"><a class="reference internal" href="PricingOracle.html">Pricing Oracle</a></li>
+<li class="toctree-l1 current active"><a class="current reference internal" href="#">UniswapV3Pool</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../genindex.html">API Glossary</a></li>
+</ul>
+
+    </div>
+</nav></div>
+    </div>
+  
+  
+  <div class="sidebar-primary-items__end sidebar-primary__section">
+  </div>
+  
+  <div id="rtd-footer-container"></div>
+
+
+      </div>
+      
+      <main id="main-content" class="bd-main" role="main">
+        
+        
+
+<div class="sbt-scroll-pixel-helper"></div>
+
+          <div class="bd-content">
+            <div class="bd-article-container">
+              
+              <div class="bd-header-article d-print-none">
+<div class="header-article-items header-article__inner">
+  
+    <div class="header-article-items__start">
+      
+        <div class="header-article-item"><button class="sidebar-toggle primary-toggle btn btn-sm" title="Toggle primary sidebar" data-bs-placement="bottom" data-bs-toggle="tooltip">
+  <span class="fa-solid fa-bars"></span>
+</button></div>
+      
+    </div>
+  
+  
+    <div class="header-article-items__end">
+      
+        <div class="header-article-item">
+
+<div class="article-header-buttons">
+
+
+
+
+
+<div class="dropdown dropdown-download-buttons">
+  <button class="btn dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false" aria-label="Download this page">
+    <i class="fas fa-download"></i>
+  </button>
+  <ul class="dropdown-menu">
+      
+      
+      
+      <li><a href="../_sources/api/UniswapV3Pool.rst" target="_blank"
+   class="btn btn-sm btn-download-source-button dropdown-item"
+   title="Download source file"
+   data-bs-placement="left" data-bs-toggle="tooltip"
+>
+  
+
+<span class="btn__icon-container">
+  <i class="fas fa-file"></i>
+  </span>
+<span class="btn__text-container">.rst</span>
+</a>
+</li>
+      
+      
+      
+      
+      <li>
+<button onclick="window.print()"
+  class="btn btn-sm btn-download-pdf-button dropdown-item"
+  title="Print to PDF"
+  data-bs-placement="left" data-bs-toggle="tooltip"
+>
+  
+
+<span class="btn__icon-container">
+  <i class="fas fa-file-pdf"></i>
+  </span>
+<span class="btn__text-container">.pdf</span>
+</button>
+</li>
+      
+  </ul>
+</div>
+
+
+
+
+<button onclick="toggleFullScreen()"
+  class="btn btn-sm btn-fullscreen-button"
+  title="Fullscreen mode"
+  data-bs-placement="bottom" data-bs-toggle="tooltip"
+>
+  
+
+<span class="btn__icon-container">
+  <i class="fas fa-expand"></i>
+  </span>
+
+</button>
+
+
+
+<script>
+document.write(`
+  <button class="btn btn-sm nav-link pst-navbar-icon theme-switch-button" title="light/dark" aria-label="light/dark" data-bs-placement="bottom" data-bs-toggle="tooltip">
+    <i class="theme-switch fa-solid fa-sun fa-lg" data-mode="light"></i>
+    <i class="theme-switch fa-solid fa-moon fa-lg" data-mode="dark"></i>
+    <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg" data-mode="auto"></i>
+  </button>
+`);
+</script>
+
+
+<script>
+document.write(`
+  <button class="btn btn-sm pst-navbar-icon search-button search-button__button" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+    <i class="fa-solid fa-magnifying-glass fa-lg"></i>
+  </button>
+`);
+</script>
+<button class="sidebar-toggle secondary-toggle btn btn-sm" title="Toggle secondary sidebar" data-bs-placement="bottom" data-bs-toggle="tooltip">
+    <span class="fa-solid fa-list"></span>
+</button>
+</div></div>
+      
+    </div>
+  
+</div>
+</div>
+              
+              
+
+<div id="jb-print-docs-body" class="onlyprint">
+    <h1>UniswapV3Pool</h1>
+    <!-- Table of contents -->
+    <div id="print-main-content">
+        <div id="jb-print-toc">
+            
+            <div>
+                <h2> Contents </h2>
+            </div>
+            <nav aria-label="Page">
+                <ul class="visible nav section-nav flex-column">
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#uniswap-v3-usage">Uniswap V3 Usage</a><ul class="visible nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#creating-uniswap-v3-pools">Creating Uniswap V3 Pools</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#initializing-pools-from-chain">Initializing Pools From Chain</a></li>
+</ul>
+</li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#api-documentation">API Documentation</a><ul class="visible nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#nethermind.entro.uniswap_v3.UniswapV3Pool"><code class="docutils literal notranslate"><span class="pre">UniswapV3Pool</span></code></a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#nethermind.entro.uniswap_v3.UniswapV3Pool.math"><code class="docutils literal notranslate"><span class="pre">UniswapV3Pool.math</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#nethermind.entro.uniswap_v3.UniswapV3Pool.advance_block"><code class="docutils literal notranslate"><span class="pre">UniswapV3Pool.advance_block()</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#nethermind.entro.uniswap_v3.UniswapV3Pool.burn"><code class="docutils literal notranslate"><span class="pre">UniswapV3Pool.burn()</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#nethermind.entro.uniswap_v3.UniswapV3Pool.decode_price_from_event"><code class="docutils literal notranslate"><span class="pre">UniswapV3Pool.decode_price_from_event()</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#nethermind.entro.uniswap_v3.UniswapV3Pool.enable_exact_math"><code class="docutils literal notranslate"><span class="pre">UniswapV3Pool.enable_exact_math()</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#nethermind.entro.uniswap_v3.UniswapV3Pool.get_abi"><code class="docutils literal notranslate"><span class="pre">UniswapV3Pool.get_abi()</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#nethermind.entro.uniswap_v3.UniswapV3Pool.get_price_at_sqrt_ratio"><code class="docutils literal notranslate"><span class="pre">UniswapV3Pool.get_price_at_sqrt_ratio()</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#nethermind.entro.uniswap_v3.UniswapV3Pool.load_pool"><code class="docutils literal notranslate"><span class="pre">UniswapV3Pool.load_pool()</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#nethermind.entro.uniswap_v3.UniswapV3Pool.mint"><code class="docutils literal notranslate"><span class="pre">UniswapV3Pool.mint()</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#nethermind.entro.uniswap_v3.UniswapV3Pool.save_pool"><code class="docutils literal notranslate"><span class="pre">UniswapV3Pool.save_pool()</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#nethermind.entro.uniswap_v3.UniswapV3Pool.swap"><code class="docutils literal notranslate"><span class="pre">UniswapV3Pool.swap()</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#nethermind.entro.uniswap_v3.UniswapV3Pool.block_number"><code class="docutils literal notranslate"><span class="pre">UniswapV3Pool.block_number</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#nethermind.entro.uniswap_v3.UniswapV3Pool.block_timestamp"><code class="docutils literal notranslate"><span class="pre">UniswapV3Pool.block_timestamp</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#nethermind.entro.uniswap_v3.UniswapV3Pool.immutables"><code class="docutils literal notranslate"><span class="pre">UniswapV3Pool.immutables</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#nethermind.entro.uniswap_v3.UniswapV3Pool.init_mode"><code class="docutils literal notranslate"><span class="pre">UniswapV3Pool.init_mode</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#nethermind.entro.uniswap_v3.UniswapV3Pool.observations"><code class="docutils literal notranslate"><span class="pre">UniswapV3Pool.observations</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#nethermind.entro.uniswap_v3.UniswapV3Pool.pool_contract"><code class="docutils literal notranslate"><span class="pre">UniswapV3Pool.pool_contract</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#nethermind.entro.uniswap_v3.UniswapV3Pool.positions"><code class="docutils literal notranslate"><span class="pre">UniswapV3Pool.positions</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#nethermind.entro.uniswap_v3.UniswapV3Pool.protocol_fee_0"><code class="docutils literal notranslate"><span class="pre">UniswapV3Pool.protocol_fee_0</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#nethermind.entro.uniswap_v3.UniswapV3Pool.protocol_fee_1"><code class="docutils literal notranslate"><span class="pre">UniswapV3Pool.protocol_fee_1</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#nethermind.entro.uniswap_v3.UniswapV3Pool.slot0"><code class="docutils literal notranslate"><span class="pre">UniswapV3Pool.slot0</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#nethermind.entro.uniswap_v3.UniswapV3Pool.state"><code class="docutils literal notranslate"><span class="pre">UniswapV3Pool.state</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#nethermind.entro.uniswap_v3.UniswapV3Pool.ticks"><code class="docutils literal notranslate"><span class="pre">UniswapV3Pool.ticks</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#uniswap-v3-types">Uniswap V3 Types</a><ul class="visible nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#nethermind.entro.types.uniswap_v3.PoolImmutables"><code class="docutils literal notranslate"><span class="pre">PoolImmutables</span></code></a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#nethermind.entro.types.uniswap_v3.PoolImmutables.fee"><code class="docutils literal notranslate"><span class="pre">PoolImmutables.fee</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#nethermind.entro.types.uniswap_v3.PoolImmutables.initialization_block"><code class="docutils literal notranslate"><span class="pre">PoolImmutables.initialization_block</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#nethermind.entro.types.uniswap_v3.PoolImmutables.max_liquidity_per_tick"><code class="docutils literal notranslate"><span class="pre">PoolImmutables.max_liquidity_per_tick</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#nethermind.entro.types.uniswap_v3.PoolImmutables.pool_address"><code class="docutils literal notranslate"><span class="pre">PoolImmutables.pool_address</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#nethermind.entro.types.uniswap_v3.PoolImmutables.tick_spacing"><code class="docutils literal notranslate"><span class="pre">PoolImmutables.tick_spacing</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#nethermind.entro.types.uniswap_v3.PoolImmutables.token_0"><code class="docutils literal notranslate"><span class="pre">PoolImmutables.token_0</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#nethermind.entro.types.uniswap_v3.PoolImmutables.token_1"><code class="docutils literal notranslate"><span class="pre">PoolImmutables.token_1</span></code></a></li>
+</ul>
+</li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#nethermind.entro.types.uniswap_v3.PoolState"><code class="docutils literal notranslate"><span class="pre">PoolState</span></code></a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#nethermind.entro.types.uniswap_v3.PoolState.balance_0"><code class="docutils literal notranslate"><span class="pre">PoolState.balance_0</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#nethermind.entro.types.uniswap_v3.PoolState.balance_1"><code class="docutils literal notranslate"><span class="pre">PoolState.balance_1</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#nethermind.entro.types.uniswap_v3.PoolState.fee_growth_global_0"><code class="docutils literal notranslate"><span class="pre">PoolState.fee_growth_global_0</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#nethermind.entro.types.uniswap_v3.PoolState.fee_growth_global_1"><code class="docutils literal notranslate"><span class="pre">PoolState.fee_growth_global_1</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#nethermind.entro.types.uniswap_v3.PoolState.liquidity"><code class="docutils literal notranslate"><span class="pre">PoolState.liquidity</span></code></a></li>
+</ul>
+</li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#nethermind.entro.types.uniswap_v3.Slot0"><code class="docutils literal notranslate"><span class="pre">Slot0</span></code></a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#nethermind.entro.types.uniswap_v3.Slot0.fee_protocol"><code class="docutils literal notranslate"><span class="pre">Slot0.fee_protocol</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#nethermind.entro.types.uniswap_v3.Slot0.observation_cardinality"><code class="docutils literal notranslate"><span class="pre">Slot0.observation_cardinality</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#nethermind.entro.types.uniswap_v3.Slot0.observation_cardinality_next"><code class="docutils literal notranslate"><span class="pre">Slot0.observation_cardinality_next</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#nethermind.entro.types.uniswap_v3.Slot0.observation_index"><code class="docutils literal notranslate"><span class="pre">Slot0.observation_index</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#nethermind.entro.types.uniswap_v3.Slot0.sqrt_price"><code class="docutils literal notranslate"><span class="pre">Slot0.sqrt_price</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#nethermind.entro.types.uniswap_v3.Slot0.tick"><code class="docutils literal notranslate"><span class="pre">Slot0.tick</span></code></a></li>
+</ul>
+</li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#nethermind.entro.types.uniswap_v3.Tick"><code class="docutils literal notranslate"><span class="pre">Tick</span></code></a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#nethermind.entro.types.uniswap_v3.Tick.fee_growth_outside_0"><code class="docutils literal notranslate"><span class="pre">Tick.fee_growth_outside_0</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#nethermind.entro.types.uniswap_v3.Tick.fee_growth_outside_1"><code class="docutils literal notranslate"><span class="pre">Tick.fee_growth_outside_1</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#nethermind.entro.types.uniswap_v3.Tick.liquidity_gross"><code class="docutils literal notranslate"><span class="pre">Tick.liquidity_gross</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#nethermind.entro.types.uniswap_v3.Tick.liquidity_net"><code class="docutils literal notranslate"><span class="pre">Tick.liquidity_net</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#nethermind.entro.types.uniswap_v3.Tick.seconds_outside"><code class="docutils literal notranslate"><span class="pre">Tick.seconds_outside</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#nethermind.entro.types.uniswap_v3.Tick.seconds_per_liquidity_outside"><code class="docutils literal notranslate"><span class="pre">Tick.seconds_per_liquidity_outside</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#nethermind.entro.types.uniswap_v3.Tick.tick_cumulative_outside"><code class="docutils literal notranslate"><span class="pre">Tick.tick_cumulative_outside</span></code></a></li>
+</ul>
+</li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#nethermind.entro.types.uniswap_v3.OracleObservation"><code class="docutils literal notranslate"><span class="pre">OracleObservation</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#nethermind.entro.types.uniswap_v3.PositionInfo"><code class="docutils literal notranslate"><span class="pre">PositionInfo</span></code></a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#nethermind.entro.types.uniswap_v3.PositionInfo.fee_growth_inside_0_last"><code class="docutils literal notranslate"><span class="pre">PositionInfo.fee_growth_inside_0_last</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#nethermind.entro.types.uniswap_v3.PositionInfo.fee_growth_inside_1_last"><code class="docutils literal notranslate"><span class="pre">PositionInfo.fee_growth_inside_1_last</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#nethermind.entro.types.uniswap_v3.PositionInfo.liquidity"><code class="docutils literal notranslate"><span class="pre">PositionInfo.liquidity</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#nethermind.entro.types.uniswap_v3.PositionInfo.tokens_owed_0"><code class="docutils literal notranslate"><span class="pre">PositionInfo.tokens_owed_0</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#nethermind.entro.types.uniswap_v3.PositionInfo.tokens_owed_1"><code class="docutils literal notranslate"><span class="pre">PositionInfo.tokens_owed_1</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+            </nav>
+        </div>
+    </div>
+</div>
+
+              
+                
+<div id="searchbox"></div>
+                <article class="bd-article">
+                  
+  <section id="uniswapv3pool">
+<h1>UniswapV3Pool<a class="headerlink" href="#uniswapv3pool" title="Permalink to this heading">#</a></h1>
+<section id="uniswap-v3-usage">
+<h2>Uniswap V3 Usage<a class="headerlink" href="#uniswap-v3-usage" title="Permalink to this heading">#</a></h2>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p>TWAP Oracle support is currently experimental, and not suggested for use.  Additionally, fee switch behavior is
+not yet tested, and any protocol_fees may not be implemented correctly.</p>
+</div>
+<section id="creating-uniswap-v3-pools">
+<h3>Creating Uniswap V3 Pools<a class="headerlink" href="#creating-uniswap-v3-pools" title="Permalink to this heading">#</a></h3>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">nethermind.entro.base</span> <span class="kn">import</span> <span class="n">PoolFactory</span>
+
+<span class="n">factory</span> <span class="o">=</span> <span class="n">PoolFactory</span><span class="p">(</span><span class="n">w3</span><span class="o">=</span><span class="s1">&#39;https://&#39;</span><span class="p">,</span> <span class="n">sqlalchemy_url</span><span class="o">=</span><span class="s1">&#39;postgresql:db_uri&#39;</span><span class="p">)</span>
+
+<span class="c1"># Create an empty pool with no liquidity &amp; 1:1 price ratio, and 0.3% fee</span>
+<span class="n">low_fee</span> <span class="o">=</span> <span class="n">factory</span><span class="o">.</span><span class="n">initialize_empty_pool</span><span class="p">(</span><span class="s2">&quot;uniswap_v3&quot;</span><span class="p">)</span>
+
+<span class="c1"># Create a pool with liquidity &amp; 1:1 price ratio, and 1% fee</span>
+<span class="n">high_fee</span> <span class="o">=</span> <span class="n">factory</span><span class="o">.</span><span class="n">initialize_empty_pool</span><span class="p">(</span><span class="s2">&quot;uniswap_v3&quot;</span><span class="p">,</span> <span class="n">initialization_args</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;fee&quot;</span><span class="p">:</span><span class="mi">10_000</span><span class="p">,</span> <span class="s2">&quot;tick_spacing&quot;</span><span class="p">:</span><span class="mi">200</span><span class="p">})</span>
+</pre></div>
+</div>
+</section>
+<section id="initializing-pools-from-chain">
+<h3>Initializing Pools From Chain<a class="headerlink" href="#initializing-pools-from-chain" title="Permalink to this heading">#</a></h3>
+<div class="admonition-pool-initialization-sequence-pool-initialization-from-chain-is-fairly-taxing-requiring-the-following-steps admonition">
+<p class="admonition-title">Pool Initialization Sequence
+Pool initialization from chain is fairly taxing, requiring the following steps:</p>
+<ol class="arabic simple">
+<li><p>Fetching the pool’s immutable parameters &amp; state (1-3 seconds and ~20 RPC Calls)</p></li>
+<li><dl class="simple">
+<dt>Fetching the Initialized Ticks:</dt><dd><ol class="loweralpha simple">
+<li><p>Search Tick Bitmap (~120 queries on pool with 60 tick spacing.  ~700 on pool with 10 tick spacing).</p></li>
+</ol>
+</dd>
+</dl>
+</li>
+</ol>
+</div>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># Load the current USDC/WETH .3% pool from mainnet</span>
+<span class="n">usdc_weth</span> <span class="o">=</span> <span class="n">factory</span><span class="o">.</span><span class="n">initialize_from_chain</span><span class="p">(</span>
+    <span class="s2">&quot;uniswap_v3&quot;</span><span class="p">,</span>
+    <span class="n">pool_address</span><span class="o">=</span><span class="s2">&quot;0x8ad599c3a0ff1de082011efddc58f1908eb6e6d8&quot;</span><span class="p">,</span>
+<span class="p">)</span>
+
+<span class="c1"># Load historical USDC/WETH .3% pool from mainnet</span>
+<span class="n">usdc_weth</span> <span class="o">=</span> <span class="n">factory</span><span class="o">.</span><span class="n">initialize_from_chain</span><span class="p">(</span>
+    <span class="s2">&quot;uniswap_v3&quot;</span><span class="p">,</span>
+    <span class="n">pool_address</span><span class="o">=</span><span class="s2">&quot;0x8ad599c3a0ff1de082011efddc58f1908eb6e6d8&quot;</span><span class="p">,</span>
+    <span class="n">at_block</span><span class="o">=</span><span class="mi">14_000_000</span><span class="p">,</span>
+<span class="p">)</span>
+</pre></div>
+</div>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p>When using initialize_from_chain with a non-archival node, the chain state is typically only stored for the last 50
+blocks.  If a pool is initialized without a block identifier, the current block will be fetched, and the pool
+will be initialized at that block.  On a slow RPC and a busy pool, it may take upwards of 20 minutes to initialize
+a pool, and the state may be discarded, leaving the pool in an uninitialized state.</p>
+</div>
+</section>
+</section>
+<section id="api-documentation">
+<h2>API Documentation<a class="headerlink" href="#api-documentation" title="Permalink to this heading">#</a></h2>
+<dl class="py class">
+<dt class="sig sig-object py" id="nethermind.entro.uniswap_v3.UniswapV3Pool">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">nethermind.entro.uniswap_v3.</span></span><span class="sig-name descname"><span class="pre">UniswapV3Pool</span></span><a class="headerlink" href="#nethermind.entro.uniswap_v3.UniswapV3Pool" title="Permalink to this definition">#</a></dt>
+<dd><p>Class to simulate behavior of Uniswap V3 pools in python.
+Reproduces solidity integer rounding behavior when exact math mode enabled.</p>
+<p>Re-Implements all functions of UniswapV3 pools in python, and provides research functionality.</p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="nethermind.entro.uniswap_v3.UniswapV3Pool.math">
+<span class="sig-name descname"><span class="pre">math</span></span><a class="headerlink" href="#nethermind.entro.uniswap_v3.UniswapV3Pool.math" title="Permalink to this definition">#</a></dt>
+<dd><p>alias of <code class="xref py py-class docutils literal notranslate"><span class="pre">UniswapV3Math</span></code></p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="nethermind.entro.uniswap_v3.UniswapV3Pool.advance_block">
+<span class="sig-name descname"><span class="pre">advance_block</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">blocks</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.12)"><span class="pre">int</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">1</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#nethermind.entro.uniswap_v3.UniswapV3Pool.advance_block" title="Permalink to this definition">#</a></dt>
+<dd><p>Advances the current block by <cite>blocks</cite> and adds 12 seconds to the block_timestamp for each block progressed
+:param blocks: Number of blocks to advance forward.  Defaults to 1</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="nethermind.entro.uniswap_v3.UniswapV3Pool.burn">
+<span class="sig-name descname"><span class="pre">burn</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">owner_address</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://eth-typing.readthedocs.io/en/stable/eth_typing.html#eth_typing.evm.ChecksumAddress" title="(in eth-typing v5.0)"><span class="pre">ChecksumAddress</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">tick_lower</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.12)"><span class="pre">int</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">tick_upper</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.12)"><span class="pre">int</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">amount</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.12)"><span class="pre">int</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">committing</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.12)"><span class="pre">bool</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#tuple" title="(in Python v3.12)"><span class="pre">tuple</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.12)"><span class="pre">int</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.12)"><span class="pre">int</span></a><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#nethermind.entro.uniswap_v3.UniswapV3Pool.burn" title="Permalink to this definition">#</a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>owner_address</strong> – Owner of the liquidity to burn.</p></li>
+<li><p><strong>tick_lower</strong> – Lower bound of the liquidity to burn.</p></li>
+<li><p><strong>tick_upper</strong> – Upper bound of the liquidity to burn.</p></li>
+<li><p><strong>amount</strong> – Amount of liquidity to burn.</p></li>
+<li><p><strong>committing</strong> – If True, all computed values are saved into the pool state.
+If False, only computes the token_0 and token_1 value of the position without deactivating or modifying
+the fee accrual of the position
+Default: True</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="nethermind.entro.uniswap_v3.UniswapV3Pool.decode_price_from_event">
+<span class="sig-name descname"><span class="pre">decode_price_from_event</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#nethermind.entro.uniswap_v3.UniswapV3Pool.decode_price_from_event" title="Permalink to this definition">#</a></dt>
+<dd><p>Decodes the price from an event</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>event</strong> – </p></li>
+<li><p><strong>reference_token</strong> – </p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="nethermind.entro.uniswap_v3.UniswapV3Pool.enable_exact_math">
+<em class="property"><span class="pre">classmethod</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">enable_exact_math</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#nethermind.entro.uniswap_v3.UniswapV3Pool.enable_exact_math" title="Permalink to this definition">#</a></dt>
+<dd><p>Enables exact math mode for all pools.  Exact math mode is slower, but more closely matches the on-chain
+behavior of Uniswap V3 pools.  Exact math mode is disabled by default.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="nethermind.entro.uniswap_v3.UniswapV3Pool.get_abi">
+<em class="property"><span class="pre">classmethod</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">get_abi</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">json_string</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.12)"><span class="pre">bool</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.12)"><span class="pre">dict</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><span class="pre">str</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.12)"><span class="pre">Any</span></a><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><span class="pre">str</span></a></span></span><a class="headerlink" href="#nethermind.entro.uniswap_v3.UniswapV3Pool.get_abi" title="Permalink to this definition">#</a></dt>
+<dd><p>Returns the ABI for a UniswapV3Pool contract</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>json_string</strong> – If True, returns the ABI as a JSON string.  Otherwise, returns a dictionary</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="nethermind.entro.uniswap_v3.UniswapV3Pool.get_price_at_sqrt_ratio">
+<span class="sig-name descname"><span class="pre">get_price_at_sqrt_ratio</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">sqrt_price</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.12)"><span class="pre">int</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">reverse_tokens</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.12)"><span class="pre">bool</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.12)"><span class="pre">float</span></a></span></span><a class="headerlink" href="#nethermind.entro.uniswap_v3.UniswapV3Pool.get_price_at_sqrt_ratio" title="Permalink to this definition">#</a></dt>
+<dd><p>Converts a sqrt_price to a human-readable price.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>sqrt_price</strong> – sqrt_price encoded as fixed point Q64.96</p></li>
+<li><p><strong>reverse_tokens</strong> – Whether to reverse the tokens in the price.  The sqrt_price represents the
+<span class="math notranslate nohighlight">\(\frac{ Token 1 }{ Token 0}\)</span>.  If reverse_tokens is True, the price will be represented as
+<span class="math notranslate nohighlight">\(\frac{ Token 0 }{ Token 1}\)</span>.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="nethermind.entro.uniswap_v3.UniswapV3Pool.load_pool">
+<em class="property"><span class="pre">classmethod</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">load_pool</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">file_path</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">w3</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Web3</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#nethermind.entro.uniswap_v3.UniswapV3Pool.load_pool" title="Permalink to this definition">#</a></dt>
+<dd><p>Loads a pool from a JSON File generated by the save_state() method
+:param file_path: Filepath of JSON File
+:param w3: Web3 instance
+:return:</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="nethermind.entro.uniswap_v3.UniswapV3Pool.mint">
+<span class="sig-name descname"><span class="pre">mint</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">recipient</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://eth-typing.readthedocs.io/en/stable/eth_typing.html#eth_typing.evm.ChecksumAddress" title="(in eth-typing v5.0)"><span class="pre">ChecksumAddress</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">tick_lower</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.12)"><span class="pre">int</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">tick_upper</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.12)"><span class="pre">int</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">amount</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.12)"><span class="pre">int</span></a></span></em><span class="sig-paren">)</span><a class="headerlink" href="#nethermind.entro.uniswap_v3.UniswapV3Pool.mint" title="Permalink to this definition">#</a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>recipient</strong> (<em>ChecksumAddress</em>) – Owner address of the minted liquidity.</p></li>
+<li><p><strong>tick_lower</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.12)"><em>int</em></a>) – Lower bound of the minted liquidity.</p></li>
+<li><p><strong>tick_upper</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.12)"><em>int</em></a>) – Upper bound of the minted liquidity.</p></li>
+<li><p><strong>amount</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.12)"><em>int</em></a>) – Amount of liquidity to mint.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="nethermind.entro.uniswap_v3.UniswapV3Pool.save_pool">
+<span class="sig-name descname"><span class="pre">save_pool</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">file_path</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#nethermind.entro.uniswap_v3.UniswapV3Pool.save_pool" title="Permalink to this definition">#</a></dt>
+<dd><p>Saves pool state &amp; parameters to JSON file.  This file can later be used to re-initialize a pool
+instance without requiring large numbers of on-chain queries.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>file_path</strong> – Filepath for JSON save location</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="nethermind.entro.uniswap_v3.UniswapV3Pool.swap">
+<span class="sig-name descname"><span class="pre">swap</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">zero_for_one</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.12)"><span class="pre">bool</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">amount_specified</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.12)"><span class="pre">int</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">sqrt_price_limit</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.12)"><span class="pre">int</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">log_swap</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.12)"><span class="pre">bool</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">db_session</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Session</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.12)"><span class="pre">None</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><span class="pre">str</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.12)"><span class="pre">None</span></a></span></span><a class="headerlink" href="#nethermind.entro.uniswap_v3.UniswapV3Pool.swap" title="Permalink to this definition">#</a></dt>
+<dd><p>Swaps tokens in the pool.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>zero_for_one</strong> – Which direction to swap tokens.  If True, sell Token 0 and buy Token 1.  If False, sell Token 1
+and buy Token 0.</p></li>
+<li><p><strong>amount_specified</strong> – Raw token amount to swap.  If amount specified is positive, this represents the quantity of tokens to
+sell.  If amount specified is negative, this represents the quantity of tokens to buy.</p></li>
+<li><p><strong>sqrt_price_limit</strong> – The maximum/minimum price to allow for the swap.  If the swap would result in a price above this limit,
+the swap will only be executed up to the price sqrt_price_limit.  If the sqrt_price_limit is out of range,
+and no tokens can be swapped, a UniswapV3Revert exception will be raised.</p></li>
+<li><p><strong>log_swap</strong> – If True, logs the swap to the database &amp; returns a swap_id that can be used to query the swap data.
+If False, does not log the swap to the database &amp; returns None.  Default: False</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="nethermind.entro.uniswap_v3.UniswapV3Pool.block_number">
+<span class="sig-name descname"><span class="pre">block_number</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.12)"><span class="pre">int</span></a></em><a class="headerlink" href="#nethermind.entro.uniswap_v3.UniswapV3Pool.block_number" title="Permalink to this definition">#</a></dt>
+<dd><p>Current block number of the pool.  Is used when logging analytics, and for replaying historical swaps.
+Can be manually incremented through the advance_block() method.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="nethermind.entro.uniswap_v3.UniswapV3Pool.block_timestamp">
+<span class="sig-name descname"><span class="pre">block_timestamp</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.12)"><span class="pre">int</span></a></em><a class="headerlink" href="#nethermind.entro.uniswap_v3.UniswapV3Pool.block_timestamp" title="Permalink to this definition">#</a></dt>
+<dd><p>Current Block timestamp of the pool.  Is required to tracking oracle observations, and tracking 
+liquidity position fee growth.  Every time advance_block() is called, this value is incremented by 12 seconds.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="nethermind.entro.uniswap_v3.UniswapV3Pool.immutables">
+<span class="sig-name descname"><span class="pre">immutables</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference internal" href="#nethermind.entro.types.uniswap_v3.PoolImmutables" title="nethermind.entro.types.uniswap_v3.PoolImmutables"><span class="pre">PoolImmutables</span></a></em><a class="headerlink" href="#nethermind.entro.uniswap_v3.UniswapV3Pool.immutables" title="Permalink to this definition">#</a></dt>
+<dd><p>PoolImmutables object containing the pool fee, token_0, token_1, and other immutable parameters</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="nethermind.entro.uniswap_v3.UniswapV3Pool.init_mode">
+<span class="sig-name descname"><span class="pre">init_mode</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.12)"><span class="pre">None</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Literal" title="(in Python v3.12)"><span class="pre">Literal</span></a><span class="p"><span class="pre">[</span></span><span class="s"><span class="pre">'exact_simulation'</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="s"><span class="pre">'simulation'</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="s"><span class="pre">'load_liquidity'</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="s"><span class="pre">'chain_translation'</span></span><span class="p"><span class="pre">]</span></span></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">None</span></em><a class="headerlink" href="#nethermind.entro.uniswap_v3.UniswapV3Pool.init_mode" title="Permalink to this definition">#</a></dt>
+<dd><p>Parameter to describe what data to load from chain.  If None, pool is not initialized from chain, and
+is a testing pool instead.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="nethermind.entro.uniswap_v3.UniswapV3Pool.observations">
+<span class="sig-name descname"><span class="pre">observations</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.12)"><span class="pre">list</span></a><span class="p"><span class="pre">[</span></span><a class="reference internal" href="#nethermind.entro.types.uniswap_v3.OracleObservation" title="nethermind.entro.types.uniswap_v3.OracleObservation"><span class="pre">nethermind.entro.types.uniswap_v3.OracleObservation</span></a><span class="p"><span class="pre">]</span></span></em><a class="headerlink" href="#nethermind.entro.uniswap_v3.UniswapV3Pool.observations" title="Permalink to this definition">#</a></dt>
+<dd><p>List of all oracle observations.  Oracle observations are not yet fully supported, so this API will likely change</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="nethermind.entro.uniswap_v3.UniswapV3Pool.pool_contract">
+<span class="sig-name descname"><span class="pre">pool_contract</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">Contract</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.12)"><span class="pre">None</span></a></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">None</span></em><a class="headerlink" href="#nethermind.entro.uniswap_v3.UniswapV3Pool.pool_contract" title="Permalink to this definition">#</a></dt>
+<dd><p><a class="reference external" href="https://web3py.readthedocs.io/en/stable/web3.contract.html#web3.contract.Contract" title="(in web3.py v7.2)"><code class="xref py py-class docutils literal notranslate"><span class="pre">web3.contract.Contract</span></code></a> object for interacting with the on-chain pool.  Is only present when pool is
+initialized through the from_chain() method.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="nethermind.entro.uniswap_v3.UniswapV3Pool.positions">
+<span class="sig-name descname"><span class="pre">positions</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.12)"><span class="pre">dict</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#tuple" title="(in Python v3.12)"><span class="pre">tuple</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://eth-typing.readthedocs.io/en/stable/eth_typing.html#eth_typing.evm.ChecksumAddress" title="(in eth-typing v5.0)"><span class="pre">eth_typing.evm.ChecksumAddress</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.12)"><span class="pre">int</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.12)"><span class="pre">int</span></a><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference internal" href="#nethermind.entro.types.uniswap_v3.PositionInfo" title="nethermind.entro.types.uniswap_v3.PositionInfo"><span class="pre">nethermind.entro.types.uniswap_v3.PositionInfo</span></a><span class="p"><span class="pre">]</span></span></em><a class="headerlink" href="#nethermind.entro.uniswap_v3.UniswapV3Pool.positions" title="Permalink to this definition">#</a></dt>
+<dd><p>Dictionary of all LP positions.  The key to access the info for a position is a tuple of the owner address, 
+lower tick, and upper tick of the position.</p>
+<p>For on-chain uniswap V3 pools, the majority of all liquidity is owned by the UniswapV3NFTPositionManager 
+that is deployed at <a class="reference external" href="https://etherscan.io/address/0xC36442b4a4522E871399CD717aBDD847Ab11FE88">0xC364…FE88</a></p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="nethermind.entro.uniswap_v3.UniswapV3Pool.protocol_fee_0">
+<span class="sig-name descname"><span class="pre">protocol_fee_0</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.12)"><span class="pre">int</span></a></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">0</span></em><a class="headerlink" href="#nethermind.entro.uniswap_v3.UniswapV3Pool.protocol_fee_0" title="Permalink to this definition">#</a></dt>
+<dd><p>Amount of Token 0 Owed to the protocol if fee switch is turned on</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="nethermind.entro.uniswap_v3.UniswapV3Pool.protocol_fee_1">
+<span class="sig-name descname"><span class="pre">protocol_fee_1</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.12)"><span class="pre">int</span></a></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">0</span></em><a class="headerlink" href="#nethermind.entro.uniswap_v3.UniswapV3Pool.protocol_fee_1" title="Permalink to this definition">#</a></dt>
+<dd><p>Amount of Token 1 Owed to the protocol if fee switch is turned on</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="nethermind.entro.uniswap_v3.UniswapV3Pool.slot0">
+<span class="sig-name descname"><span class="pre">slot0</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference internal" href="#nethermind.entro.types.uniswap_v3.Slot0" title="nethermind.entro.types.uniswap_v3.Slot0"><span class="pre">Slot0</span></a></em><a class="headerlink" href="#nethermind.entro.uniswap_v3.UniswapV3Pool.slot0" title="Permalink to this definition">#</a></dt>
+<dd><p>Slot0 object containing all current state of the pool.  Used to track the current sqrt_prce and tick of the pool.
+Also tracks data for accumulating oracle</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="nethermind.entro.uniswap_v3.UniswapV3Pool.state">
+<span class="sig-name descname"><span class="pre">state</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference internal" href="#nethermind.entro.types.uniswap_v3.PoolState" title="nethermind.entro.types.uniswap_v3.PoolState"><span class="pre">PoolState</span></a></em><a class="headerlink" href="#nethermind.entro.uniswap_v3.UniswapV3Pool.state" title="Permalink to this definition">#</a></dt>
+<dd><p>PoolState object containing all current state of the pool.  Used to track the current liquidity, balances, and fees</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="nethermind.entro.uniswap_v3.UniswapV3Pool.ticks">
+<span class="sig-name descname"><span class="pre">ticks</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.12)"><span class="pre">dict</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.12)"><span class="pre">int</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference internal" href="#nethermind.entro.types.uniswap_v3.Tick" title="nethermind.entro.types.uniswap_v3.Tick"><span class="pre">nethermind.entro.types.uniswap_v3.Tick</span></a><span class="p"><span class="pre">]</span></span></em><a class="headerlink" href="#nethermind.entro.uniswap_v3.UniswapV3Pool.ticks" title="Permalink to this definition">#</a></dt>
+<dd><p>Dictionary of all initialized Ticks.  Ticks are initialized (added to this dictionary) when liquidity is added
+to a tick, and are deleted from the dictionary when all the liquidity is removed from a tick.  
+This dictionary is unsorted, and when it become necessary to cross a tick, the dictionary keys are sorted and
+searched.  This removes the need for the TickBitmap that is used in the on-chain implementation.</p>
+</dd></dl>
+
+</dd></dl>
+
+</section>
+<section id="uniswap-v3-types">
+<h2>Uniswap V3 Types<a class="headerlink" href="#uniswap-v3-types" title="Permalink to this heading">#</a></h2>
+<dl class="py class">
+<dt class="sig sig-object py" id="nethermind.entro.types.uniswap_v3.PoolImmutables">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">nethermind.entro.types.uniswap_v3.</span></span><span class="sig-name descname"><span class="pre">PoolImmutables</span></span><a class="headerlink" href="#nethermind.entro.types.uniswap_v3.PoolImmutables" title="Permalink to this definition">#</a></dt>
+<dd><p>Stores the pool’s immutable parameters that are set once during pool initialization and will
+never change.</p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="nethermind.entro.types.uniswap_v3.PoolImmutables.fee">
+<span class="sig-name descname"><span class="pre">fee</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.12)"><span class="pre">int</span></a></em><a class="headerlink" href="#nethermind.entro.types.uniswap_v3.PoolImmutables.fee" title="Permalink to this definition">#</a></dt>
+<dd><p>The fee that is charged on each swap.  This value is measured in hundredths of a bip (0.0001%).</p>
+<p>A pool with a 0.3% swap fee would have an immutable fee value of 3000, and a .05% pool would 
+have an immutable fee parameter of 500</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="nethermind.entro.types.uniswap_v3.PoolImmutables.initialization_block">
+<span class="sig-name descname"><span class="pre">initialization_block</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.12)"><span class="pre">int</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.12)"><span class="pre">None</span></a></em><a class="headerlink" href="#nethermind.entro.types.uniswap_v3.PoolImmutables.initialization_block" title="Permalink to this definition">#</a></dt>
+<dd><p>Block number that the pool was initialized.  This value is set to None if the pool has not been initialized
+from a chain</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="nethermind.entro.types.uniswap_v3.PoolImmutables.max_liquidity_per_tick">
+<span class="sig-name descname"><span class="pre">max_liquidity_per_tick</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.12)"><span class="pre">int</span></a></em><a class="headerlink" href="#nethermind.entro.types.uniswap_v3.PoolImmutables.max_liquidity_per_tick" title="Permalink to this definition">#</a></dt>
+<dd><p>Parameter that is used to limit the amount of liquidity that can be deployed to a single tick.  This parameter
+is initialized based on the total amount of liquidity that can ever be active without causing overflows, and
+divides that by the number of usable ticks within the pool</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="nethermind.entro.types.uniswap_v3.PoolImmutables.pool_address">
+<span class="sig-name descname"><span class="pre">pool_address</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://eth-typing.readthedocs.io/en/stable/eth_typing.html#eth_typing.evm.ChecksumAddress" title="(in eth-typing v5.0)"><span class="pre">ChecksumAddress</span></a></em><a class="headerlink" href="#nethermind.entro.types.uniswap_v3.PoolImmutables.pool_address" title="Permalink to this definition">#</a></dt>
+<dd><p>Deployment address of the pool contract.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="nethermind.entro.types.uniswap_v3.PoolImmutables.tick_spacing">
+<span class="sig-name descname"><span class="pre">tick_spacing</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.12)"><span class="pre">int</span></a></em><a class="headerlink" href="#nethermind.entro.types.uniswap_v3.PoolImmutables.tick_spacing" title="Permalink to this definition">#</a></dt>
+<dd><p>Number of ticks between liquidity deployments.  On a pool with a 0.3% swap fee, the tick spacing is 60 
+(.6% minimum liquidity ranges)  Lower tick spacings increase precision for liquidity providers, but 
+each tick crossing requires several SSLOAD and SSTORE operations, increasing the cost of swaps.  
+On low fee pools with stable assets, tick spacings are low since prices dont fluctuate frequently, 
+and the tick spacing on a 1% pool is 200 (2% minimum liquidity ranges) 
+to reduce the number of ticks that need to be crossed when swapping a volatile asset.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="nethermind.entro.types.uniswap_v3.PoolImmutables.token_0">
+<span class="sig-name descname"><span class="pre">token_0</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference internal" href="ERC20Token.html#nethermind.entro.tokens.ERC20Token" title="nethermind.entro.tokens.erc_20.ERC20Token"><span class="pre">ERC20Token</span></a></em><a class="headerlink" href="#nethermind.entro.types.uniswap_v3.PoolImmutables.token_0" title="Permalink to this definition">#</a></dt>
+<dd><p>The Token 0 of the pool that can be bought and sold through this pool</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="nethermind.entro.types.uniswap_v3.PoolImmutables.token_1">
+<span class="sig-name descname"><span class="pre">token_1</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference internal" href="ERC20Token.html#nethermind.entro.tokens.ERC20Token" title="nethermind.entro.tokens.erc_20.ERC20Token"><span class="pre">ERC20Token</span></a></em><a class="headerlink" href="#nethermind.entro.types.uniswap_v3.PoolImmutables.token_1" title="Permalink to this definition">#</a></dt>
+<dd><p>The Token 1 of the pool that can be bought and sold through this pool</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="nethermind.entro.types.uniswap_v3.PoolState">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">nethermind.entro.types.uniswap_v3.</span></span><span class="sig-name descname"><span class="pre">PoolState</span></span><a class="headerlink" href="#nethermind.entro.types.uniswap_v3.PoolState" title="Permalink to this definition">#</a></dt>
+<dd><p>Stores the current balances, liquidity, and fee growths</p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="nethermind.entro.types.uniswap_v3.PoolState.balance_0">
+<span class="sig-name descname"><span class="pre">balance_0</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.12)"><span class="pre">int</span></a></em><a class="headerlink" href="#nethermind.entro.types.uniswap_v3.PoolState.balance_0" title="Permalink to this definition">#</a></dt>
+<dd><p>Current balance of token_0 in pool.  This value is modified during each swap, and liquidity modification.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="nethermind.entro.types.uniswap_v3.PoolState.balance_1">
+<span class="sig-name descname"><span class="pre">balance_1</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.12)"><span class="pre">int</span></a></em><a class="headerlink" href="#nethermind.entro.types.uniswap_v3.PoolState.balance_1" title="Permalink to this definition">#</a></dt>
+<dd><p>Current balance of token_1 in pool.  This value is modified during each swap, and liquidity modification.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="nethermind.entro.types.uniswap_v3.PoolState.fee_growth_global_0">
+<span class="sig-name descname"><span class="pre">fee_growth_global_0</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.12)"><span class="pre">int</span></a></em><a class="headerlink" href="#nethermind.entro.types.uniswap_v3.PoolState.fee_growth_global_0" title="Permalink to this definition">#</a></dt>
+<dd><p>Tracks fee accumulation for token_0.  When selling token_0, the swap fee is collected in token_0, and addded to
+this accumulator.  When a position is modified or burned, the position fees are calculated from this 
+global accumulator.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="nethermind.entro.types.uniswap_v3.PoolState.fee_growth_global_1">
+<span class="sig-name descname"><span class="pre">fee_growth_global_1</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.12)"><span class="pre">int</span></a></em><a class="headerlink" href="#nethermind.entro.types.uniswap_v3.PoolState.fee_growth_global_1" title="Permalink to this definition">#</a></dt>
+<dd><p>Tracks fee accumulation for token_1.  When selling token_1, the swap fee is collected in token_1.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="nethermind.entro.types.uniswap_v3.PoolState.liquidity">
+<span class="sig-name descname"><span class="pre">liquidity</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.12)"><span class="pre">int</span></a></em><a class="headerlink" href="#nethermind.entro.types.uniswap_v3.PoolState.liquidity" title="Permalink to this definition">#</a></dt>
+<dd><p>Amount of active liquidity.  This parameter remains constant during swaps where the price does not move ticks.
+When crossing a tick, this value is increased or reduced.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="nethermind.entro.types.uniswap_v3.Slot0">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">nethermind.entro.types.uniswap_v3.</span></span><span class="sig-name descname"><span class="pre">Slot0</span></span><a class="headerlink" href="#nethermind.entro.types.uniswap_v3.Slot0" title="Permalink to this definition">#</a></dt>
+<dd><p>Stores the current price, tick, and oracle info</p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="nethermind.entro.types.uniswap_v3.Slot0.fee_protocol">
+<span class="sig-name descname"><span class="pre">fee_protocol</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.12)"><span class="pre">int</span></a></em><a class="headerlink" href="#nethermind.entro.types.uniswap_v3.Slot0.fee_protocol" title="Permalink to this definition">#</a></dt>
+<dd><p>Amount of swap fees that are given to the Uniswap Protocol.  This is currently turned off on all official
+Uniswap deployments, but can be turned on by governance at a later date.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="nethermind.entro.types.uniswap_v3.Slot0.observation_cardinality">
+<span class="sig-name descname"><span class="pre">observation_cardinality</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.12)"><span class="pre">int</span></a></em><a class="headerlink" href="#nethermind.entro.types.uniswap_v3.Slot0.observation_cardinality" title="Permalink to this definition">#</a></dt>
+<dd><p>Current number of observations stored in the oracle.  When this value is increased, the oracle stores
+more price history within the oracle.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="nethermind.entro.types.uniswap_v3.Slot0.observation_cardinality_next">
+<span class="sig-name descname"><span class="pre">observation_cardinality_next</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.12)"><span class="pre">int</span></a></em><a class="headerlink" href="#nethermind.entro.types.uniswap_v3.Slot0.observation_cardinality_next" title="Permalink to this definition">#</a></dt>
+<dd><p>Parameter that is used when increasing the historical prices within the oracle.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="nethermind.entro.types.uniswap_v3.Slot0.observation_index">
+<span class="sig-name descname"><span class="pre">observation_index</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.12)"><span class="pre">int</span></a></em><a class="headerlink" href="#nethermind.entro.types.uniswap_v3.Slot0.observation_index" title="Permalink to this definition">#</a></dt>
+<dd><p>Current index that is used internally to store the oracle data.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="nethermind.entro.types.uniswap_v3.Slot0.sqrt_price">
+<span class="sig-name descname"><span class="pre">sqrt_price</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.12)"><span class="pre">int</span></a></em><a class="headerlink" href="#nethermind.entro.types.uniswap_v3.Slot0.sqrt_price" title="Permalink to this definition">#</a></dt>
+<dd><p>Current Exchange rate between token_0 and token_1.</p>
+<p>This value is represented as the square root of the ratio between token_0 and token_1, in a 
+fixed point Q64.96 Number (64 bits of integer precision &amp; 96 bits of fractional precision).</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="nethermind.entro.types.uniswap_v3.Slot0.tick">
+<span class="sig-name descname"><span class="pre">tick</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.12)"><span class="pre">int</span></a></em><a class="headerlink" href="#nethermind.entro.types.uniswap_v3.Slot0.tick" title="Permalink to this definition">#</a></dt>
+<dd><p>Current Tick of the Pool.  Ticks are discrete price ranges representing a 0.1% change in price.</p>
+<p>The Token 0 to Token 1 exchange rate at a tick can be calculated by the following formula:
+1.0001 ** tick</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="nethermind.entro.types.uniswap_v3.Tick">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">nethermind.entro.types.uniswap_v3.</span></span><span class="sig-name descname"><span class="pre">Tick</span></span><a class="headerlink" href="#nethermind.entro.types.uniswap_v3.Tick" title="Permalink to this definition">#</a></dt>
+<dd><p>Stores liquidity data and fee growth for each tick</p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="nethermind.entro.types.uniswap_v3.Tick.fee_growth_outside_0">
+<span class="sig-name descname"><span class="pre">fee_growth_outside_0</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.12)"><span class="pre">int</span></a></em><a class="headerlink" href="#nethermind.entro.types.uniswap_v3.Tick.fee_growth_outside_0" title="Permalink to this definition">#</a></dt>
+<dd><p>Internal parameter tracking fee growth per unit of liquidity when the liquidity in this tick is inactive</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="nethermind.entro.types.uniswap_v3.Tick.fee_growth_outside_1">
+<span class="sig-name descname"><span class="pre">fee_growth_outside_1</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.12)"><span class="pre">int</span></a></em><a class="headerlink" href="#nethermind.entro.types.uniswap_v3.Tick.fee_growth_outside_1" title="Permalink to this definition">#</a></dt>
+<dd><p>Internal parameter tracking the fee growth that occurs when this tick is not active.  Used to calculate fees
+and position valuations</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="nethermind.entro.types.uniswap_v3.Tick.liquidity_gross">
+<span class="sig-name descname"><span class="pre">liquidity_gross</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.12)"><span class="pre">int</span></a></em><a class="headerlink" href="#nethermind.entro.types.uniswap_v3.Tick.liquidity_gross" title="Permalink to this definition">#</a></dt>
+<dd><p>Total liquidity owned by all positions that use this tick as an upper tick or a lower tick.
+used by the pool to determine if it is okay to delete a tick when a position is removed.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="nethermind.entro.types.uniswap_v3.Tick.liquidity_net">
+<span class="sig-name descname"><span class="pre">liquidity_net</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.12)"><span class="pre">int</span></a></em><a class="headerlink" href="#nethermind.entro.types.uniswap_v3.Tick.liquidity_net" title="Permalink to this definition">#</a></dt>
+<dd><p>Net liquidity to add/remove from the pool when a swap moves the price across tick boundaries.
+If price is moving up, add liquidity_net to current liquidity.
+If price is moving down, liquidity_net is subtracted from current liquidity.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="nethermind.entro.types.uniswap_v3.Tick.seconds_outside">
+<span class="sig-name descname"><span class="pre">seconds_outside</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.12)"><span class="pre">int</span></a></em><a class="headerlink" href="#nethermind.entro.types.uniswap_v3.Tick.seconds_outside" title="Permalink to this definition">#</a></dt>
+<dd><p>Internal fee accrual tracking parameter</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="nethermind.entro.types.uniswap_v3.Tick.seconds_per_liquidity_outside">
+<span class="sig-name descname"><span class="pre">seconds_per_liquidity_outside</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.12)"><span class="pre">int</span></a></em><a class="headerlink" href="#nethermind.entro.types.uniswap_v3.Tick.seconds_per_liquidity_outside" title="Permalink to this definition">#</a></dt>
+<dd><p>Internal parameter that tracks the seconds per liquidity outside of this tick.  Used to calculate fees</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="nethermind.entro.types.uniswap_v3.Tick.tick_cumulative_outside">
+<span class="sig-name descname"><span class="pre">tick_cumulative_outside</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.12)"><span class="pre">int</span></a></em><a class="headerlink" href="#nethermind.entro.types.uniswap_v3.Tick.tick_cumulative_outside" title="Permalink to this definition">#</a></dt>
+<dd><p>the cumulative tick value on the other side of the tick</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="nethermind.entro.types.uniswap_v3.OracleObservation">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">nethermind.entro.types.uniswap_v3.</span></span><span class="sig-name descname"><span class="pre">OracleObservation</span></span><a class="headerlink" href="#nethermind.entro.types.uniswap_v3.OracleObservation" title="Permalink to this definition">#</a></dt>
+<dd><p>Stores oracle observation data</p>
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="nethermind.entro.types.uniswap_v3.PositionInfo">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">nethermind.entro.types.uniswap_v3.</span></span><span class="sig-name descname"><span class="pre">PositionInfo</span></span><a class="headerlink" href="#nethermind.entro.types.uniswap_v3.PositionInfo" title="Permalink to this definition">#</a></dt>
+<dd><p>Stores the current liquidity, fee growth, and fees owed for each position.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This data is semi-stateful, and doesnt represent the value of a position at a given time.  In order
+to compute the token_0 and token_1 value of a position at a given time, the best mechanism through
+this library is the save_position_snapshot() function.</p>
+</div>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="nethermind.entro.types.uniswap_v3.PositionInfo.fee_growth_inside_0_last">
+<span class="sig-name descname"><span class="pre">fee_growth_inside_0_last</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.12)"><span class="pre">int</span></a></em><a class="headerlink" href="#nethermind.entro.types.uniswap_v3.PositionInfo.fee_growth_inside_0_last" title="Permalink to this definition">#</a></dt>
+<dd><p>Token 0 fee growth per unit of ticks since last ticks update.  This paramter is allowed to underflow in the 
+Uniswap Codebase, creating bizzare behavior.  If the value of this field is a number greater than 10 ** 77, 
+the value has underflowed.  This is expected behavior, and is handled by the library.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="nethermind.entro.types.uniswap_v3.PositionInfo.fee_growth_inside_1_last">
+<span class="sig-name descname"><span class="pre">fee_growth_inside_1_last</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.12)"><span class="pre">int</span></a></em><a class="headerlink" href="#nethermind.entro.types.uniswap_v3.PositionInfo.fee_growth_inside_1_last" title="Permalink to this definition">#</a></dt>
+<dd><p>Token 1 Fee growth per unit of ticks since last ticks update.  This paramter is allowed to underflow in the
+same manner as fee_growth_inside_0_last</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="nethermind.entro.types.uniswap_v3.PositionInfo.liquidity">
+<span class="sig-name descname"><span class="pre">liquidity</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.12)"><span class="pre">int</span></a></em><a class="headerlink" href="#nethermind.entro.types.uniswap_v3.PositionInfo.liquidity" title="Permalink to this definition">#</a></dt>
+<dd><p>Amount of liquidity owned by this position</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="nethermind.entro.types.uniswap_v3.PositionInfo.tokens_owed_0">
+<span class="sig-name descname"><span class="pre">tokens_owed_0</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.12)"><span class="pre">int</span></a></em><a class="headerlink" href="#nethermind.entro.types.uniswap_v3.PositionInfo.tokens_owed_0" title="Permalink to this definition">#</a></dt>
+<dd><p>Number of token_0 owed to the position owner.  Is only updated when position is burned</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="nethermind.entro.types.uniswap_v3.PositionInfo.tokens_owed_1">
+<span class="sig-name descname"><span class="pre">tokens_owed_1</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.12)"><span class="pre">int</span></a></em><a class="headerlink" href="#nethermind.entro.types.uniswap_v3.PositionInfo.tokens_owed_1" title="Permalink to this definition">#</a></dt>
+<dd><p>Number of token_1 owed to the position owner.  Is only updated when position is burned</p>
+</dd></dl>
+
+</dd></dl>
+
+</section>
+</section>
+
+
+                </article>
+              
+
+              
+              
+              
+              
+                <footer class="prev-next-footer d-print-none">
+                  
+<div class="prev-next-area">
+    <a class="left-prev"
+       href="PricingOracle.html"
+       title="previous page">
+      <i class="fa-solid fa-angle-left"></i>
+      <div class="prev-next-info">
+        <p class="prev-next-subtitle">previous</p>
+        <p class="prev-next-title">Pricing Oracle</p>
+      </div>
+    </a>
+</div>
+                </footer>
+              
+            </div>
+            
+            
+              
+                <div class="bd-sidebar-secondary bd-toc"><div class="sidebar-secondary-items sidebar-secondary__inner">
+
+
+  <div class="sidebar-secondary-item">
+  <div class="page-toc tocsection onthispage">
+    <i class="fa-solid fa-list"></i> Contents
+  </div>
+  <nav class="bd-toc-nav page-toc">
+    <ul class="visible nav section-nav flex-column">
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#uniswap-v3-usage">Uniswap V3 Usage</a><ul class="visible nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#creating-uniswap-v3-pools">Creating Uniswap V3 Pools</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#initializing-pools-from-chain">Initializing Pools From Chain</a></li>
+</ul>
+</li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#api-documentation">API Documentation</a><ul class="visible nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#nethermind.entro.uniswap_v3.UniswapV3Pool"><code class="docutils literal notranslate"><span class="pre">UniswapV3Pool</span></code></a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#nethermind.entro.uniswap_v3.UniswapV3Pool.math"><code class="docutils literal notranslate"><span class="pre">UniswapV3Pool.math</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#nethermind.entro.uniswap_v3.UniswapV3Pool.advance_block"><code class="docutils literal notranslate"><span class="pre">UniswapV3Pool.advance_block()</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#nethermind.entro.uniswap_v3.UniswapV3Pool.burn"><code class="docutils literal notranslate"><span class="pre">UniswapV3Pool.burn()</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#nethermind.entro.uniswap_v3.UniswapV3Pool.decode_price_from_event"><code class="docutils literal notranslate"><span class="pre">UniswapV3Pool.decode_price_from_event()</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#nethermind.entro.uniswap_v3.UniswapV3Pool.enable_exact_math"><code class="docutils literal notranslate"><span class="pre">UniswapV3Pool.enable_exact_math()</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#nethermind.entro.uniswap_v3.UniswapV3Pool.get_abi"><code class="docutils literal notranslate"><span class="pre">UniswapV3Pool.get_abi()</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#nethermind.entro.uniswap_v3.UniswapV3Pool.get_price_at_sqrt_ratio"><code class="docutils literal notranslate"><span class="pre">UniswapV3Pool.get_price_at_sqrt_ratio()</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#nethermind.entro.uniswap_v3.UniswapV3Pool.load_pool"><code class="docutils literal notranslate"><span class="pre">UniswapV3Pool.load_pool()</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#nethermind.entro.uniswap_v3.UniswapV3Pool.mint"><code class="docutils literal notranslate"><span class="pre">UniswapV3Pool.mint()</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#nethermind.entro.uniswap_v3.UniswapV3Pool.save_pool"><code class="docutils literal notranslate"><span class="pre">UniswapV3Pool.save_pool()</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#nethermind.entro.uniswap_v3.UniswapV3Pool.swap"><code class="docutils literal notranslate"><span class="pre">UniswapV3Pool.swap()</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#nethermind.entro.uniswap_v3.UniswapV3Pool.block_number"><code class="docutils literal notranslate"><span class="pre">UniswapV3Pool.block_number</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#nethermind.entro.uniswap_v3.UniswapV3Pool.block_timestamp"><code class="docutils literal notranslate"><span class="pre">UniswapV3Pool.block_timestamp</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#nethermind.entro.uniswap_v3.UniswapV3Pool.immutables"><code class="docutils literal notranslate"><span class="pre">UniswapV3Pool.immutables</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#nethermind.entro.uniswap_v3.UniswapV3Pool.init_mode"><code class="docutils literal notranslate"><span class="pre">UniswapV3Pool.init_mode</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#nethermind.entro.uniswap_v3.UniswapV3Pool.observations"><code class="docutils literal notranslate"><span class="pre">UniswapV3Pool.observations</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#nethermind.entro.uniswap_v3.UniswapV3Pool.pool_contract"><code class="docutils literal notranslate"><span class="pre">UniswapV3Pool.pool_contract</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#nethermind.entro.uniswap_v3.UniswapV3Pool.positions"><code class="docutils literal notranslate"><span class="pre">UniswapV3Pool.positions</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#nethermind.entro.uniswap_v3.UniswapV3Pool.protocol_fee_0"><code class="docutils literal notranslate"><span class="pre">UniswapV3Pool.protocol_fee_0</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#nethermind.entro.uniswap_v3.UniswapV3Pool.protocol_fee_1"><code class="docutils literal notranslate"><span class="pre">UniswapV3Pool.protocol_fee_1</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#nethermind.entro.uniswap_v3.UniswapV3Pool.slot0"><code class="docutils literal notranslate"><span class="pre">UniswapV3Pool.slot0</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#nethermind.entro.uniswap_v3.UniswapV3Pool.state"><code class="docutils literal notranslate"><span class="pre">UniswapV3Pool.state</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#nethermind.entro.uniswap_v3.UniswapV3Pool.ticks"><code class="docutils literal notranslate"><span class="pre">UniswapV3Pool.ticks</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#uniswap-v3-types">Uniswap V3 Types</a><ul class="visible nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#nethermind.entro.types.uniswap_v3.PoolImmutables"><code class="docutils literal notranslate"><span class="pre">PoolImmutables</span></code></a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#nethermind.entro.types.uniswap_v3.PoolImmutables.fee"><code class="docutils literal notranslate"><span class="pre">PoolImmutables.fee</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#nethermind.entro.types.uniswap_v3.PoolImmutables.initialization_block"><code class="docutils literal notranslate"><span class="pre">PoolImmutables.initialization_block</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#nethermind.entro.types.uniswap_v3.PoolImmutables.max_liquidity_per_tick"><code class="docutils literal notranslate"><span class="pre">PoolImmutables.max_liquidity_per_tick</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#nethermind.entro.types.uniswap_v3.PoolImmutables.pool_address"><code class="docutils literal notranslate"><span class="pre">PoolImmutables.pool_address</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#nethermind.entro.types.uniswap_v3.PoolImmutables.tick_spacing"><code class="docutils literal notranslate"><span class="pre">PoolImmutables.tick_spacing</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#nethermind.entro.types.uniswap_v3.PoolImmutables.token_0"><code class="docutils literal notranslate"><span class="pre">PoolImmutables.token_0</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#nethermind.entro.types.uniswap_v3.PoolImmutables.token_1"><code class="docutils literal notranslate"><span class="pre">PoolImmutables.token_1</span></code></a></li>
+</ul>
+</li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#nethermind.entro.types.uniswap_v3.PoolState"><code class="docutils literal notranslate"><span class="pre">PoolState</span></code></a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#nethermind.entro.types.uniswap_v3.PoolState.balance_0"><code class="docutils literal notranslate"><span class="pre">PoolState.balance_0</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#nethermind.entro.types.uniswap_v3.PoolState.balance_1"><code class="docutils literal notranslate"><span class="pre">PoolState.balance_1</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#nethermind.entro.types.uniswap_v3.PoolState.fee_growth_global_0"><code class="docutils literal notranslate"><span class="pre">PoolState.fee_growth_global_0</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#nethermind.entro.types.uniswap_v3.PoolState.fee_growth_global_1"><code class="docutils literal notranslate"><span class="pre">PoolState.fee_growth_global_1</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#nethermind.entro.types.uniswap_v3.PoolState.liquidity"><code class="docutils literal notranslate"><span class="pre">PoolState.liquidity</span></code></a></li>
+</ul>
+</li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#nethermind.entro.types.uniswap_v3.Slot0"><code class="docutils literal notranslate"><span class="pre">Slot0</span></code></a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#nethermind.entro.types.uniswap_v3.Slot0.fee_protocol"><code class="docutils literal notranslate"><span class="pre">Slot0.fee_protocol</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#nethermind.entro.types.uniswap_v3.Slot0.observation_cardinality"><code class="docutils literal notranslate"><span class="pre">Slot0.observation_cardinality</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#nethermind.entro.types.uniswap_v3.Slot0.observation_cardinality_next"><code class="docutils literal notranslate"><span class="pre">Slot0.observation_cardinality_next</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#nethermind.entro.types.uniswap_v3.Slot0.observation_index"><code class="docutils literal notranslate"><span class="pre">Slot0.observation_index</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#nethermind.entro.types.uniswap_v3.Slot0.sqrt_price"><code class="docutils literal notranslate"><span class="pre">Slot0.sqrt_price</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#nethermind.entro.types.uniswap_v3.Slot0.tick"><code class="docutils literal notranslate"><span class="pre">Slot0.tick</span></code></a></li>
+</ul>
+</li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#nethermind.entro.types.uniswap_v3.Tick"><code class="docutils literal notranslate"><span class="pre">Tick</span></code></a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#nethermind.entro.types.uniswap_v3.Tick.fee_growth_outside_0"><code class="docutils literal notranslate"><span class="pre">Tick.fee_growth_outside_0</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#nethermind.entro.types.uniswap_v3.Tick.fee_growth_outside_1"><code class="docutils literal notranslate"><span class="pre">Tick.fee_growth_outside_1</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#nethermind.entro.types.uniswap_v3.Tick.liquidity_gross"><code class="docutils literal notranslate"><span class="pre">Tick.liquidity_gross</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#nethermind.entro.types.uniswap_v3.Tick.liquidity_net"><code class="docutils literal notranslate"><span class="pre">Tick.liquidity_net</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#nethermind.entro.types.uniswap_v3.Tick.seconds_outside"><code class="docutils literal notranslate"><span class="pre">Tick.seconds_outside</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#nethermind.entro.types.uniswap_v3.Tick.seconds_per_liquidity_outside"><code class="docutils literal notranslate"><span class="pre">Tick.seconds_per_liquidity_outside</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#nethermind.entro.types.uniswap_v3.Tick.tick_cumulative_outside"><code class="docutils literal notranslate"><span class="pre">Tick.tick_cumulative_outside</span></code></a></li>
+</ul>
+</li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#nethermind.entro.types.uniswap_v3.OracleObservation"><code class="docutils literal notranslate"><span class="pre">OracleObservation</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#nethermind.entro.types.uniswap_v3.PositionInfo"><code class="docutils literal notranslate"><span class="pre">PositionInfo</span></code></a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#nethermind.entro.types.uniswap_v3.PositionInfo.fee_growth_inside_0_last"><code class="docutils literal notranslate"><span class="pre">PositionInfo.fee_growth_inside_0_last</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#nethermind.entro.types.uniswap_v3.PositionInfo.fee_growth_inside_1_last"><code class="docutils literal notranslate"><span class="pre">PositionInfo.fee_growth_inside_1_last</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#nethermind.entro.types.uniswap_v3.PositionInfo.liquidity"><code class="docutils literal notranslate"><span class="pre">PositionInfo.liquidity</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#nethermind.entro.types.uniswap_v3.PositionInfo.tokens_owed_0"><code class="docutils literal notranslate"><span class="pre">PositionInfo.tokens_owed_0</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#nethermind.entro.types.uniswap_v3.PositionInfo.tokens_owed_1"><code class="docutils literal notranslate"><span class="pre">PositionInfo.tokens_owed_1</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+  </nav></div>
+
+</div></div>
+              
+            
+          </div>
+          <footer class="bd-footer-content">
+            
+<div class="bd-footer-content__inner container">
+  
+  <div class="footer-item">
+    
+<p class="component-author">
+By Nethermind
+</p>
+
+  </div>
+  
+  <div class="footer-item">
+    
+
+  <p class="copyright">
+    
+      © Copyright 2023, Nethermind.
+      <br/>
+    
+  </p>
+
+  </div>
+  
+  <div class="footer-item">
+    
+  </div>
+  
+  <div class="footer-item">
+    
+  </div>
+  
+</div>
+          </footer>
+        
+
+      </main>
+    </div>
+  </div>
+  
+  <!-- Scripts loaded after <body> so the DOM is not blocked -->
+  <script src="../_static/scripts/bootstrap.js?digest=dfe6caa3a7d634c4db9b"></script>
+<script src="../_static/scripts/pydata-sphinx-theme.js?digest=dfe6caa3a7d634c4db9b"></script>
+
+  <footer class="bd-footer">
+  </footer>
+  </body>
+</html>

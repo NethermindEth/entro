@@ -1,0 +1,504 @@
+
+
+<!DOCTYPE html>
+
+
+<html lang="en" data-content_root="" >
+
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="generator" content="Docutils 0.19: https://docutils.sourceforge.io/" />
+
+    <title>Ethereum Commands &#8212; Nethermind Entro Documentation</title>
+  
+  
+  
+  <script data-cfasync="false">
+    document.documentElement.dataset.mode = localStorage.getItem("mode") || "";
+    document.documentElement.dataset.theme = localStorage.getItem("theme") || "";
+  </script>
+  
+  <!-- Loaded before other Sphinx assets -->
+  <link href="../_static/styles/theme.css?digest=dfe6caa3a7d634c4db9b" rel="stylesheet" />
+<link href="../_static/styles/bootstrap.css?digest=dfe6caa3a7d634c4db9b" rel="stylesheet" />
+<link href="../_static/styles/pydata-sphinx-theme.css?digest=dfe6caa3a7d634c4db9b" rel="stylesheet" />
+
+  
+  <link href="../_static/vendor/fontawesome/6.5.2/css/all.min.css?digest=dfe6caa3a7d634c4db9b" rel="stylesheet" />
+  <link rel="preload" as="font" type="font/woff2" crossorigin href="../_static/vendor/fontawesome/6.5.2/webfonts/fa-solid-900.woff2" />
+<link rel="preload" as="font" type="font/woff2" crossorigin href="../_static/vendor/fontawesome/6.5.2/webfonts/fa-brands-400.woff2" />
+<link rel="preload" as="font" type="font/woff2" crossorigin href="../_static/vendor/fontawesome/6.5.2/webfonts/fa-regular-400.woff2" />
+
+    <link rel="stylesheet" type="text/css" href="../_static/pygments.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/styles/sphinx-book-theme.css" />
+  
+  <!-- Pre-loaded scripts that we'll load fully later -->
+  <link rel="preload" as="script" href="../_static/scripts/bootstrap.js?digest=dfe6caa3a7d634c4db9b" />
+<link rel="preload" as="script" href="../_static/scripts/pydata-sphinx-theme.js?digest=dfe6caa3a7d634c4db9b" />
+  <script src="../_static/vendor/fontawesome/6.5.2/js/all.min.js?digest=dfe6caa3a7d634c4db9b"></script>
+
+    <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js"></script>
+    <script src="../_static/doctools.js"></script>
+    <script src="../_static/sphinx_highlight.js"></script>
+    <script src="../_static/scripts/sphinx-book-theme.js"></script>
+    <script>DOCUMENTATION_OPTIONS.pagename = 'cli_guide/Ethereum';</script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="Starknet Commands" href="Starknet.html" />
+    <link rel="prev" title="Decoding" href="Decoding.html" />
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <meta name="docsearch:language" content="en"/>
+  </head>
+  
+  
+  <body data-bs-spy="scroll" data-bs-target=".bd-toc-nav" data-offset="180" data-bs-root-margin="0px 0px -60%" data-default-mode="">
+
+  
+  
+  <div id="pst-skip-link" class="skip-link d-print-none"><a href="#main-content">Skip to main content</a></div>
+  
+  <div id="pst-scroll-pixel-helper"></div>
+  
+  <button type="button" class="btn rounded-pill" id="pst-back-to-top">
+    <i class="fa-solid fa-arrow-up"></i>Back to top</button>
+
+  
+  <input type="checkbox"
+          class="sidebar-toggle"
+          id="pst-primary-sidebar-checkbox"/>
+  <label class="overlay overlay-primary" for="pst-primary-sidebar-checkbox"></label>
+  
+  <input type="checkbox"
+          class="sidebar-toggle"
+          id="pst-secondary-sidebar-checkbox"/>
+  <label class="overlay overlay-secondary" for="pst-secondary-sidebar-checkbox"></label>
+  
+  <div class="search-button__wrapper">
+    <div class="search-button__overlay"></div>
+    <div class="search-button__search-container">
+<form class="bd-search d-flex align-items-center"
+      action="../search.html"
+      method="get">
+  <i class="fa-solid fa-magnifying-glass"></i>
+  <input type="search"
+         class="form-control"
+         name="q"
+         id="search-input"
+         placeholder="Search..."
+         aria-label="Search..."
+         autocomplete="off"
+         autocorrect="off"
+         autocapitalize="off"
+         spellcheck="false"/>
+  <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd>K</kbd></span>
+</form></div>
+  </div>
+
+  <div class="pst-async-banner-revealer d-none">
+  <aside id="bd-header-version-warning" class="d-none d-print-none" aria-label="Version warning"></aside>
+</div>
+
+  
+    <header class="bd-header navbar navbar-expand-lg bd-navbar d-print-none">
+    </header>
+  
+
+  <div class="bd-container">
+    <div class="bd-container__inner bd-page-width">
+      
+      
+      
+      <div class="bd-sidebar-primary bd-sidebar">
+        
+
+  
+  <div class="sidebar-header-items sidebar-primary__section">
+    
+    
+    
+    
+  </div>
+  
+    <div class="sidebar-primary-items__start sidebar-primary__section">
+        <div class="sidebar-primary-item">
+
+  
+     
+  
+
+<a class="navbar-brand logo" href="https://nethermind.io">
+  
+  
+  
+  
+  
+    
+    
+      
+    
+    
+    <img src="../_static/logo-light.svg" class="logo__image only-light" alt="Nethermind Entro Documentation - Home"/>
+    <script>document.write(`<img src="../_static/logo-dark.svg" class="logo__image only-dark" alt="Nethermind Entro Documentation - Home"/>`);</script>
+  
+  
+</a></div>
+        <div class="sidebar-primary-item">
+
+ <script>
+ document.write(`
+   <button class="btn search-button-field search-button__button" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+    <i class="fa-solid fa-magnifying-glass"></i>
+    <span class="search-button__default-text">Search</span>
+    <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+   </button>
+ `);
+ </script></div>
+        <div class="sidebar-primary-item"><nav class="bd-links bd-docs-nav" aria-label="Main">
+    <div class="bd-toc-item navbar-nav active">
+        <p aria-level="2" class="caption" role="heading"><span class="caption-text">Intro</span></p>
+<ul class="nav bd-sidenav">
+<li class="toctree-l1"><a class="reference internal" href="../Installation.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../Quickstart.html">Quickstart</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../Changelog.html">Releases</a></li>
+</ul>
+<p aria-level="2" class="caption" role="heading"><span class="caption-text">CLI Guide</span></p>
+<ul class="current nav bd-sidenav">
+<li class="toctree-l1"><a class="reference internal" href="Data-Persistence.html">Data Persistence</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Decoding.html">Decoding</a></li>
+<li class="toctree-l1 current active"><a class="current reference internal" href="#">Ethereum Commands</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Starknet.html">Starknet Commands</a></li>
+</ul>
+<p aria-level="2" class="caption" role="heading"><span class="caption-text">Uniswap Guide</span></p>
+<ul class="nav bd-sidenav">
+<li class="toctree-l1"><a class="reference internal" href="../uniswap/Extracting%20Block-by-Block%20Price%20Data.html">Extracting Block-by-Block Price Data</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../uniswap/Uniswap%20Quickstart.html">Uniswap Quickstart</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../uniswap/Valuing%20Uniswap%20V3%20Positions.html">Valuing Uniswap V3 Liquidity Positions</a></li>
+</ul>
+<p aria-level="2" class="caption" role="heading"><span class="caption-text">API Reference</span></p>
+<ul class="nav bd-sidenav">
+<li class="toctree-l1"><a class="reference internal" href="../api/ERC20Token.html">Standard Token Interface</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../api/Exceptions.html">Exceptions</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../api/PricingOracle.html">Pricing Oracle</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../api/UniswapV3Pool.html">UniswapV3Pool</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../genindex.html">API Glossary</a></li>
+</ul>
+
+    </div>
+</nav></div>
+    </div>
+  
+  
+  <div class="sidebar-primary-items__end sidebar-primary__section">
+  </div>
+  
+  <div id="rtd-footer-container"></div>
+
+
+      </div>
+      
+      <main id="main-content" class="bd-main" role="main">
+        
+        
+
+<div class="sbt-scroll-pixel-helper"></div>
+
+          <div class="bd-content">
+            <div class="bd-article-container">
+              
+              <div class="bd-header-article d-print-none">
+<div class="header-article-items header-article__inner">
+  
+    <div class="header-article-items__start">
+      
+        <div class="header-article-item"><button class="sidebar-toggle primary-toggle btn btn-sm" title="Toggle primary sidebar" data-bs-placement="bottom" data-bs-toggle="tooltip">
+  <span class="fa-solid fa-bars"></span>
+</button></div>
+      
+    </div>
+  
+  
+    <div class="header-article-items__end">
+      
+        <div class="header-article-item">
+
+<div class="article-header-buttons">
+
+
+
+
+
+<div class="dropdown dropdown-download-buttons">
+  <button class="btn dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false" aria-label="Download this page">
+    <i class="fas fa-download"></i>
+  </button>
+  <ul class="dropdown-menu">
+      
+      
+      
+      <li><a href="../_sources/cli_guide/Ethereum.rst" target="_blank"
+   class="btn btn-sm btn-download-source-button dropdown-item"
+   title="Download source file"
+   data-bs-placement="left" data-bs-toggle="tooltip"
+>
+  
+
+<span class="btn__icon-container">
+  <i class="fas fa-file"></i>
+  </span>
+<span class="btn__text-container">.rst</span>
+</a>
+</li>
+      
+      
+      
+      
+      <li>
+<button onclick="window.print()"
+  class="btn btn-sm btn-download-pdf-button dropdown-item"
+  title="Print to PDF"
+  data-bs-placement="left" data-bs-toggle="tooltip"
+>
+  
+
+<span class="btn__icon-container">
+  <i class="fas fa-file-pdf"></i>
+  </span>
+<span class="btn__text-container">.pdf</span>
+</button>
+</li>
+      
+  </ul>
+</div>
+
+
+
+
+<button onclick="toggleFullScreen()"
+  class="btn btn-sm btn-fullscreen-button"
+  title="Fullscreen mode"
+  data-bs-placement="bottom" data-bs-toggle="tooltip"
+>
+  
+
+<span class="btn__icon-container">
+  <i class="fas fa-expand"></i>
+  </span>
+
+</button>
+
+
+
+<script>
+document.write(`
+  <button class="btn btn-sm nav-link pst-navbar-icon theme-switch-button" title="light/dark" aria-label="light/dark" data-bs-placement="bottom" data-bs-toggle="tooltip">
+    <i class="theme-switch fa-solid fa-sun fa-lg" data-mode="light"></i>
+    <i class="theme-switch fa-solid fa-moon fa-lg" data-mode="dark"></i>
+    <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg" data-mode="auto"></i>
+  </button>
+`);
+</script>
+
+
+<script>
+document.write(`
+  <button class="btn btn-sm pst-navbar-icon search-button search-button__button" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+    <i class="fa-solid fa-magnifying-glass fa-lg"></i>
+  </button>
+`);
+</script>
+<button class="sidebar-toggle secondary-toggle btn btn-sm" title="Toggle secondary sidebar" data-bs-placement="bottom" data-bs-toggle="tooltip">
+    <span class="fa-solid fa-list"></span>
+</button>
+</div></div>
+      
+    </div>
+  
+</div>
+</div>
+              
+              
+
+<div id="jb-print-docs-body" class="onlyprint">
+    <h1>Ethereum Commands</h1>
+    <!-- Table of contents -->
+    <div id="print-main-content">
+        <div id="jb-print-toc">
+            
+            <div>
+                <h2> Contents </h2>
+            </div>
+            <nav aria-label="Page">
+                <ul class="visible nav section-nav flex-column">
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#backfill">BACKFILL</a><ul class="visible nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#events">Events</a></li>
+</ul>
+</li>
+</ul>
+            </nav>
+        </div>
+    </div>
+</div>
+
+              
+                
+<div id="searchbox"></div>
+                <article class="bd-article">
+                  
+  <section id="ethereum-commands">
+<h1>Ethereum Commands<a class="headerlink" href="#ethereum-commands" title="Permalink to this heading">#</a></h1>
+<section id="backfill">
+<h2>BACKFILL<a class="headerlink" href="#backfill" title="Permalink to this heading">#</a></h2>
+<p>The Entro CLI also supports Ethereum Event backfill operations, making it easy to download
+and ABI Decode Ethereum events from a specific contract. As long as the contract ABI is known,
+the CLI can decode the events and save them to a file or database.</p>
+<section id="events">
+<h3>Events<a class="headerlink" href="#events" title="Permalink to this heading">#</a></h3>
+<div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>entro<span class="w"> </span>decode<span class="w"> </span>add-abi<span class="w"> </span>ERC20<span class="w"> </span>&lt;path<span class="w"> </span>to<span class="w"> </span>abi<span class="w"> </span>JSON&gt;<span class="w"> </span>--priority<span class="w"> </span><span class="m">200</span>
+
+entro<span class="w"> </span>backfill<span class="w"> </span>ethereum<span class="w"> </span>events<span class="w"> </span>--from-block<span class="w"> </span><span class="m">19000000</span><span class="w"> </span>--to-block<span class="w"> </span><span class="m">19000500</span><span class="w"> </span>--contract-address<span class="w"> </span>0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2<span class="w"> </span>--decode-abis<span class="w"> </span>ERC20<span class="w"> </span>--event-name<span class="w"> </span>Transfer<span class="w"> </span>--event-file<span class="w"> </span>weth_transfers.json<span class="w"> </span>--json-rpc<span class="w"> </span>http://localhost:8545
+</pre></div>
+</div>
+<p>First add the ERC20 ABI to the decoder, then launch a backfill over a 500 block range to capture all Transfer events from the WETH contract. The events will be decoded using the ERC20 ABI and saved
+to the file weth_transfers.json</p>
+<div class="highlight-shell notranslate"><div class="highlight"><pre><span></span><span class="w">                             </span>Backfill<span class="w"> </span>Block<span class="w"> </span>Ranges
+┏━━━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━━━━┓
+┃<span class="w"> </span>Start<span class="w"> </span>Block<span class="w">              </span>┃<span class="w"> </span>End<span class="w"> </span>Block<span class="w">              </span>┃<span class="w">             </span>Total<span class="w"> </span>Blocks<span class="w"> </span>┃
+┡━━━━━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━━━━━━━━━┩
+│<span class="w"> </span><span class="m">10</span>,000,000<span class="w">               </span>│<span class="w"> </span><span class="m">10</span>,000,500<span class="w">             </span>│<span class="w">                      </span><span class="m">500</span><span class="w"> </span>│
+└──────────────────────────┴────────────────────────┴──────────────────────────┘
+<span class="w">                                 </span>Backfill<span class="w"> </span>Filters<span class="w"> </span><span class="p">&amp;</span><span class="w"> </span>Metadata
+┏━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
+┃<span class="w"> </span>Key<span class="w">              </span>┃<span class="w"> </span>Value<span class="w">                                                                  </span>┃
+┡━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┩
+│<span class="w"> </span>contract_address<span class="w"> </span>│<span class="w"> </span>0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2<span class="w">                             </span>│
+│<span class="w"> </span>event_names<span class="w">      </span>│<span class="w"> </span><span class="o">[</span><span class="s1">&#39;Transfer&#39;</span><span class="o">]</span><span class="w">                                                           </span>│
+│<span class="w"> </span>abi_name<span class="w">         </span>│<span class="w"> </span>ERC20<span class="w">                                                                  </span>│
+│<span class="w"> </span>json_rpc<span class="w">         </span>│<span class="w"> </span>http://localhost:8545<span class="w">                                                  </span>│
+│<span class="w"> </span><span class="nb">source</span><span class="w">           </span>│<span class="w"> </span>json_rpc<span class="w">                                                               </span>│
+│<span class="w"> </span>topics<span class="w">           </span>│<span class="w"> </span><span class="o">[</span><span class="s1">&#39;0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef&#39;</span><span class="o">]</span><span class="w"> </span>│
+└──────────────────┴────────────────────────────────────────────────────────────────────────┘
+<span class="w">                                </span>EVM<span class="w"> </span>Decoder<span class="w"> </span>ABIs
+┏━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
+┃<span class="w"> </span>Name<span class="w">        </span>┃<span class="w"> </span>Priority<span class="w">         </span>┃<span class="w"> </span>Events<span class="w">                                      </span>┃
+┡━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┩
+│<span class="w"> </span>ERC20<span class="w">       </span>│<span class="w"> </span><span class="m">0</span><span class="w">                </span>│<span class="w"> </span><span class="s1">&#39;Approval&#39;</span>,<span class="w"> </span><span class="s1">&#39;Transfer&#39;</span>,<span class="w">                     </span>│
+└─────────────┴──────────────────┴─────────────────────────────────────────────┘
+------------------------------------------------------------------------------------------------------------------------------------------------
+Execute<span class="w"> </span>Backfill?<span class="w">   </span><span class="o">[</span>y/n<span class="o">]</span>:
+</pre></div>
+</div>
+<p>The output of the event backfill will include decoded events, and will printout the progress of the backfill as it searches through the block range.</p>
+<div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>Backfill<span class="w"> </span>ERC20<span class="w"> </span>Events<span class="w">   </span>━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━<span class="w"> </span><span class="m">100</span>%<span class="w"> </span><span class="m">0</span>:00:00<span class="w"> </span><span class="m">0</span>:00:00<span class="w"> </span>Searched:<span class="w"> </span><span class="m">500</span>/500<span class="w"> </span>Searching<span class="w"> </span>Block:<span class="w"> </span><span class="m">10000500</span>
+<span class="o">[</span>Log<span class="w"> </span>Date<span class="w"> </span><span class="p">&amp;</span><span class="w"> </span>Time<span class="w">  </span><span class="o">]</span><span class="w"> </span>INFO<span class="w">     </span>----<span class="w"> </span>Backfill<span class="w"> </span>Complete<span class="w"> </span>------
+<span class="w">                    </span>INFO<span class="w">     </span>Saving<span class="w"> </span>Backfill<span class="w"> </span>Progress<span class="w"> </span>to<span class="w"> </span>Database
+<span class="w">                    </span>INFO<span class="w">     </span>Exported<span class="w"> </span><span class="m">563</span><span class="w"> </span>Events<span class="w"> </span><span class="k">in</span><span class="w"> </span><span class="m">0</span>.0<span class="w"> </span>minutes<span class="w"> </span><span class="m">11</span>.2<span class="w"> </span>seconds
+</pre></div>
+</div>
+</section>
+</section>
+</section>
+
+
+                </article>
+              
+
+              
+              
+              
+              
+                <footer class="prev-next-footer d-print-none">
+                  
+<div class="prev-next-area">
+    <a class="left-prev"
+       href="Decoding.html"
+       title="previous page">
+      <i class="fa-solid fa-angle-left"></i>
+      <div class="prev-next-info">
+        <p class="prev-next-subtitle">previous</p>
+        <p class="prev-next-title">Decoding</p>
+      </div>
+    </a>
+    <a class="right-next"
+       href="Starknet.html"
+       title="next page">
+      <div class="prev-next-info">
+        <p class="prev-next-subtitle">next</p>
+        <p class="prev-next-title">Starknet Commands</p>
+      </div>
+      <i class="fa-solid fa-angle-right"></i>
+    </a>
+</div>
+                </footer>
+              
+            </div>
+            
+            
+              
+                <div class="bd-sidebar-secondary bd-toc"><div class="sidebar-secondary-items sidebar-secondary__inner">
+
+
+  <div class="sidebar-secondary-item">
+  <div class="page-toc tocsection onthispage">
+    <i class="fa-solid fa-list"></i> Contents
+  </div>
+  <nav class="bd-toc-nav page-toc">
+    <ul class="visible nav section-nav flex-column">
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#backfill">BACKFILL</a><ul class="visible nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#events">Events</a></li>
+</ul>
+</li>
+</ul>
+  </nav></div>
+
+</div></div>
+              
+            
+          </div>
+          <footer class="bd-footer-content">
+            
+<div class="bd-footer-content__inner container">
+  
+  <div class="footer-item">
+    
+<p class="component-author">
+By Nethermind
+</p>
+
+  </div>
+  
+  <div class="footer-item">
+    
+
+  <p class="copyright">
+    
+      © Copyright 2023, Nethermind.
+      <br/>
+    
+  </p>
+
+  </div>
+  
+  <div class="footer-item">
+    
+  </div>
+  
+  <div class="footer-item">
+    
+  </div>
+  
+</div>
+          </footer>
+        
+
+      </main>
+    </div>
+  </div>
+  
+  <!-- Scripts loaded after <body> so the DOM is not blocked -->
+  <script src="../_static/scripts/bootstrap.js?digest=dfe6caa3a7d634c4db9b"></script>
+<script src="../_static/scripts/pydata-sphinx-theme.js?digest=dfe6caa3a7d634c4db9b"></script>
+
+  <footer class="bd-footer">
+  </footer>
+  </body>
+</html>

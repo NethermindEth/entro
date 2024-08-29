@@ -1,0 +1,636 @@
+
+
+<!DOCTYPE html>
+
+
+<html lang="en" data-content_root="" >
+
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="generator" content="Docutils 0.19: https://docutils.sourceforge.io/" />
+
+    <title>Uniswap Quickstart &#8212; Nethermind Entro Documentation</title>
+  
+  
+  
+  <script data-cfasync="false">
+    document.documentElement.dataset.mode = localStorage.getItem("mode") || "";
+    document.documentElement.dataset.theme = localStorage.getItem("theme") || "";
+  </script>
+  
+  <!-- Loaded before other Sphinx assets -->
+  <link href="../_static/styles/theme.css?digest=dfe6caa3a7d634c4db9b" rel="stylesheet" />
+<link href="../_static/styles/bootstrap.css?digest=dfe6caa3a7d634c4db9b" rel="stylesheet" />
+<link href="../_static/styles/pydata-sphinx-theme.css?digest=dfe6caa3a7d634c4db9b" rel="stylesheet" />
+
+  
+  <link href="../_static/vendor/fontawesome/6.5.2/css/all.min.css?digest=dfe6caa3a7d634c4db9b" rel="stylesheet" />
+  <link rel="preload" as="font" type="font/woff2" crossorigin href="../_static/vendor/fontawesome/6.5.2/webfonts/fa-solid-900.woff2" />
+<link rel="preload" as="font" type="font/woff2" crossorigin href="../_static/vendor/fontawesome/6.5.2/webfonts/fa-brands-400.woff2" />
+<link rel="preload" as="font" type="font/woff2" crossorigin href="../_static/vendor/fontawesome/6.5.2/webfonts/fa-regular-400.woff2" />
+
+    <link rel="stylesheet" type="text/css" href="../_static/pygments.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/styles/sphinx-book-theme.css" />
+  
+  <!-- Pre-loaded scripts that we'll load fully later -->
+  <link rel="preload" as="script" href="../_static/scripts/bootstrap.js?digest=dfe6caa3a7d634c4db9b" />
+<link rel="preload" as="script" href="../_static/scripts/pydata-sphinx-theme.js?digest=dfe6caa3a7d634c4db9b" />
+  <script src="../_static/vendor/fontawesome/6.5.2/js/all.min.js?digest=dfe6caa3a7d634c4db9b"></script>
+
+    <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js"></script>
+    <script src="../_static/doctools.js"></script>
+    <script src="../_static/sphinx_highlight.js"></script>
+    <script src="../_static/scripts/sphinx-book-theme.js"></script>
+    <script>DOCUMENTATION_OPTIONS.pagename = 'uniswap/Uniswap Quickstart';</script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="Valuing Uniswap V3 Liquidity Positions" href="Valuing%20Uniswap%20V3%20Positions.html" />
+    <link rel="prev" title="Extracting Block-by-Block Price Data" href="Extracting%20Block-by-Block%20Price%20Data.html" />
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <meta name="docsearch:language" content="en"/>
+  </head>
+  
+  
+  <body data-bs-spy="scroll" data-bs-target=".bd-toc-nav" data-offset="180" data-bs-root-margin="0px 0px -60%" data-default-mode="">
+
+  
+  
+  <div id="pst-skip-link" class="skip-link d-print-none"><a href="#main-content">Skip to main content</a></div>
+  
+  <div id="pst-scroll-pixel-helper"></div>
+  
+  <button type="button" class="btn rounded-pill" id="pst-back-to-top">
+    <i class="fa-solid fa-arrow-up"></i>Back to top</button>
+
+  
+  <input type="checkbox"
+          class="sidebar-toggle"
+          id="pst-primary-sidebar-checkbox"/>
+  <label class="overlay overlay-primary" for="pst-primary-sidebar-checkbox"></label>
+  
+  <input type="checkbox"
+          class="sidebar-toggle"
+          id="pst-secondary-sidebar-checkbox"/>
+  <label class="overlay overlay-secondary" for="pst-secondary-sidebar-checkbox"></label>
+  
+  <div class="search-button__wrapper">
+    <div class="search-button__overlay"></div>
+    <div class="search-button__search-container">
+<form class="bd-search d-flex align-items-center"
+      action="../search.html"
+      method="get">
+  <i class="fa-solid fa-magnifying-glass"></i>
+  <input type="search"
+         class="form-control"
+         name="q"
+         id="search-input"
+         placeholder="Search..."
+         aria-label="Search..."
+         autocomplete="off"
+         autocorrect="off"
+         autocapitalize="off"
+         spellcheck="false"/>
+  <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd>K</kbd></span>
+</form></div>
+  </div>
+
+  <div class="pst-async-banner-revealer d-none">
+  <aside id="bd-header-version-warning" class="d-none d-print-none" aria-label="Version warning"></aside>
+</div>
+
+  
+    <header class="bd-header navbar navbar-expand-lg bd-navbar d-print-none">
+    </header>
+  
+
+  <div class="bd-container">
+    <div class="bd-container__inner bd-page-width">
+      
+      
+      
+      <div class="bd-sidebar-primary bd-sidebar">
+        
+
+  
+  <div class="sidebar-header-items sidebar-primary__section">
+    
+    
+    
+    
+  </div>
+  
+    <div class="sidebar-primary-items__start sidebar-primary__section">
+        <div class="sidebar-primary-item">
+
+  
+     
+  
+
+<a class="navbar-brand logo" href="https://nethermind.io">
+  
+  
+  
+  
+  
+    
+    
+      
+    
+    
+    <img src="../_static/logo-light.svg" class="logo__image only-light" alt="Nethermind Entro Documentation - Home"/>
+    <script>document.write(`<img src="../_static/logo-dark.svg" class="logo__image only-dark" alt="Nethermind Entro Documentation - Home"/>`);</script>
+  
+  
+</a></div>
+        <div class="sidebar-primary-item">
+
+ <script>
+ document.write(`
+   <button class="btn search-button-field search-button__button" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+    <i class="fa-solid fa-magnifying-glass"></i>
+    <span class="search-button__default-text">Search</span>
+    <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+   </button>
+ `);
+ </script></div>
+        <div class="sidebar-primary-item"><nav class="bd-links bd-docs-nav" aria-label="Main">
+    <div class="bd-toc-item navbar-nav active">
+        <p aria-level="2" class="caption" role="heading"><span class="caption-text">Intro</span></p>
+<ul class="nav bd-sidenav">
+<li class="toctree-l1"><a class="reference internal" href="../Installation.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../Quickstart.html">Quickstart</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../Changelog.html">Releases</a></li>
+</ul>
+<p aria-level="2" class="caption" role="heading"><span class="caption-text">CLI Guide</span></p>
+<ul class="nav bd-sidenav">
+<li class="toctree-l1"><a class="reference internal" href="../cli_guide/Data-Persistence.html">Data Persistence</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../cli_guide/Decoding.html">Decoding</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../cli_guide/Ethereum.html">Ethereum Commands</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../cli_guide/Starknet.html">Starknet Commands</a></li>
+</ul>
+<p aria-level="2" class="caption" role="heading"><span class="caption-text">Uniswap Guide</span></p>
+<ul class="current nav bd-sidenav">
+<li class="toctree-l1"><a class="reference internal" href="Extracting%20Block-by-Block%20Price%20Data.html">Extracting Block-by-Block Price Data</a></li>
+<li class="toctree-l1 current active"><a class="current reference internal" href="#">Uniswap Quickstart</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Valuing%20Uniswap%20V3%20Positions.html">Valuing Uniswap V3 Liquidity Positions</a></li>
+</ul>
+<p aria-level="2" class="caption" role="heading"><span class="caption-text">API Reference</span></p>
+<ul class="nav bd-sidenav">
+<li class="toctree-l1"><a class="reference internal" href="../api/ERC20Token.html">Standard Token Interface</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../api/Exceptions.html">Exceptions</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../api/PricingOracle.html">Pricing Oracle</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../api/UniswapV3Pool.html">UniswapV3Pool</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../genindex.html">API Glossary</a></li>
+</ul>
+
+    </div>
+</nav></div>
+    </div>
+  
+  
+  <div class="sidebar-primary-items__end sidebar-primary__section">
+  </div>
+  
+  <div id="rtd-footer-container"></div>
+
+
+      </div>
+      
+      <main id="main-content" class="bd-main" role="main">
+        
+        
+
+<div class="sbt-scroll-pixel-helper"></div>
+
+          <div class="bd-content">
+            <div class="bd-article-container">
+              
+              <div class="bd-header-article d-print-none">
+<div class="header-article-items header-article__inner">
+  
+    <div class="header-article-items__start">
+      
+        <div class="header-article-item"><button class="sidebar-toggle primary-toggle btn btn-sm" title="Toggle primary sidebar" data-bs-placement="bottom" data-bs-toggle="tooltip">
+  <span class="fa-solid fa-bars"></span>
+</button></div>
+      
+    </div>
+  
+  
+    <div class="header-article-items__end">
+      
+        <div class="header-article-item">
+
+<div class="article-header-buttons">
+
+
+
+
+
+<div class="dropdown dropdown-download-buttons">
+  <button class="btn dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false" aria-label="Download this page">
+    <i class="fas fa-download"></i>
+  </button>
+  <ul class="dropdown-menu">
+      
+      
+      
+      <li><a href="../_sources/uniswap/Uniswap Quickstart.rst" target="_blank"
+   class="btn btn-sm btn-download-source-button dropdown-item"
+   title="Download source file"
+   data-bs-placement="left" data-bs-toggle="tooltip"
+>
+  
+
+<span class="btn__icon-container">
+  <i class="fas fa-file"></i>
+  </span>
+<span class="btn__text-container">.rst</span>
+</a>
+</li>
+      
+      
+      
+      
+      <li>
+<button onclick="window.print()"
+  class="btn btn-sm btn-download-pdf-button dropdown-item"
+  title="Print to PDF"
+  data-bs-placement="left" data-bs-toggle="tooltip"
+>
+  
+
+<span class="btn__icon-container">
+  <i class="fas fa-file-pdf"></i>
+  </span>
+<span class="btn__text-container">.pdf</span>
+</button>
+</li>
+      
+  </ul>
+</div>
+
+
+
+
+<button onclick="toggleFullScreen()"
+  class="btn btn-sm btn-fullscreen-button"
+  title="Fullscreen mode"
+  data-bs-placement="bottom" data-bs-toggle="tooltip"
+>
+  
+
+<span class="btn__icon-container">
+  <i class="fas fa-expand"></i>
+  </span>
+
+</button>
+
+
+
+<script>
+document.write(`
+  <button class="btn btn-sm nav-link pst-navbar-icon theme-switch-button" title="light/dark" aria-label="light/dark" data-bs-placement="bottom" data-bs-toggle="tooltip">
+    <i class="theme-switch fa-solid fa-sun fa-lg" data-mode="light"></i>
+    <i class="theme-switch fa-solid fa-moon fa-lg" data-mode="dark"></i>
+    <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg" data-mode="auto"></i>
+  </button>
+`);
+</script>
+
+
+<script>
+document.write(`
+  <button class="btn btn-sm pst-navbar-icon search-button search-button__button" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+    <i class="fa-solid fa-magnifying-glass fa-lg"></i>
+  </button>
+`);
+</script>
+<button class="sidebar-toggle secondary-toggle btn btn-sm" title="Toggle secondary sidebar" data-bs-placement="bottom" data-bs-toggle="tooltip">
+    <span class="fa-solid fa-list"></span>
+</button>
+</div></div>
+      
+    </div>
+  
+</div>
+</div>
+              
+              
+
+<div id="jb-print-docs-body" class="onlyprint">
+    <h1>Uniswap Quickstart</h1>
+    <!-- Table of contents -->
+    <div id="print-main-content">
+        <div id="jb-print-toc">
+            
+            <div>
+                <h2> Contents </h2>
+            </div>
+            <nav aria-label="Page">
+                <ul class="visible nav section-nav flex-column">
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#setup">Setup</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#uniswap-v3">Uniswap V3</a><ul class="visible nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#executing-swap-on-test-pool">Executing Swap on Test Pool</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#burning-liquidity-collecting-swap-fees">Burning Liquidity &amp; Collecting Swap Fees</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#initializing-pool-from-on-chain-contract">Initializing Pool From on-chain Contract</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#analyzing-liquidity">Analyzing Liquidity</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#analyzing-liquidity-positions">Analyzing Liquidity Positions</a></li>
+</ul>
+</li>
+</ul>
+            </nav>
+        </div>
+    </div>
+</div>
+
+              
+                
+<div id="searchbox"></div>
+                <article class="bd-article">
+                  
+  <section id="uniswap-quickstart">
+<h1>Uniswap Quickstart<a class="headerlink" href="#uniswap-quickstart" title="Permalink to this heading">#</a></h1>
+<section id="setup">
+<h2>Setup<a class="headerlink" href="#setup" title="Permalink to this heading">#</a></h2>
+<ol class="arabic simple">
+<li><dl class="simple">
+<dt>Install the package:</dt><dd><p><a class="reference internal" href="../Installation.html#installation"><span class="std std-ref">Install</span></a> the library</p>
+</dd>
+</dl>
+</li>
+<li><p>Initialize Pool Factory:</p></li>
+</ol>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">nethermind.entro.base</span> <span class="kn">import</span> <span class="n">PoolFactory</span>
+<span class="n">pool_factory</span> <span class="o">=</span> <span class="n">PoolFactory</span><span class="p">(</span>
+    <span class="n">w3</span><span class="o">=</span><span class="n">Web3</span><span class="p">(</span><span class="n">Web3</span><span class="o">.</span><span class="n">HTTPProvider</span><span class="p">(</span><span class="s2">&quot;http://localhost:8545&quot;</span><span class="p">),</span>
+    <span class="n">sqlalchemy_url</span><span class="o">=</span><span class="s2">&quot;sqlite:///test.db&quot;</span><span class="p">,</span>
+<span class="p">)</span>
+</pre></div>
+</div>
+</section>
+<section id="uniswap-v3">
+<h2>Uniswap V3<a class="headerlink" href="#uniswap-v3" title="Permalink to this heading">#</a></h2>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">v3_pool</span> <span class="o">=</span> <span class="n">pool_factory</span><span class="o">.</span><span class="n">initialize_empty_pool</span><span class="p">(</span><span class="s2">&quot;uniswap_v3&quot;</span><span class="p">)</span>
+<span class="n">v3_pool</span><span class="o">.</span><span class="n">mint</span><span class="p">(</span>
+    <span class="n">recipient</span><span class="o">=</span><span class="s2">&quot;0x1234512345123451234512345123451234512345&quot;</span><span class="p">,</span>
+    <span class="n">tick_lower</span><span class="o">=-</span><span class="mi">60000</span><span class="p">,</span>
+    <span class="n">tick_upper</span><span class="o">=</span><span class="mi">60000</span><span class="p">,</span>
+    <span class="n">amount</span><span class="o">=</span><span class="mi">100000</span>
+<span class="p">)</span>
+</pre></div>
+</div>
+<section id="executing-swap-on-test-pool">
+<h3>Executing Swap on Test Pool<a class="headerlink" href="#executing-swap-on-test-pool" title="Permalink to this heading">#</a></h3>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">swap_id</span> <span class="o">=</span> <span class="n">v3_pool</span><span class="o">.</span><span class="n">swap</span><span class="p">(</span>
+    <span class="n">zero_for_one</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+    <span class="n">amount_specified</span><span class="o">=</span><span class="mi">1000</span><span class="p">,</span>
+    <span class="n">sqrt_price_limit</span><span class="o">=</span><span class="p">,</span>
+    <span class="n">log_swap</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+<span class="p">)</span>
+
+<span class="c1"># Fetch swap event from the database</span>
+<span class="n">swap_event</span> <span class="o">=</span> <span class="n">v3_pool</span><span class="o">.</span><span class="n">get_swap_event</span><span class="p">(</span><span class="n">swap_id</span><span class="p">)</span>
+</pre></div>
+</div>
+</section>
+<section id="burning-liquidity-collecting-swap-fees">
+<h3>Burning Liquidity &amp; Collecting Swap Fees<a class="headerlink" href="#burning-liquidity-collecting-swap-fees" title="Permalink to this heading">#</a></h3>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">token_0</span><span class="p">,</span> <span class="n">token_1</span> <span class="o">=</span> <span class="n">v3_pool</span><span class="o">.</span><span class="n">burn</span><span class="p">(</span>
+    <span class="n">owner</span><span class="o">=</span><span class="s2">&quot;0x1234512345123451234512345123451234512345&quot;</span><span class="p">,</span>
+    <span class="n">tick_lower</span><span class="o">=-</span><span class="mi">60000</span><span class="p">,</span>
+    <span class="n">tick_upper</span><span class="o">=</span><span class="mi">60000</span><span class="p">,</span>
+    <span class="n">amount</span><span class="o">=</span><span class="mi">100000</span><span class="p">,</span>
+<span class="p">)</span>
+
+<span class="o">&gt;&gt;&gt;</span> <span class="n">token_0</span>
+<span class="mi">1000</span>
+
+<span class="o">&gt;&gt;&gt;</span> <span class="n">token_1</span>
+<span class="mi">1000</span>
+</pre></div>
+</div>
+</section>
+<section id="initializing-pool-from-on-chain-contract">
+<h3>Initializing Pool From on-chain Contract<a class="headerlink" href="#initializing-pool-from-on-chain-contract" title="Permalink to this heading">#</a></h3>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">usdc_weth_pool</span> <span class="o">=</span> <span class="n">pool_factory</span><span class="o">.</span><span class="n">initialize_from_chain</span><span class="p">(</span>
+    <span class="s2">&quot;uniswap_v3&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;0x88e6A0c2dDD26FEEb64F039a2c41296FcB3f5640&quot;</span>
+    <span class="c1"># Older blocks are faster to initialize since there is usually less liquidity deployed</span>
+    <span class="n">at_block</span> <span class="o">=</span> <span class="mi">14_000_000</span><span class="p">,</span>
+<span class="p">)</span>
+</pre></div>
+</div>
+<p>Reading Pool Parameters</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">usdc_weth_pool</span><span class="o">.</span><span class="n">immutables</span><span class="o">.</span><span class="n">token_0</span>
+<span class="go">ERC20Token(name=&#39;USD Coin&#39;, symbol=&#39;USDC&#39;, decimals=6, address=&#39;0xA0b86991c6218b3....</span>
+
+<span class="gp">&gt;&gt;&gt; </span><span class="n">usdc_weth_pool</span><span class="o">.</span><span class="n">immutables</span><span class="o">.</span><span class="n">token_1</span>
+<span class="go">ERC20Token(name=&#39;Wrapped Ether&#39;, symbol=&#39;WETH&#39;, decimals=18, address=&#39;0xC02aaA39b223FE8D...</span>
+
+<span class="gp">&gt;&gt;&gt; </span><span class="n">usdc_weth_pool</span><span class="o">.</span><span class="n">state</span><span class="o">.</span><span class="n">balance_0</span>  <span class="c1"># Token 0 Held by Pool</span>
+<span class="go">42551690315144</span>
+
+<span class="gp">&gt;&gt;&gt; </span><span class="n">usdc_weth_pool</span><span class="o">.</span><span class="n">state</span><span class="o">.</span><span class="n">balance_1</span>  <span class="c1"># Token 1 Held by Pool</span>
+<span class="go">44536306936710426696786</span>
+
+<span class="gp">&gt;&gt;&gt; </span><span class="n">usdc_weth_pool</span><span class="o">.</span><span class="n">state</span><span class="o">.</span><span class="n">liquidity</span>  <span class="c1"># Currently Active Liquidity</span>
+<span class="go">48717626097494941106</span>
+
+<span class="gp">&gt;&gt;&gt; </span><span class="n">usdc_weth_pool</span><span class="o">.</span><span class="n">slot0</span><span class="o">.</span><span class="n">tick</span>  <span class="c1"># Current Tick of the pool</span>
+<span class="go">195455</span>
+
+<span class="gp">&gt;&gt;&gt; </span><span class="n">usdc_weth_pool</span><span class="o">.</span><span class="n">get_price_at_tick</span><span class="p">(</span><span class="mi">195455</span><span class="p">)</span>
+<span class="go">&#39;0.000307665&#39;  # That looks like the USDC price in WETH</span>
+
+<span class="gp">&gt;&gt;&gt; </span><span class="n">usdc_weth_pool</span><span class="o">.</span><span class="n">get_price_at_tick</span><span class="p">(</span><span class="mi">195455</span><span class="p">,</span> <span class="n">reverse_tokens</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="go">&#39;3250.29&#39;  # There is the price we are looking for</span>
+
+<span class="gp">&gt;&gt;&gt; </span><span class="n">usdc_weth_pool</span><span class="o">.</span><span class="n">get_price_at_tick</span><span class="p">(</span><span class="mi">195455</span><span class="p">,</span> <span class="n">reverse_tokens</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">string_description</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="go">&#39;WETH: 3250.29 USDC&#39;  # More human readable</span>
+</pre></div>
+</div>
+</section>
+<section id="analyzing-liquidity">
+<h3>Analyzing Liquidity<a class="headerlink" href="#analyzing-liquidity" title="Permalink to this heading">#</a></h3>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">matplotlib</span> <span class="kn">import</span> <span class="n">pyplot</span> <span class="k">as</span> <span class="n">plt</span>
+
+<span class="o">&gt;&gt;&gt;</span> <span class="nb">len</span><span class="p">(</span><span class="n">usdc_weth_pool</span><span class="o">.</span><span class="n">ticks</span><span class="p">)</span>
+<span class="mi">798</span>
+
+<span class="o">&gt;&gt;&gt;</span> <span class="n">usdc_weth_pool</span><span class="o">.</span><span class="n">ticks</span><span class="p">[</span><span class="mi">186200</span><span class="p">]</span><span class="o">.</span><span class="n">liquidity_net</span>
+<span class="mi">842438616907770</span>
+
+<span class="c1"># To generate the liquidity distribution of the pool:</span>
+<span class="o">&gt;&gt;&gt;</span> <span class="n">raw_dataframe</span> <span class="o">=</span> <span class="n">usdc_weth_pool</span><span class="o">.</span><span class="n">compute_liquidity_at_price</span><span class="p">(</span><span class="n">reverse_tokens</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">compress</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+
+<span class="c1"># The compressed dataframe is compressed if the liquidity changes less than 10%</span>
+<span class="o">&gt;&gt;&gt;</span> <span class="n">compressed_dataframe</span> <span class="o">=</span> <span class="n">usdc_weth_pool</span><span class="o">.</span><span class="n">compute_liquidity_at_price</span><span class="p">(</span>
+        <span class="n">reverse_tokens</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>  <span class="c1"># Switches token Order to represent price in USDC</span>
+        <span class="n">compress</span><span class="o">=</span><span class="kc">True</span>
+    <span class="p">)</span>
+
+<span class="c1"># Plot the dataframe as a bar chart</span>
+<span class="o">&gt;&gt;&gt;</span> <span class="n">compressed_dataframe</span><span class="o">.</span><span class="n">plot</span><span class="o">.</span><span class="n">bar</span><span class="p">(</span><span class="n">x</span><span class="o">=</span><span class="s2">&quot;price&quot;</span><span class="p">,</span> <span class="n">y</span><span class="o">=</span><span class="s2">&quot;active_liquidity&quot;</span><span class="p">,</span> <span class="n">width</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">15</span><span class="p">,</span> <span class="mi">7</span><span class="p">)))</span>
+<span class="o">&gt;&gt;&gt;</span> <span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+</pre></div>
+</div>
+<img alt="../_images/liquidity-bar-chart.png" src="../_images/liquidity-bar-chart.png" />
+</section>
+<section id="analyzing-liquidity-positions">
+<h3>Analyzing Liquidity Positions<a class="headerlink" href="#analyzing-liquidity-positions" title="Permalink to this heading">#</a></h3>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="nb">len</span><span class="p">(</span><span class="n">usdc_weth_pool</span><span class="o">.</span><span class="n">positions</span><span class="p">)</span>
+<span class="go">9388</span>
+
+<span class="go"># Created list of all positions ordered by liquidity</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">sorted_positions</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">execution_pool</span><span class="o">.</span><span class="n">positions</span><span class="o">.</span><span class="n">items</span><span class="p">(),</span> <span class="n">key</span><span class="o">=</span><span class="k">lambda</span> <span class="n">p</span><span class="p">:</span> <span class="n">p</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">liquidity</span><span class="p">,</span> <span class="n">reverse</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+<span class="gp">&gt;&gt;&gt; </span><span class="n">sorted_positions</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+<span class="go">((&#39;0xC36442b4a4522E871399CD717aBDD847Ab11FE88&#39;, 193150, 193160), PositionInfo(liquidity=51169817151707577348, ...</span>
+
+<span class="gp">&gt;&gt;&gt; </span><span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">data</span> <span class="ow">in</span> <span class="n">sorted_positions</span><span class="p">[:</span><span class="mi">20</span><span class="p">]:</span>
+<span class="gp">&gt;&gt;&gt; </span>   <span class="c1"># Invert lower &amp; upper price since we are reversing token order</span>
+<span class="gp">&gt;&gt;&gt; </span>   <span class="n">lower_price</span> <span class="o">=</span> <span class="n">usdc_weth_pool</span><span class="o">.</span><span class="n">get_price_at_tick</span><span class="p">(</span><span class="n">key</span><span class="p">[</span><span class="mi">2</span><span class="p">],</span> <span class="n">reverse_tokens</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span>   <span class="n">upper_price</span> <span class="o">=</span> <span class="n">usdc_weth_pool</span><span class="o">.</span><span class="n">get_price_at_tick</span><span class="p">(</span><span class="n">key</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">reverse_tokens</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span>   <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;$</span><span class="si">{</span><span class="n">lower_price</span><span class="si">:</span><span class="s2">,.2f</span><span class="si">}</span><span class="s2"> -- $</span><span class="si">{</span><span class="n">upper_price</span><span class="si">:</span><span class="s2">,.2f</span><span class="si">}</span><span class="s2">:   </span><span class="si">{</span><span class="n">data</span><span class="o">.</span><span class="n">liquidity</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+<span class="go">$4,088.72 -- $4,092.81:   51169817151707577348</span>
+<span class="go">$3,232.46 -- $3,439.20:   41216075085584681672</span>
+<span class="go">$2,586.37 -- $2,588.96:   2229824879481991308</span>
+<span class="go">$3,001.90 -- $3,800.89:   1592927280599964178</span>
+<span class="go">$3,219.56 -- $3,371.11:   1476666465406343250</span>
+<span class="go">$4,183.84 -- $4,209.02:   1403630509387477744</span>
+<span class="go">$4,851.19 -- $4,899.94:   1396564059748048295</span>
+<span class="go">$3,601.09 -- $3,622.77:   1386665198155116829</span>
+<span class="go">$3,361.01 -- $3,364.37:   932757285461212862</span>
+<span class="go">$68,991,935.85 -- $69,060,958.84:   830863045158786350</span>
+<span class="go">$3,242.17 -- $3,245.41:   741582070492356794</span>
+<span class="go">$1,800.87 -- $5,197.72:   463849567934926093</span>
+<span class="go">$3,778.15 -- $4,183.84:   313890945617665242</span>
+<span class="go">$4,315.57 -- $17,996.14:   310527552650769165</span>
+<span class="go">$1,499.72 -- $6,197.90:   306118131189390769</span>
+<span class="go">$0.00 -- $0.00:   297698757815726047</span>
+<span class="go">$3,823.76 -- $3,831.42:   292261645555047518</span>
+<span class="go">$3,901.00 -- $4,230.12:   261232565060386965</span>
+<span class="go">$2,898.66 -- $3,601.09:   253551489707673563</span>
+<span class="go">$2,535.16 -- $4,774.19:   248416175392960717</span>
+
+
+<span class="go"># Get the current price of the pool</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">usdc_weth_pool</span><span class="o">.</span><span class="n">get_price_at_tick</span><span class="p">(</span><span class="n">usdc_weth_pool</span><span class="o">.</span><span class="n">slot0</span><span class="o">.</span><span class="n">tick</span><span class="p">,</span> <span class="n">reverse_tokens</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="go">3250.2861765942507</span>
+</pre></div>
+</div>
+</section>
+</section>
+</section>
+
+
+                </article>
+              
+
+              
+              
+              
+              
+                <footer class="prev-next-footer d-print-none">
+                  
+<div class="prev-next-area">
+    <a class="left-prev"
+       href="Extracting%20Block-by-Block%20Price%20Data.html"
+       title="previous page">
+      <i class="fa-solid fa-angle-left"></i>
+      <div class="prev-next-info">
+        <p class="prev-next-subtitle">previous</p>
+        <p class="prev-next-title">Extracting Block-by-Block Price Data</p>
+      </div>
+    </a>
+    <a class="right-next"
+       href="Valuing%20Uniswap%20V3%20Positions.html"
+       title="next page">
+      <div class="prev-next-info">
+        <p class="prev-next-subtitle">next</p>
+        <p class="prev-next-title">Valuing Uniswap V3 Liquidity Positions</p>
+      </div>
+      <i class="fa-solid fa-angle-right"></i>
+    </a>
+</div>
+                </footer>
+              
+            </div>
+            
+            
+              
+                <div class="bd-sidebar-secondary bd-toc"><div class="sidebar-secondary-items sidebar-secondary__inner">
+
+
+  <div class="sidebar-secondary-item">
+  <div class="page-toc tocsection onthispage">
+    <i class="fa-solid fa-list"></i> Contents
+  </div>
+  <nav class="bd-toc-nav page-toc">
+    <ul class="visible nav section-nav flex-column">
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#setup">Setup</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#uniswap-v3">Uniswap V3</a><ul class="visible nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#executing-swap-on-test-pool">Executing Swap on Test Pool</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#burning-liquidity-collecting-swap-fees">Burning Liquidity &amp; Collecting Swap Fees</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#initializing-pool-from-on-chain-contract">Initializing Pool From on-chain Contract</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#analyzing-liquidity">Analyzing Liquidity</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#analyzing-liquidity-positions">Analyzing Liquidity Positions</a></li>
+</ul>
+</li>
+</ul>
+  </nav></div>
+
+</div></div>
+              
+            
+          </div>
+          <footer class="bd-footer-content">
+            
+<div class="bd-footer-content__inner container">
+  
+  <div class="footer-item">
+    
+<p class="component-author">
+By Nethermind
+</p>
+
+  </div>
+  
+  <div class="footer-item">
+    
+
+  <p class="copyright">
+    
+      © Copyright 2023, Nethermind.
+      <br/>
+    
+  </p>
+
+  </div>
+  
+  <div class="footer-item">
+    
+  </div>
+  
+  <div class="footer-item">
+    
+  </div>
+  
+</div>
+          </footer>
+        
+
+      </main>
+    </div>
+  </div>
+  
+  <!-- Scripts loaded after <body> so the DOM is not blocked -->
+  <script src="../_static/scripts/bootstrap.js?digest=dfe6caa3a7d634c4db9b"></script>
+<script src="../_static/scripts/pydata-sphinx-theme.js?digest=dfe6caa3a7d634c4db9b"></script>
+
+  <footer class="bd-footer">
+  </footer>
+  </body>
+</html>

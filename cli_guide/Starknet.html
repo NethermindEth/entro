@@ -1,0 +1,846 @@
+
+
+<!DOCTYPE html>
+
+
+<html lang="en" data-content_root="" >
+
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="generator" content="Docutils 0.19: https://docutils.sourceforge.io/" />
+
+    <title>Starknet Commands &#8212; Nethermind Entro Documentation</title>
+  
+  
+  
+  <script data-cfasync="false">
+    document.documentElement.dataset.mode = localStorage.getItem("mode") || "";
+    document.documentElement.dataset.theme = localStorage.getItem("theme") || "";
+  </script>
+  
+  <!-- Loaded before other Sphinx assets -->
+  <link href="../_static/styles/theme.css?digest=dfe6caa3a7d634c4db9b" rel="stylesheet" />
+<link href="../_static/styles/bootstrap.css?digest=dfe6caa3a7d634c4db9b" rel="stylesheet" />
+<link href="../_static/styles/pydata-sphinx-theme.css?digest=dfe6caa3a7d634c4db9b" rel="stylesheet" />
+
+  
+  <link href="../_static/vendor/fontawesome/6.5.2/css/all.min.css?digest=dfe6caa3a7d634c4db9b" rel="stylesheet" />
+  <link rel="preload" as="font" type="font/woff2" crossorigin href="../_static/vendor/fontawesome/6.5.2/webfonts/fa-solid-900.woff2" />
+<link rel="preload" as="font" type="font/woff2" crossorigin href="../_static/vendor/fontawesome/6.5.2/webfonts/fa-brands-400.woff2" />
+<link rel="preload" as="font" type="font/woff2" crossorigin href="../_static/vendor/fontawesome/6.5.2/webfonts/fa-regular-400.woff2" />
+
+    <link rel="stylesheet" type="text/css" href="../_static/pygments.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/styles/sphinx-book-theme.css" />
+  
+  <!-- Pre-loaded scripts that we'll load fully later -->
+  <link rel="preload" as="script" href="../_static/scripts/bootstrap.js?digest=dfe6caa3a7d634c4db9b" />
+<link rel="preload" as="script" href="../_static/scripts/pydata-sphinx-theme.js?digest=dfe6caa3a7d634c4db9b" />
+  <script src="../_static/vendor/fontawesome/6.5.2/js/all.min.js?digest=dfe6caa3a7d634c4db9b"></script>
+
+    <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js"></script>
+    <script src="../_static/doctools.js"></script>
+    <script src="../_static/sphinx_highlight.js"></script>
+    <script src="../_static/scripts/sphinx-book-theme.js"></script>
+    <script>DOCUMENTATION_OPTIONS.pagename = 'cli_guide/Starknet';</script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="Extracting Block-by-Block Price Data" href="../uniswap/Extracting%20Block-by-Block%20Price%20Data.html" />
+    <link rel="prev" title="Ethereum Commands" href="Ethereum.html" />
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <meta name="docsearch:language" content="en"/>
+  </head>
+  
+  
+  <body data-bs-spy="scroll" data-bs-target=".bd-toc-nav" data-offset="180" data-bs-root-margin="0px 0px -60%" data-default-mode="">
+
+  
+  
+  <div id="pst-skip-link" class="skip-link d-print-none"><a href="#main-content">Skip to main content</a></div>
+  
+  <div id="pst-scroll-pixel-helper"></div>
+  
+  <button type="button" class="btn rounded-pill" id="pst-back-to-top">
+    <i class="fa-solid fa-arrow-up"></i>Back to top</button>
+
+  
+  <input type="checkbox"
+          class="sidebar-toggle"
+          id="pst-primary-sidebar-checkbox"/>
+  <label class="overlay overlay-primary" for="pst-primary-sidebar-checkbox"></label>
+  
+  <input type="checkbox"
+          class="sidebar-toggle"
+          id="pst-secondary-sidebar-checkbox"/>
+  <label class="overlay overlay-secondary" for="pst-secondary-sidebar-checkbox"></label>
+  
+  <div class="search-button__wrapper">
+    <div class="search-button__overlay"></div>
+    <div class="search-button__search-container">
+<form class="bd-search d-flex align-items-center"
+      action="../search.html"
+      method="get">
+  <i class="fa-solid fa-magnifying-glass"></i>
+  <input type="search"
+         class="form-control"
+         name="q"
+         id="search-input"
+         placeholder="Search..."
+         aria-label="Search..."
+         autocomplete="off"
+         autocorrect="off"
+         autocapitalize="off"
+         spellcheck="false"/>
+  <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd>K</kbd></span>
+</form></div>
+  </div>
+
+  <div class="pst-async-banner-revealer d-none">
+  <aside id="bd-header-version-warning" class="d-none d-print-none" aria-label="Version warning"></aside>
+</div>
+
+  
+    <header class="bd-header navbar navbar-expand-lg bd-navbar d-print-none">
+    </header>
+  
+
+  <div class="bd-container">
+    <div class="bd-container__inner bd-page-width">
+      
+      
+      
+      <div class="bd-sidebar-primary bd-sidebar">
+        
+
+  
+  <div class="sidebar-header-items sidebar-primary__section">
+    
+    
+    
+    
+  </div>
+  
+    <div class="sidebar-primary-items__start sidebar-primary__section">
+        <div class="sidebar-primary-item">
+
+  
+     
+  
+
+<a class="navbar-brand logo" href="https://nethermind.io">
+  
+  
+  
+  
+  
+    
+    
+      
+    
+    
+    <img src="../_static/logo-light.svg" class="logo__image only-light" alt="Nethermind Entro Documentation - Home"/>
+    <script>document.write(`<img src="../_static/logo-dark.svg" class="logo__image only-dark" alt="Nethermind Entro Documentation - Home"/>`);</script>
+  
+  
+</a></div>
+        <div class="sidebar-primary-item">
+
+ <script>
+ document.write(`
+   <button class="btn search-button-field search-button__button" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+    <i class="fa-solid fa-magnifying-glass"></i>
+    <span class="search-button__default-text">Search</span>
+    <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+   </button>
+ `);
+ </script></div>
+        <div class="sidebar-primary-item"><nav class="bd-links bd-docs-nav" aria-label="Main">
+    <div class="bd-toc-item navbar-nav active">
+        <p aria-level="2" class="caption" role="heading"><span class="caption-text">Intro</span></p>
+<ul class="nav bd-sidenav">
+<li class="toctree-l1"><a class="reference internal" href="../Installation.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../Quickstart.html">Quickstart</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../Changelog.html">Releases</a></li>
+</ul>
+<p aria-level="2" class="caption" role="heading"><span class="caption-text">CLI Guide</span></p>
+<ul class="current nav bd-sidenav">
+<li class="toctree-l1"><a class="reference internal" href="Data-Persistence.html">Data Persistence</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Decoding.html">Decoding</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Ethereum.html">Ethereum Commands</a></li>
+<li class="toctree-l1 current active"><a class="current reference internal" href="#">Starknet Commands</a></li>
+</ul>
+<p aria-level="2" class="caption" role="heading"><span class="caption-text">Uniswap Guide</span></p>
+<ul class="nav bd-sidenav">
+<li class="toctree-l1"><a class="reference internal" href="../uniswap/Extracting%20Block-by-Block%20Price%20Data.html">Extracting Block-by-Block Price Data</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../uniswap/Uniswap%20Quickstart.html">Uniswap Quickstart</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../uniswap/Valuing%20Uniswap%20V3%20Positions.html">Valuing Uniswap V3 Liquidity Positions</a></li>
+</ul>
+<p aria-level="2" class="caption" role="heading"><span class="caption-text">API Reference</span></p>
+<ul class="nav bd-sidenav">
+<li class="toctree-l1"><a class="reference internal" href="../api/ERC20Token.html">Standard Token Interface</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../api/Exceptions.html">Exceptions</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../api/PricingOracle.html">Pricing Oracle</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../api/UniswapV3Pool.html">UniswapV3Pool</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../genindex.html">API Glossary</a></li>
+</ul>
+
+    </div>
+</nav></div>
+    </div>
+  
+  
+  <div class="sidebar-primary-items__end sidebar-primary__section">
+  </div>
+  
+  <div id="rtd-footer-container"></div>
+
+
+      </div>
+      
+      <main id="main-content" class="bd-main" role="main">
+        
+        
+
+<div class="sbt-scroll-pixel-helper"></div>
+
+          <div class="bd-content">
+            <div class="bd-article-container">
+              
+              <div class="bd-header-article d-print-none">
+<div class="header-article-items header-article__inner">
+  
+    <div class="header-article-items__start">
+      
+        <div class="header-article-item"><button class="sidebar-toggle primary-toggle btn btn-sm" title="Toggle primary sidebar" data-bs-placement="bottom" data-bs-toggle="tooltip">
+  <span class="fa-solid fa-bars"></span>
+</button></div>
+      
+    </div>
+  
+  
+    <div class="header-article-items__end">
+      
+        <div class="header-article-item">
+
+<div class="article-header-buttons">
+
+
+
+
+
+<div class="dropdown dropdown-download-buttons">
+  <button class="btn dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false" aria-label="Download this page">
+    <i class="fas fa-download"></i>
+  </button>
+  <ul class="dropdown-menu">
+      
+      
+      
+      <li><a href="../_sources/cli_guide/Starknet.rst" target="_blank"
+   class="btn btn-sm btn-download-source-button dropdown-item"
+   title="Download source file"
+   data-bs-placement="left" data-bs-toggle="tooltip"
+>
+  
+
+<span class="btn__icon-container">
+  <i class="fas fa-file"></i>
+  </span>
+<span class="btn__text-container">.rst</span>
+</a>
+</li>
+      
+      
+      
+      
+      <li>
+<button onclick="window.print()"
+  class="btn btn-sm btn-download-pdf-button dropdown-item"
+  title="Print to PDF"
+  data-bs-placement="left" data-bs-toggle="tooltip"
+>
+  
+
+<span class="btn__icon-container">
+  <i class="fas fa-file-pdf"></i>
+  </span>
+<span class="btn__text-container">.pdf</span>
+</button>
+</li>
+      
+  </ul>
+</div>
+
+
+
+
+<button onclick="toggleFullScreen()"
+  class="btn btn-sm btn-fullscreen-button"
+  title="Fullscreen mode"
+  data-bs-placement="bottom" data-bs-toggle="tooltip"
+>
+  
+
+<span class="btn__icon-container">
+  <i class="fas fa-expand"></i>
+  </span>
+
+</button>
+
+
+
+<script>
+document.write(`
+  <button class="btn btn-sm nav-link pst-navbar-icon theme-switch-button" title="light/dark" aria-label="light/dark" data-bs-placement="bottom" data-bs-toggle="tooltip">
+    <i class="theme-switch fa-solid fa-sun fa-lg" data-mode="light"></i>
+    <i class="theme-switch fa-solid fa-moon fa-lg" data-mode="dark"></i>
+    <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg" data-mode="auto"></i>
+  </button>
+`);
+</script>
+
+
+<script>
+document.write(`
+  <button class="btn btn-sm pst-navbar-icon search-button search-button__button" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+    <i class="fa-solid fa-magnifying-glass fa-lg"></i>
+  </button>
+`);
+</script>
+<button class="sidebar-toggle secondary-toggle btn btn-sm" title="Toggle secondary sidebar" data-bs-placement="bottom" data-bs-toggle="tooltip">
+    <span class="fa-solid fa-list"></span>
+</button>
+</div></div>
+      
+    </div>
+  
+</div>
+</div>
+              
+              
+
+<div id="jb-print-docs-body" class="onlyprint">
+    <h1>Starknet Commands</h1>
+    <!-- Table of contents -->
+    <div id="print-main-content">
+        <div id="jb-print-toc">
+            
+            <div>
+                <h2> Contents </h2>
+            </div>
+            <nav aria-label="Page">
+                <ul class="visible nav section-nav flex-column">
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#get">GET</a><ul class="visible nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#class-abi">Class ABI</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#contract-implementation">Contract Implementation</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#decoded-transaction">Decoded Transaction</a></li>
+</ul>
+</li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#backfill">BACKFILL</a><ul class="visible nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#full-blocks">Full Blocks</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#events">Events</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#timestamps">Timestamps</a></li>
+</ul>
+</li>
+</ul>
+            </nav>
+        </div>
+    </div>
+</div>
+
+              
+                
+<div id="searchbox"></div>
+                <article class="bd-article">
+                  
+  <section id="starknet-commands">
+<h1>Starknet Commands<a class="headerlink" href="#starknet-commands" title="Permalink to this heading">#</a></h1>
+<section id="get">
+<h2>GET<a class="headerlink" href="#get" title="Permalink to this heading">#</a></h2>
+<section id="class-abi">
+<h3>Class ABI<a class="headerlink" href="#class-abi" title="Permalink to this heading">#</a></h3>
+<p>The <cite>entro get starknet class 0x123…</cite> endpoint queries the set JSON_RPC for that specific class hash.
+The class ABI is parsed into a human-readable format and displayed to the user.</p>
+<div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>entro<span class="w"> </span>get<span class="w"> </span>starknet<span class="w"> </span>class<span class="w"> </span>0x04f9849485e35f4a1c57d69b297feda94e743151f788202a6d731173babf4aec
+</pre></div>
+</div>
+<p>The output will list the functions for the class in alphabetical order, followed by the events in alphabetical order.
+The function params with their types are displayed, as well as the output types
+(starknet function outputs are unnamed).</p>
+<p>Events are displayed in the same way, with the event params and their types displayed.  If an event parameter is
+surrounded by &lt;&gt;, it is indexed &amp; extracted from the event keys.  All other parameters are non-indexed and are
+decoded from the event data</p>
+<div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>╭─────────────────────────────────────────────────────────────────────────────────────────╮
+│<span class="w"> </span>ABI<span class="w"> </span><span class="k">for</span><span class="w"> </span>Class<span class="w"> </span>0x04f9849485e35f4a1c57d69b297feda94e743151f788202a6d731173babf4aec<span class="w">        </span>│
+╰─────────────────────────────────────────────────────────────────────────────────────────╯
+----<span class="w"> </span>Functions<span class="w"> </span>----
+<span class="w">  </span>mint<span class="o">(</span>to:<span class="w"> </span>ContractAddress<span class="o">)</span><span class="w"> </span>-&gt;<span class="w"> </span><span class="o">(</span>U256<span class="o">)</span>
+<span class="w">  </span>burn<span class="o">(</span>to:<span class="w"> </span>ContractAddress<span class="o">)</span><span class="w"> </span>-&gt;<span class="w"> </span><span class="o">((</span>U256,<span class="w"> </span>U256<span class="o">))</span>
+<span class="w">  </span>swap<span class="o">(</span>amount_0_out:<span class="w"> </span>U256,<span class="w"> </span>amount_1_out:<span class="w"> </span>U256,<span class="w"> </span>to:<span class="w"> </span>ContractAddress,<span class="w"> </span>data:<span class="w"> </span><span class="o">[</span>Felt<span class="o">])</span><span class="w"> </span>-&gt;<span class="w"> </span><span class="o">()</span>
+<span class="w">  </span>out_given_in<span class="o">(</span>amount_in:<span class="w"> </span>U256,<span class="w"> </span>first_token_in:<span class="w"> </span>Bool<span class="o">)</span><span class="w"> </span>-&gt;<span class="w"> </span><span class="o">(</span>U256<span class="o">)</span>
+<span class="w">  </span>in_given_out<span class="o">(</span>amount_out:<span class="w"> </span>U256,<span class="w"> </span>first_token_in:<span class="w"> </span>Bool<span class="o">)</span><span class="w"> </span>-&gt;<span class="w"> </span><span class="o">(</span>U256<span class="o">)</span>
+<span class="w">  </span>upgrade<span class="o">(</span>new_class_hash:<span class="w"> </span>ClassHash<span class="o">)</span><span class="w"> </span>-&gt;<span class="w"> </span><span class="o">()</span>
+<span class="w">  </span>owner<span class="o">()</span><span class="w"> </span>-&gt;<span class="w"> </span><span class="o">(</span>ContractAddress<span class="o">)</span>
+<span class="w">  </span>transfer_ownership<span class="o">(</span>new_owner:<span class="w"> </span>ContractAddress<span class="o">)</span><span class="w"> </span>-&gt;<span class="w"> </span><span class="o">()</span>
+<span class="w">  </span>renounce_ownership<span class="o">()</span><span class="w"> </span>-&gt;<span class="w"> </span><span class="o">()</span>
+<span class="w">  </span>total_supply<span class="o">()</span><span class="w"> </span>-&gt;<span class="w"> </span><span class="o">(</span>U256<span class="o">)</span>
+<span class="w">  </span>balance_of<span class="o">(</span>account:<span class="w"> </span>ContractAddress<span class="o">)</span><span class="w"> </span>-&gt;<span class="w"> </span><span class="o">(</span>U256<span class="o">)</span>
+<span class="w">  </span>allowance<span class="o">(</span>owner:<span class="w"> </span>ContractAddress,<span class="w"> </span>spender:<span class="w"> </span>ContractAddress<span class="o">)</span><span class="w"> </span>-&gt;<span class="w"> </span><span class="o">(</span>U256<span class="o">)</span>
+<span class="w">  </span>transfer<span class="o">(</span>recipient:<span class="w"> </span>ContractAddress,<span class="w"> </span>amount:<span class="w"> </span>U256<span class="o">)</span><span class="w"> </span>-&gt;<span class="w"> </span><span class="o">(</span>Bool<span class="o">)</span>
+<span class="w">  </span>transfer_from<span class="o">(</span>sender:<span class="w"> </span>ContractAddress,<span class="w"> </span>recipient:<span class="w"> </span>ContractAddress,<span class="w"> </span>amount:<span class="w"> </span>U256<span class="o">)</span><span class="w"> </span>-&gt;<span class="w"> </span><span class="o">(</span>Bool<span class="o">)</span>
+<span class="w">  </span>approve<span class="o">(</span>spender:<span class="w"> </span>ContractAddress,<span class="w"> </span>amount:<span class="w"> </span>U256<span class="o">)</span><span class="w"> </span>-&gt;<span class="w"> </span><span class="o">(</span>Bool<span class="o">)</span>
+<span class="w">  </span>name<span class="o">()</span><span class="w"> </span>-&gt;<span class="w"> </span><span class="o">(</span>Felt<span class="o">)</span>
+<span class="w">  </span>symbol<span class="o">()</span><span class="w"> </span>-&gt;<span class="w"> </span><span class="o">(</span>Felt<span class="o">)</span>
+<span class="w">  </span>increaseAllowance<span class="o">(</span>spender:<span class="w"> </span>ContractAddress,<span class="w"> </span>addedValue:<span class="w"> </span>U256<span class="o">)</span><span class="w"> </span>-&gt;<span class="w"> </span><span class="o">(</span>Bool<span class="o">)</span>
+<span class="w">  </span>decreaseAllowance<span class="o">(</span>spender:<span class="w"> </span>ContractAddress,<span class="w"> </span>subtractedValue:<span class="w"> </span>U256<span class="o">)</span><span class="w"> </span>-&gt;<span class="w"> </span><span class="o">(</span>Bool<span class="o">)</span>
+<span class="w">  </span>skim<span class="o">(</span>to:<span class="w"> </span>ContractAddress<span class="o">)</span><span class="w"> </span>-&gt;<span class="w"> </span><span class="o">()</span>
+<span class="w">  </span>sync<span class="o">()</span><span class="w"> </span>-&gt;<span class="w"> </span><span class="o">()</span>
+<span class="w">  </span>token_0<span class="o">()</span><span class="w"> </span>-&gt;<span class="w"> </span><span class="o">(</span>ContractAddress<span class="o">)</span>
+<span class="w">  </span>token_1<span class="o">()</span><span class="w"> </span>-&gt;<span class="w"> </span><span class="o">(</span>ContractAddress<span class="o">)</span>
+<span class="w">  </span>get_reserves<span class="o">()</span><span class="w"> </span>-&gt;<span class="w"> </span><span class="o">((</span>U256,<span class="w"> </span>U256<span class="o">))</span>
+<span class="w">  </span>k_last<span class="o">()</span><span class="w"> </span>-&gt;<span class="w"> </span><span class="o">(</span>U256<span class="o">)</span>
+<span class="w">  </span>swap_fee<span class="o">()</span><span class="w"> </span>-&gt;<span class="w"> </span><span class="o">(</span>U16<span class="o">)</span>
+----<span class="w"> </span>Events<span class="w"> </span>----
+<span class="w">  </span>Transfer<span class="o">(</span>&lt;from&gt;:<span class="w"> </span>ContractAddress,<span class="w"> </span>&lt;to&gt;:<span class="w"> </span>ContractAddress,<span class="w"> </span>value:<span class="w"> </span>U256<span class="o">)</span>
+<span class="w">  </span>Approval<span class="o">(</span>&lt;owner&gt;:<span class="w"> </span>ContractAddress,<span class="w"> </span>&lt;spender&gt;:<span class="w"> </span>ContractAddress,<span class="w"> </span>value:<span class="w"> </span>U256<span class="o">)</span>
+<span class="w">  </span>PairMint<span class="o">(</span>sender:<span class="w"> </span>ContractAddress,<span class="w"> </span>amount_0:<span class="w"> </span>U256,<span class="w"> </span>amount_1:<span class="w"> </span>U256<span class="o">)</span>
+<span class="w">  </span>PairBurn<span class="o">(</span>sender:<span class="w"> </span>ContractAddress,<span class="w"> </span>amount_0:<span class="w"> </span>U256,<span class="w"> </span>amount_1:<span class="w"> </span>U256,<span class="w"> </span>to:<span class="w"> </span>ContractAddress<span class="o">)</span>
+<span class="w">  </span>Swap<span class="o">(</span>sender:<span class="w"> </span>ContractAddress,<span class="w"> </span>amount_0_in:<span class="w"> </span>U256,<span class="w"> </span>amount_1_in:<span class="w"> </span>U256,<span class="w"> </span>amount_0_out:<span class="w"> </span>U256,<span class="w"> </span>amount_1_out:<span class="w"> </span>U256,<span class="w"> </span>to:<span class="w"> </span>ContractAddress<span class="o">)</span>
+<span class="w">  </span>Sync<span class="o">(</span>reserve_0:<span class="w"> </span>U256,<span class="w"> </span>reserve_1:<span class="w"> </span>U256<span class="o">)</span>
+<span class="w">  </span>OwnershipTransferred<span class="o">(</span>previous_owner:<span class="w"> </span>ContractAddress,<span class="w"> </span>new_owner:<span class="w"> </span>ContractAddress<span class="o">)</span>
+<span class="w">  </span>Upgraded<span class="o">(</span>class_hash:<span class="w"> </span>ClassHash<span class="o">)</span>
+</pre></div>
+</div>
+</section>
+<section id="contract-implementation">
+<h3>Contract Implementation<a class="headerlink" href="#contract-implementation" title="Permalink to this heading">#</a></h3>
+<p>The <cite>entro get starknet contract 0x123…</cite> endpoint queries the set JSON_RPC for the contract address,
+and generates an implementation history over time.
+(This is unique to starknet.  For more info, check out the <a class="reference external" href="https://docs.starknet.io/architecture-and-concepts/smart-contracts/system-calls-cairo1/#replace_class">Starknet Docs</a>)</p>
+<div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>entro<span class="w"> </span>get<span class="w"> </span>starknet<span class="w"> </span>contract<span class="w"> </span>0x04f9849485e35f4a1c57d69b297feda94e743151f788202a6d731173babf4aec
+</pre></div>
+</div>
+<p>The output will list the class_hashes implemented by the contract over time. The block_number that the
+class hash was implemented at is displayed to show the upgrades to the contract over time.  If a contract
+implements a class with a proxy function, it will call this proxy function to show the proxied address over time.</p>
+<p>In the below example for the Starknet ETH Contract, the contract was deployed at block 1407, with class 0x00de…
+which was a proxy.  When the contract was deployed, it proxied all calls to 0x00… which was a null placeholder.
+At block 1472, the contract was upgraded to class 0x038c…</p>
+<p>The proxy was upgraded another 2 times, then at block 541384, the class for Starknet ETH was replaced to class 0x05ff,
+which did not implement a proxy, and then the class was further upgraded at 629092 to the
+current implementation (as of August 2024)</p>
+<div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>╭───────────────────────────────────────────────────────────────────────────────────────────────────────────────╮
+│<span class="w"> </span>Implementation<span class="w"> </span>History<span class="w"> </span><span class="k">for</span><span class="w"> </span>Contract<span class="w"> </span>0x049d36570d4e46f48e99674bd3fcc84644ddd6b96f7c741b1562b82f9e004dc7<span class="w">        </span>│
+╰───────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
+<span class="o">{</span>
+<span class="w">    </span><span class="s2">&quot;1407&quot;</span>:<span class="w"> </span><span class="o">{</span>
+<span class="w">        </span><span class="s2">&quot;proxy_class&quot;</span>:<span class="w"> </span><span class="s2">&quot;0x00d0e183745e9dae3e4e78a8ffedcce0903fc4900beace4e0abf192d4c202da3&quot;</span>,
+<span class="w">        </span><span class="s2">&quot;1407&quot;</span>:<span class="w"> </span><span class="s2">&quot;0x0000000000000000000000000000000000000000000000000000000000000000&quot;</span>,
+<span class="w">        </span><span class="s2">&quot;1472&quot;</span>:<span class="w"> </span><span class="s2">&quot;0x038c25d465b4c5edf024aefae63dc2f6266dd8ba303763de00da4430b5ee8759&quot;</span>,
+<span class="w">        </span><span class="s2">&quot;2823&quot;</span>:<span class="w"> </span><span class="s2">&quot;0x048624e084dc68d82076582219c7ed8cb0910c01746cca3cd72a28ecfe07e42d&quot;</span>,
+<span class="w">        </span><span class="s2">&quot;541380&quot;</span>:<span class="w"> </span><span class="s2">&quot;0x053c91253bc9682c04929ca02ed00b3e423f6710d2ee7e0d5ebb06f3ecf368a8&quot;</span>
+<span class="w">    </span><span class="o">}</span>,
+<span class="w">    </span><span class="s2">&quot;541384&quot;</span>:<span class="w"> </span><span class="s2">&quot;0x05ffbcfeb50d200a0677c48a129a11245a3fc519d1d98d76882d1c9a1b19c6ed&quot;</span>,
+<span class="w">    </span><span class="s2">&quot;629092&quot;</span>:<span class="w"> </span><span class="s2">&quot;0x07f3777c99f3700505ea966676aac4a0d692c2a9f5e667f4c606b51ca1dd3420&quot;</span>
+<span class="o">}</span>
+</pre></div>
+</div>
+<div class="admonition-runtime-complexity-rpc-calls admonition">
+<p class="admonition-title">Runtime Complexity &amp; RPC Calls</p>
+<p>The contract implementation algorithm performs a binary search over the block space.  Ie, it will
+query the starknet_getClassHashAt rpc function at the current block, then the midpoint of the block space,
+then the midpoint of the lower half, etc.  This allows for accurate identification of implementation transitions.</p>
+<p>This process is repeated for each new implementation.  If a contract is a proxy, it performs this same algorithm,
+but performs a starknet_call() with the method ‘get_implementation’ instead…</p>
+<p>For complex contracts, this requires (impl_count) * log2(latest_block_number) RPC calls, and can
+be expensive.</p>
+</div>
+<div class="admonition-notes-on-proxies admonition">
+<p class="admonition-title">Notes on Proxies</p>
+<p>There is no proxy standard, and there are a bunch of different implementations.  A small set of ABI functions
+are recognized as valid proxy functions, (all others are not recognized as proxies &amp;
+the proxy history isnt queried)</p>
+<ul class="simple">
+<li><p>‘getImplementation’</p></li>
+<li><p>‘get_implementation’</p></li>
+<li><p>‘getImplementationHash’</p></li>
+<li><p>‘get_implementation_hash’</p></li>
+<li><p>‘implementation’</p></li>
+</ul>
+<p>Each of these functions returns a Felt252, which can represent anything…  DO NOT ASSUME THE RESULTS FROM THIS
+FUNCTION ARE A VALID CONTRACT ADDRESS…</p>
+</div>
+</section>
+<section id="decoded-transaction">
+<h3>Decoded Transaction<a class="headerlink" href="#decoded-transaction" title="Permalink to this heading">#</a></h3>
+<p>The <cite>entro get starknet transaction 0x123…</cite> endpoint queries the set JSON_RPC for the transaction trace, and
+decodes the transaction into a human-readable format.  This method is useful for debugging transactions, and
+can fetch &amp; decode transactions on public &amp; private testnets as long as the RPC is correctly configured, and will
+be accurate the second a block is confirmed.</p>
+<div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>entro<span class="w"> </span>get<span class="w"> </span>starknet<span class="w"> </span>transaction<span class="w"> </span>0x014d85119a1c17f0325a2f51f85d020ee3894be1327103c45ccb45ece74ff2ac
+</pre></div>
+</div>
+<p>This will output a nested tree showing the decoded calls for each of the subtraces.  The contract addresses are
+truncated in the base view for better readability, but available in the full-trace view, alongside class hashes and
+decoded input &amp; output</p>
+<div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>╭─────────────────────────────────────────────────────────────────────────────────────────────────╮
+│<span class="w">  </span>Transaction<span class="w"> </span>Trace<span class="w"> </span>--<span class="w"> </span>0x014d85119a1c17f0325a2f51f85d020ee3894be1327103c45ccb45ece74ff2ac<span class="w">        </span>│
+╰─────────────────────────────────────────────────────────────────────────────────────────────────╯
+Execute<span class="w"> </span>Trace
+
+└──<span class="w">  </span>__execute__<span class="w">  </span>--<span class="w">  </span>0x00b8e5a4...59130711
+<span class="w">    </span>├──<span class="w">  </span>approve<span class="w">  </span>--<span class="w">  </span>0x053c9125...ecf368a8
+<span class="w">    </span>└──<span class="w">  </span>swap<span class="w">  </span>--<span class="w">  </span>0x01088417...9e944a28
+<span class="w">        </span>├──<span class="w">  </span>balanceOf<span class="w">  </span>--<span class="w">  </span>0x053c9125...ecf368a8
+<span class="w">        </span>├──<span class="w">  </span>transferFrom<span class="w">  </span>--<span class="w">  </span>0x053c9125...ecf368a8
+<span class="w">        </span>└──<span class="w">  </span>transfer<span class="w">  </span>--<span class="w">  </span>0x049d3657...9e004dc7
+╭─────────────────────────────────────────────────────────────────────────────────────────────────╮
+│<span class="w"> </span>Execute<span class="w"> </span>Events<span class="w">                                                                                  </span>│
+╰─────────────────────────────────────────────────────────────────────────────────────────────────╯
+<span class="w">   </span>Approval<span class="w">  </span>--<span class="w"> </span>0x053c9125...ecf368a8
+<span class="w">   </span>Approval<span class="w">  </span>--<span class="w"> </span>0x053c9125...ecf368a8
+<span class="w">   </span>Transfer<span class="w">  </span>--<span class="w"> </span>0x053c9125...ecf368a8
+<span class="w">   </span>Transfer<span class="w">  </span>--<span class="w"> </span>0x049d3657...9e004dc7
+</pre></div>
+</div>
+<p>The same function can also be used to view detailed debug information on a transaction &amp; events.  To do this,
+supply the <cite>–full-trace</cite> flag to the CLI to printout full class hash &amp; contract address info,
+as well as the decoded input &amp; output for each trace</p>
+<div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>╭───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╮
+│<span class="w">  </span>Transaction<span class="w"> </span>Trace<span class="w"> </span>--<span class="w"> </span>0x014d85119a1c17f0325a2f51f85d020ee3894be1327103c45ccb45ece74ff2ac<span class="w">                                                                                          </span>│
+╰───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
+Execute<span class="w"> </span>Trace
+└──<span class="w">  </span>__execute__<span class="w">  </span>--<span class="w">  </span>0x00b8e5a4f76d3338e9982951debbf79a9872a0498d7c01cfff63d4f859130711
+<span class="w">    </span>╭─────────────────┬─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╮
+<span class="w">    </span>│<span class="w"> </span>Decoded<span class="w"> </span>Inputs<span class="w">  </span>│<span class="w"> </span><span class="o">{</span><span class="s2">&quot;calls&quot;</span>:<span class="w"> </span><span class="o">[{</span><span class="s2">&quot;to&quot;</span>:<span class="w"> </span><span class="s2">&quot;0x053c91253bc9682c04929ca02ed00b3e423f6710d2ee7e0d5ebb06f3ecf368a8&quot;</span>,<span class="w"> </span><span class="s2">&quot;selector&quot;</span>:<span class="w">                                                         </span>│
+<span class="w">    </span>│<span class="w">                 </span>│<span class="w"> </span><span class="s2">&quot;0x0219209e083275171774dab1df80982e9df2096516f06319c5c6d71ae0a8480c&quot;</span>,<span class="w"> </span><span class="s2">&quot;calldata&quot;</span>:<span class="w"> </span><span class="o">[</span><span class="s2">&quot;0x010884171baf1914edc28d7afb619b40a4051cfae78a094a55d230f19e944a28&quot;</span>,<span class="w">    </span>│
+<span class="w">    </span>│<span class="w">                 </span>│<span class="w"> </span><span class="s2">&quot;0xdfd6ed&quot;</span>,<span class="w"> </span><span class="s2">&quot;0x00&quot;</span><span class="o">]}</span>,<span class="w"> </span><span class="o">{</span><span class="s2">&quot;to&quot;</span>:<span class="w"> </span><span class="s2">&quot;0x010884171baf1914edc28d7afb619b40a4051cfae78a094a55d230f19e944a28&quot;</span>,<span class="w"> </span><span class="s2">&quot;selector&quot;</span>:<span class="w">                                              </span>│
+<span class="w">    </span>│<span class="w">                 </span>│<span class="w"> </span><span class="s2">&quot;0x015543c3708653cda9d418b4ccd3be11368e40636c10c44b18cfe756b6d88b29&quot;</span>,<span class="w"> </span><span class="s2">&quot;calldata&quot;</span>:<span class="w"> </span><span class="o">[</span><span class="s2">&quot;0x01&quot;</span>,<span class="w">                                                                  </span>│
+<span class="w">    </span>│<span class="w">                 </span>│<span class="w"> </span><span class="s2">&quot;0x053c91253bc9682c04929ca02ed00b3e423f6710d2ee7e0d5ebb06f3ecf368a8&quot;</span>,<span class="w"> </span><span class="s2">&quot;0xdfd6ed&quot;</span>,<span class="w"> </span><span class="s2">&quot;0x00&quot;</span>,<span class="w"> </span><span class="s2">&quot;0x0ebdfbf616faaa&quot;</span>,<span class="w"> </span><span class="s2">&quot;0x00&quot;</span><span class="o">]}]}</span><span class="w">                                    </span>│
+<span class="w">    </span>│<span class="w"> </span>Decoded<span class="w"> </span>Outputs<span class="w"> </span>│<span class="w"> </span><span class="o">[[</span><span class="s2">&quot;0x01&quot;</span><span class="o">]</span>,<span class="w"> </span><span class="o">[</span><span class="s2">&quot;0x0f0b011a757d2b&quot;</span>,<span class="w"> </span><span class="s2">&quot;0x00&quot;</span><span class="o">]]</span><span class="w">                                                                                                                    </span>│
+<span class="w">    </span>│<span class="w"> </span>Class<span class="w"> </span>Hash<span class="w">      </span>│<span class="w"> </span>0x00816dd0297efc55dc1e7559020a3a825e81ef734b558f03c83325d4da7e6253<span class="w">                                                                                          </span>│
+<span class="w">    </span>╰─────────────────┴─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
+<span class="w">    </span>├──<span class="w">  </span>approve<span class="w">  </span>--<span class="w">  </span>0x053c91253bc9682c04929ca02ed00b3e423f6710d2ee7e0d5ebb06f3ecf368a8
+<span class="w">    </span>│<span class="w">   </span>╭─────────────────┬───────────────────────────────────────────────────────────────────────────────────────────────────────╮
+<span class="w">    </span>│<span class="w">   </span>│<span class="w"> </span>Decoded<span class="w"> </span>Inputs<span class="w">  </span>│<span class="w"> </span><span class="o">{</span><span class="s2">&quot;spender&quot;</span>:<span class="w"> </span><span class="s2">&quot;0x010884171baf1914edc28d7afb619b40a4051cfae78a094a55d230f19e944a28&quot;</span>,<span class="w"> </span><span class="s2">&quot;amount&quot;</span>:<span class="w"> </span><span class="m">14669549</span><span class="o">}</span><span class="w"> </span>│
+<span class="w">    </span>│<span class="w">   </span>│<span class="w"> </span>Decoded<span class="w"> </span>Outputs<span class="w"> </span>│<span class="w"> </span><span class="o">[</span><span class="s2">&quot;True&quot;</span><span class="o">]</span><span class="w">                                                                                              </span>│
+<span class="w">    </span>│<span class="w">   </span>│<span class="w"> </span>Class<span class="w"> </span>Hash<span class="w">      </span>│<span class="w"> </span>0x05ffbcfeb50d200a0677c48a129a11245a3fc519d1d98d76882d1c9a1b19c6ed<span class="w">                                    </span>│
+<span class="w">    </span>│<span class="w">   </span>╰─────────────────┴───────────────────────────────────────────────────────────────────────────────────────────────────────╯
+<span class="w">    </span>└──<span class="w">  </span>swap<span class="w">  </span>--<span class="w">  </span>0x010884171baf1914edc28d7afb619b40a4051cfae78a094a55d230f19e944a28
+<span class="w">        </span>╭─────────────────┬─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╮
+<span class="w">        </span>│<span class="w"> </span>Decoded<span class="w"> </span>Inputs<span class="w">  </span>│<span class="w"> </span><span class="o">{</span><span class="s2">&quot;pool_id&quot;</span>:<span class="w"> </span><span class="s2">&quot;0x01&quot;</span>,<span class="w"> </span><span class="s2">&quot;token_from_addr&quot;</span>:<span class="w"> </span><span class="s2">&quot;0x053c91253bc9682c04929ca02ed00b3e423f6710d2ee7e0d5ebb06f3ecf368a8&quot;</span>,<span class="w"> </span><span class="s2">&quot;amount_from&quot;</span>:<span class="w"> </span><span class="m">14669549</span>,<span class="w"> </span><span class="s2">&quot;amount_to_min&quot;</span>:<span class="w">  </span>│
+<span class="w">        </span>│<span class="w">                 </span>│<span class="w"> </span><span class="m">4149539537091242</span><span class="o">}</span><span class="w">                                                                                                                                       </span>│
+<span class="w">        </span>│<span class="w"> </span>Decoded<span class="w"> </span>Outputs<span class="w"> </span>│<span class="w"> </span><span class="o">[</span><span class="m">4234224017440043</span><span class="o">]</span><span class="w">                                                                                                                                      </span>│
+<span class="w">        </span>│<span class="w"> </span>Class<span class="w"> </span>Hash<span class="w">      </span>│<span class="w"> </span>0x055ef1b2cb1313b8202f68ef32aaefca4133b21cbce68c4bfee453e595ce646f<span class="w">                                                                                      </span>│
+<span class="w">        </span>╰─────────────────┴─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
+<span class="w">        </span>├──<span class="w">  </span>balanceOf<span class="w">  </span>--<span class="w">  </span>0x053c91253bc9682c04929ca02ed00b3e423f6710d2ee7e0d5ebb06f3ecf368a8
+<span class="w">        </span>│<span class="w">   </span>╭─────────────────┬───────────────────────────────────────────────────────────────────────────────────╮
+<span class="w">        </span>│<span class="w">   </span>│<span class="w"> </span>Decoded<span class="w"> </span>Inputs<span class="w">  </span>│<span class="w"> </span><span class="o">{</span><span class="s2">&quot;account&quot;</span>:<span class="w"> </span><span class="s2">&quot;0x00b8e5a4f76d3338e9982951debbf79a9872a0498d7c01cfff63d4f859130711&quot;</span><span class="o">}</span><span class="w"> </span>│
+<span class="w">        </span>│<span class="w">   </span>│<span class="w"> </span>Decoded<span class="w"> </span>Outputs<span class="w"> </span>│<span class="w"> </span><span class="o">[</span><span class="m">14669549</span><span class="o">]</span><span class="w">                                                                        </span>│
+<span class="w">        </span>│<span class="w">   </span>│<span class="w"> </span>Class<span class="w"> </span>Hash<span class="w">      </span>│<span class="w"> </span>0x05ffbcfeb50d200a0677c48a129a11245a3fc519d1d98d76882d1c9a1b19c6ed<span class="w">                </span>│
+<span class="w">        </span>│<span class="w">   </span>╰─────────────────┴───────────────────────────────────────────────────────────────────────────────────╯
+<span class="w">        </span>├──<span class="w">  </span>transferFrom<span class="w">  </span>--<span class="w">  </span>0x053c91253bc9682c04929ca02ed00b3e423f6710d2ee7e0d5ebb06f3ecf368a8
+<span class="w">        </span>│<span class="w">   </span>╭─────────────────┬─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╮
+<span class="w">        </span>│<span class="w">   </span>│<span class="w"> </span>Decoded<span class="w"> </span>Inputs<span class="w">  </span>│<span class="w"> </span><span class="o">{</span><span class="s2">&quot;sender&quot;</span>:<span class="w"> </span><span class="s2">&quot;0x00b8e5a4f76d3338e9982951debbf79a9872a0498d7c01cfff63d4f859130711&quot;</span>,<span class="w"> </span><span class="s2">&quot;recipient&quot;</span>:<span class="w">                                                       </span>│
+<span class="w">        </span>│<span class="w">   </span>│<span class="w">                 </span>│<span class="w"> </span><span class="s2">&quot;0x010884171baf1914edc28d7afb619b40a4051cfae78a094a55d230f19e944a28&quot;</span>,<span class="w"> </span><span class="s2">&quot;amount&quot;</span>:<span class="w"> </span><span class="m">14669549</span><span class="o">}</span><span class="w">                                                           </span>│
+<span class="w">        </span>│<span class="w">   </span>│<span class="w"> </span>Decoded<span class="w"> </span>Outputs<span class="w"> </span>│<span class="w"> </span><span class="o">[</span><span class="s2">&quot;True&quot;</span><span class="o">]</span><span class="w">                                                                                                                                            </span>│
+<span class="w">        </span>│<span class="w">   </span>│<span class="w"> </span>Class<span class="w"> </span>Hash<span class="w">      </span>│<span class="w"> </span>0x05ffbcfeb50d200a0677c48a129a11245a3fc519d1d98d76882d1c9a1b19c6ed<span class="w">                                                                                  </span>│
+<span class="w">        </span>│<span class="w">   </span>╰─────────────────┴─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
+<span class="w">        </span>└──<span class="w">  </span>transfer<span class="w">  </span>--<span class="w">  </span>0x049d36570d4e46f48e99674bd3fcc84644ddd6b96f7c741b1562b82f9e004dc7
+<span class="w">            </span>╭─────────────────┬─────────────────────────────────────────────────────────────────────────────────────────────────────────────────╮
+<span class="w">            </span>│<span class="w"> </span>Decoded<span class="w"> </span>Inputs<span class="w">  </span>│<span class="w"> </span><span class="o">{</span><span class="s2">&quot;recipient&quot;</span>:<span class="w"> </span><span class="s2">&quot;0x00b8e5a4f76d3338e9982951debbf79a9872a0498d7c01cfff63d4f859130711&quot;</span>,<span class="w"> </span><span class="s2">&quot;amount&quot;</span>:<span class="w"> </span><span class="m">4234224017440043</span><span class="o">}</span><span class="w"> </span>│
+<span class="w">            </span>│<span class="w"> </span>Decoded<span class="w"> </span>Outputs<span class="w"> </span>│<span class="w"> </span><span class="o">[</span><span class="s2">&quot;True&quot;</span><span class="o">]</span><span class="w">                                                                                                        </span>│
+<span class="w">            </span>│<span class="w"> </span>Class<span class="w"> </span>Hash<span class="w">      </span>│<span class="w"> </span>0x07f3777c99f3700505ea966676aac4a0d692c2a9f5e667f4c606b51ca1dd3420<span class="w">                                              </span>│
+<span class="w">            </span>╰─────────────────┴─────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
+╭───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╮
+│<span class="w"> </span>Execute<span class="w"> </span>Events<span class="w">                                                                                                                                                                    </span>│
+╰───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
+╭──────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╮
+│<span class="w"> </span>Name<span class="w">     </span>│<span class="w"> </span>Approval<span class="w">                                                                                                                                                               </span>│
+│<span class="w"> </span>Contract<span class="w"> </span>│<span class="w"> </span>0x053c91253bc9682c04929ca02ed00b3e423f6710d2ee7e0d5ebb06f3ecf368a8<span class="w">                                                                                                     </span>│
+│<span class="w"> </span>Decoded<span class="w">  </span>│<span class="w"> </span><span class="o">{</span><span class="s2">&quot;owner&quot;</span>:<span class="w"> </span><span class="s2">&quot;0x00b8e5a4f76d3338e9982951debbf79a9872a0498d7c01cfff63d4f859130711&quot;</span>,<span class="w"> </span><span class="s2">&quot;spender&quot;</span>:<span class="w"> </span><span class="s2">&quot;0x010884171baf1914edc28d7afb619b40a4051cfae78a094a55d230f19e944a28&quot;</span>,<span class="w">       </span>│
+│<span class="w">          </span>│<span class="w"> </span><span class="s2">&quot;value&quot;</span>:<span class="w"> </span><span class="m">14669549</span><span class="o">}</span><span class="w">                                                                                                                                                     </span>│
+╰──────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
+╭──────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╮
+│<span class="w"> </span>Name<span class="w">     </span>│<span class="w"> </span>Approval<span class="w">                                                                                                                                                               </span>│
+│<span class="w"> </span>Contract<span class="w"> </span>│<span class="w"> </span>0x053c91253bc9682c04929ca02ed00b3e423f6710d2ee7e0d5ebb06f3ecf368a8<span class="w">                                                                                                     </span>│
+│<span class="w"> </span>Decoded<span class="w">  </span>│<span class="w"> </span><span class="o">{</span><span class="s2">&quot;owner&quot;</span>:<span class="w"> </span><span class="s2">&quot;0x00b8e5a4f76d3338e9982951debbf79a9872a0498d7c01cfff63d4f859130711&quot;</span>,<span class="w"> </span><span class="s2">&quot;spender&quot;</span>:<span class="w"> </span><span class="s2">&quot;0x010884171baf1914edc28d7afb619b40a4051cfae78a094a55d230f19e944a28&quot;</span>,<span class="w">       </span>│
+│<span class="w">          </span>│<span class="w"> </span><span class="s2">&quot;value&quot;</span>:<span class="w"> </span><span class="m">0</span><span class="o">}</span><span class="w">                                                                                                                                                            </span>│
+╰──────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
+╭──────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╮
+│<span class="w"> </span>Name<span class="w">     </span>│<span class="w"> </span>Transfer<span class="w">                                                                                                                                                               </span>│
+│<span class="w"> </span>Contract<span class="w"> </span>│<span class="w"> </span>0x053c91253bc9682c04929ca02ed00b3e423f6710d2ee7e0d5ebb06f3ecf368a8<span class="w">                                                                                                     </span>│
+│<span class="w"> </span>Decoded<span class="w">  </span>│<span class="w"> </span><span class="o">{</span><span class="s2">&quot;from&quot;</span>:<span class="w"> </span><span class="s2">&quot;0x00b8e5a4f76d3338e9982951debbf79a9872a0498d7c01cfff63d4f859130711&quot;</span>,<span class="w"> </span><span class="s2">&quot;to&quot;</span>:<span class="w"> </span><span class="s2">&quot;0x010884171baf1914edc28d7afb619b40a4051cfae78a094a55d230f19e944a28&quot;</span>,<span class="w"> </span><span class="s2">&quot;value&quot;</span>:<span class="w">    </span>│
+│<span class="w">          </span>│<span class="w"> </span><span class="m">14669549</span><span class="o">}</span><span class="w">                                                                                                                                                              </span>│
+╰──────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
+╭──────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╮
+│<span class="w"> </span>Name<span class="w">     </span>│<span class="w"> </span>Transfer<span class="w">                                                                                                                                                               </span>│
+│<span class="w"> </span>Contract<span class="w"> </span>│<span class="w"> </span>0x049d36570d4e46f48e99674bd3fcc84644ddd6b96f7c741b1562b82f9e004dc7<span class="w">                                                                                                     </span>│
+│<span class="w"> </span>Decoded<span class="w">  </span>│<span class="w"> </span><span class="o">{</span><span class="s2">&quot;from&quot;</span>:<span class="w"> </span><span class="s2">&quot;0x010884171baf1914edc28d7afb619b40a4051cfae78a094a55d230f19e944a28&quot;</span>,<span class="w"> </span><span class="s2">&quot;to&quot;</span>:<span class="w"> </span><span class="s2">&quot;0x00b8e5a4f76d3338e9982951debbf79a9872a0498d7c01cfff63d4f859130711&quot;</span>,<span class="w"> </span><span class="s2">&quot;value&quot;</span>:<span class="w">    </span>│
+│<span class="w">          </span>│<span class="w"> </span><span class="m">4234224017440043</span><span class="o">}</span><span class="w">                                                                                                                                                      </span>│
+╰──────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
+</pre></div>
+</div>
+</section>
+</section>
+<section id="backfill">
+<h2>BACKFILL<a class="headerlink" href="#backfill" title="Permalink to this heading">#</a></h2>
+<p>Backfill Methods can either write records to a Sqlalchemy DB_URL (Currently only postgres is supported),
+or it can write to CSV files, with | as the delimiter.  The CSV files are specified with the <cite>–block-file</cite>,
+<cite>–transaction-file</cite>, and <cite>–event-file</cite> flags.</p>
+<p>The Data Formats for the Backfills are listed in the <a class="reference internal" href="Data-Persistence.html#starknet-data-formats"><span class="std std-ref">Starknet Data Reference</span></a> section of the Starknet Docs</p>
+<section id="full-blocks">
+<h3>Full Blocks<a class="headerlink" href="#full-blocks" title="Permalink to this heading">#</a></h3>
+<p>The <cite>entro backfill starknet full-blocks</cite> endpoint performs a backfill between block
+ranges for Starknet.  This data includes event data, transaction data, and block data.</p>
+<p>This process also supports full ABI Decoding, and can be configured to decode from a list of
+ABIs that are loaded into the Decoder</p>
+<div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>entro<span class="w"> </span>decode<span class="w"> </span>add-class<span class="w"> </span>Starknet-ETH<span class="w"> </span>0x03e8d67c8817de7a2185d418e88d321c89772a9722b752c6fe097192114621be<span class="w"> </span>--priority<span class="w"> </span><span class="m">200</span>
+entro<span class="w"> </span>decode<span class="w"> </span>add-class<span class="w"> </span>EKOBU-Core<span class="w"> </span>0x03e8d67c8817de7a2185d418e88d321c89772a9722b752c6fe097192114621be<span class="w"> </span>--priority<span class="w"> </span><span class="m">50</span>
+
+entro<span class="w"> </span>backfill<span class="w"> </span>starknet<span class="w"> </span>full-blocks<span class="w"> </span>--start-block<span class="w"> </span><span class="m">620000</span><span class="w"> </span>--end-block<span class="w"> </span><span class="m">620500</span><span class="w"> </span>-abi<span class="w"> </span>Starknet-ETH<span class="w"> </span>-abi<span class="w"> </span>EKOBU-Core<span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>--json-rpc<span class="w"> </span>http://localhost:8545<span class="w"> </span>--block-file<span class="w"> </span>starknet-blocks.csv<span class="w"> </span>--transaction-file<span class="w"> </span>starknet-transactions.csv<span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>--event-file<span class="w"> </span>starknet-events.csv
+</pre></div>
+</div>
+<p>Before executing the backfill, entro will prompt the user with the backfill parameters</p>
+<div class="highlight-shell notranslate"><div class="highlight"><pre><span></span><span class="w">                             </span>Backfill<span class="w"> </span>Block<span class="w"> </span>Ranges
+┏━━━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
+┃<span class="w"> </span>Start<span class="w"> </span>Block<span class="w">              </span>┃<span class="w"> </span>End<span class="w"> </span>Block<span class="w">            </span>┃<span class="w">               </span>Total<span class="w"> </span>Blocks<span class="w"> </span>┃
+┡━━━━━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━━━━━━━━━━━┩
+│<span class="w"> </span><span class="m">620</span>,000<span class="w">                  </span>│<span class="w"> </span><span class="m">620</span>,500<span class="w">              </span>│<span class="w">                        </span><span class="m">500</span><span class="w"> </span>│
+└──────────────────────────┴──────────────────────┴────────────────────────────┘
+<span class="w">                          </span>Backfill<span class="w"> </span>Filters<span class="w"> </span><span class="p">&amp;</span><span class="w"> </span>Metadata
+┏━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
+┃<span class="w"> </span>Key<span class="w">                    </span>┃<span class="w"> </span>Value<span class="w">                                               </span>┃
+┡━━━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┩
+│<span class="w"> </span>json_rpc<span class="w">               </span>│<span class="w"> </span>http://homelab.cicerolabs.xyz:9545<span class="w">                  </span>│
+│<span class="w"> </span>no_interaction<span class="w">         </span>│<span class="w"> </span>False<span class="w">                                               </span>│
+└────────────────────────┴─────────────────────────────────────────────────────┘
+<span class="w">                                                                </span>Cairo<span class="w"> </span>Decoder<span class="w"> </span>ABIs
+┏━━━━━━━━━━━━━━┳━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
+┃<span class="w"> </span>Name<span class="w">         </span>┃<span class="w"> </span>Priority<span class="w"> </span>┃<span class="w"> </span>Functions<span class="w">                                                                  </span>┃<span class="w"> </span>Events<span class="w">                                  </span>┃
+┡━━━━━━━━━━━━━━╇━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┩
+│<span class="w"> </span>Starknet-ETH<span class="w"> </span>│<span class="w"> </span><span class="m">100</span><span class="w">      </span>│<span class="w"> </span><span class="s1">&#39;add_new_implementation&#39;</span>,<span class="w"> </span><span class="s1">&#39;allowance&#39;</span>,<span class="w"> </span><span class="s1">&#39;approve&#39;</span>,<span class="w"> </span><span class="s1">&#39;balanceOf&#39;</span>,<span class="w">             </span>│<span class="w"> </span><span class="s1">&#39;Approval&#39;</span>,<span class="w"> </span><span class="s1">&#39;GovernanceAdminAdded&#39;</span>,<span class="w">     </span>│
+│<span class="w">              </span>│<span class="w">          </span>│<span class="w"> </span><span class="s1">&#39;balance_of&#39;</span>,<span class="w"> </span><span class="s1">&#39;decimals&#39;</span>,<span class="w"> </span><span class="s1">&#39;decreaseAllowance&#39;</span>,<span class="w"> </span><span class="s1">&#39;decrease_allowance&#39;</span>,<span class="w">       </span>│<span class="w"> </span><span class="s1">&#39;GovernanceAdminRemoved&#39;</span>,<span class="w">               </span>│
+│<span class="w">              </span>│<span class="w">          </span>│<span class="w"> </span><span class="s1">&#39;get_impl_activation_time&#39;</span>,<span class="w"> </span><span class="s1">&#39;get_role_admin&#39;</span>,<span class="w"> </span><span class="s1">&#39;get_upgrade_delay&#39;</span>,<span class="w">         </span>│<span class="w"> </span><span class="s1">&#39;ImplementationAdded&#39;</span>,<span class="w">                  </span>│
+│<span class="w">              </span>│<span class="w">          </span>│<span class="w"> </span><span class="s1">&#39;has_role&#39;</span>,<span class="w"> </span><span class="s1">&#39;increaseAllowance&#39;</span>,<span class="w"> </span><span class="s1">&#39;increase_allowance&#39;</span>,<span class="w">                     </span>│<span class="w"> </span><span class="s1">&#39;ImplementationFinalized&#39;</span>,<span class="w">              </span>│
+│<span class="w">              </span>│<span class="w">          </span>│<span class="w"> </span><span class="s1">&#39;is_governance_admin&#39;</span>,<span class="w"> </span><span class="s1">&#39;is_upgrade_governor&#39;</span>,<span class="w"> </span><span class="s1">&#39;name&#39;</span>,<span class="w"> </span><span class="s1">&#39;permissionedBurn&#39;</span>,<span class="w">  </span>│<span class="w"> </span><span class="s1">&#39;ImplementationRemoved&#39;</span>,<span class="w">                </span>│
+│<span class="w">              </span>│<span class="w">          </span>│<span class="w"> </span><span class="s1">&#39;permissionedMint&#39;</span>,<span class="w"> </span><span class="s1">&#39;permissioned_burn&#39;</span>,<span class="w"> </span><span class="s1">&#39;permissioned_mint&#39;</span>,<span class="w">              </span>│<span class="w"> </span><span class="s1">&#39;ImplementationReplaced&#39;</span>,<span class="w">               </span>│
+│<span class="w">              </span>│<span class="w">          </span>│<span class="w"> </span><span class="s1">&#39;register_governance_admin&#39;</span>,<span class="w"> </span><span class="s1">&#39;register_upgrade_governor&#39;</span>,<span class="w">                  </span>│<span class="w"> </span><span class="s1">&#39;RoleAdminChanged&#39;</span>,<span class="w"> </span><span class="s1">&#39;RoleGranted&#39;</span>,<span class="w">      </span>│
+│<span class="w">              </span>│<span class="w">          </span>│<span class="w"> </span><span class="s1">&#39;remove_governance_admin&#39;</span>,<span class="w"> </span><span class="s1">&#39;remove_implementation&#39;</span>,<span class="w">                        </span>│<span class="w"> </span><span class="s1">&#39;RoleRevoked&#39;</span>,<span class="w"> </span><span class="s1">&#39;Transfer&#39;</span>,<span class="w">              </span>│
+│<span class="w">              </span>│<span class="w">          </span>│<span class="w"> </span><span class="s1">&#39;remove_upgrade_governor&#39;</span>,<span class="w"> </span><span class="s1">&#39;renounce&#39;</span>,<span class="w"> </span><span class="s1">&#39;replace_to&#39;</span>,<span class="w"> </span><span class="s1">&#39;symbol&#39;</span>,<span class="w">             </span>│<span class="w"> </span><span class="s1">&#39;UpgradeGovernorAdded&#39;</span>,<span class="w">                 </span>│
+│<span class="w">              </span>│<span class="w">          </span>│<span class="w"> </span><span class="s1">&#39;totalSupply&#39;</span>,<span class="w"> </span><span class="s1">&#39;total_supply&#39;</span>,<span class="w"> </span><span class="s1">&#39;transfer&#39;</span>,<span class="w"> </span><span class="s1">&#39;transferFrom&#39;</span>,<span class="w">                 </span>│<span class="w"> </span><span class="s1">&#39;UpgradeGovernorRemoved&#39;</span>,<span class="w">               </span>│
+│<span class="w">              </span>│<span class="w">          </span>│<span class="w"> </span><span class="s1">&#39;transfer_from&#39;</span>,<span class="w">                                                           </span>│<span class="w">                                         </span>│
+├──────────────┼──────────┼────────────────────────────────────────────────────────────────────────────┼─────────────────────────────────────────┤
+│<span class="w"> </span>EKOBU-Core<span class="w">   </span>│<span class="w"> </span><span class="m">0</span><span class="w">        </span>│<span class="w"> </span><span class="s1">&#39;accumulate_as_fees&#39;</span>,<span class="w"> </span><span class="s1">&#39;collect_fees&#39;</span>,<span class="w"> </span><span class="s1">&#39;get_call_points&#39;</span>,<span class="w">                   </span>│<span class="w"> </span><span class="s1">&#39;ClassHashReplaced&#39;</span>,<span class="w">                    </span>│
+│<span class="w">              </span>│<span class="w">          </span>│<span class="w"> </span><span class="s1">&#39;get_locker_state&#39;</span>,<span class="w"> </span><span class="s1">&#39;get_owner&#39;</span>,<span class="w"> </span><span class="s1">&#39;get_pool_fees_per_liquidity&#39;</span>,<span class="w">            </span>│<span class="w"> </span><span class="s1">&#39;FeesAccumulated&#39;</span>,<span class="w"> </span><span class="s1">&#39;LoadedBalance&#39;</span>,<span class="w">     </span>│
+│<span class="w">              </span>│<span class="w">          </span>│<span class="w"> </span><span class="s1">&#39;get_pool_fees_per_liquidity_inside&#39;</span>,<span class="w"> </span><span class="s1">&#39;get_pool_liquidity&#39;</span>,<span class="w">                </span>│<span class="w"> </span><span class="s1">&#39;OwnershipTransferred&#39;</span>,<span class="w">                 </span>│
+│<span class="w">              </span>│<span class="w">          </span>│<span class="w"> </span><span class="s1">&#39;get_pool_price&#39;</span>,<span class="w"> </span><span class="s1">&#39;get_pool_tick_fees_outside&#39;</span>,<span class="w">                            </span>│<span class="w"> </span><span class="s1">&#39;PoolInitialized&#39;</span>,<span class="w">                      </span>│
+│<span class="w">              </span>│<span class="w">          </span>│<span class="w"> </span><span class="s1">&#39;get_pool_tick_liquidity_delta&#39;</span>,<span class="w"> </span><span class="s1">&#39;get_pool_tick_liquidity_net&#39;</span>,<span class="w">            </span>│<span class="w"> </span><span class="s1">&#39;PositionFeesCollected&#39;</span>,<span class="w">                </span>│
+│<span class="w">              </span>│<span class="w">          </span>│<span class="w"> </span><span class="s1">&#39;get_position&#39;</span>,<span class="w"> </span><span class="s1">&#39;get_position_with_fees&#39;</span>,<span class="w"> </span><span class="s1">&#39;get_primary_interface_id&#39;</span>,<span class="w">      </span>│<span class="w"> </span><span class="s1">&#39;PositionUpdated&#39;</span>,<span class="w"> </span><span class="s1">&#39;ProtocolFeesPaid&#39;</span>,<span class="w">  </span>│
+│<span class="w">              </span>│<span class="w">          </span>│<span class="w"> </span><span class="s1">&#39;get_protocol_fees_collected&#39;</span>,<span class="w"> </span><span class="s1">&#39;get_saved_balance&#39;</span>,<span class="w"> </span><span class="s1">&#39;initialize_pool&#39;</span>,<span class="w">     </span>│<span class="w"> </span><span class="s1">&#39;ProtocolFeesWithdrawn&#39;</span>,<span class="w">                </span>│
+│<span class="w">              </span>│<span class="w">          </span>│<span class="w"> </span><span class="s1">&#39;load&#39;</span>,<span class="w"> </span><span class="s1">&#39;lock&#39;</span>,<span class="w"> </span><span class="s1">&#39;maybe_initialize_pool&#39;</span>,<span class="w"> </span><span class="s1">&#39;next_initialized_tick&#39;</span>,<span class="w"> </span><span class="s1">&#39;pay&#39;</span>,<span class="w">   </span>│<span class="w"> </span><span class="s1">&#39;SavedBalance&#39;</span>,<span class="w"> </span><span class="s1">&#39;Swapped&#39;</span>,<span class="w">              </span>│
+│<span class="w">              </span>│<span class="w">          </span>│<span class="w"> </span><span class="s1">&#39;prev_initialized_tick&#39;</span>,<span class="w"> </span><span class="s1">&#39;replace_class_hash&#39;</span>,<span class="w"> </span><span class="s1">&#39;save&#39;</span>,<span class="w"> </span><span class="s1">&#39;set_call_points&#39;</span>,<span class="w">  </span>│<span class="w">                                         </span>│
+│<span class="w">              </span>│<span class="w">          </span>│<span class="w"> </span><span class="s1">&#39;swap&#39;</span>,<span class="w"> </span><span class="s1">&#39;transfer_ownership&#39;</span>,<span class="w"> </span><span class="s1">&#39;update_position&#39;</span>,<span class="w"> </span><span class="s1">&#39;withdraw&#39;</span>,<span class="w">               </span>│<span class="w">                                         </span>│
+│<span class="w">              </span>│<span class="w">          </span>│<span class="w"> </span><span class="s1">&#39;withdraw_protocol_fees&#39;</span>,<span class="w">                                                  </span>│<span class="w">                                         </span>│
+└──────────────┴──────────┴────────────────────────────────────────────────────────────────────────────┴─────────────────────────────────────────┘
+Querying<span class="w"> </span>Transactions,<span class="w"> </span>Logs,<span class="w"> </span>and<span class="w"> </span>Receipts<span class="w"> </span><span class="k">for</span><span class="w"> </span>Block<span class="w"> </span>Range
+------------------------------------------------------------------------------------------------------------------------------------------------
+Execute<span class="w"> </span>Backfill?<span class="w">   </span><span class="o">[</span>y/n<span class="o">]</span>:
+</pre></div>
+</div>
+<p>This will show the block range to query, the number of blocks to query, and the ABIs used to decode this data.
+If everything looks correct, the user can confirm the backfill, and entro will begin querying the RPC for the data.</p>
+<p>During the Backfill, the CLI will display a progress bar showing the percentage of the backfill completed, the time
+elapsed, and the time remaining.  The CLI will also display the current block being searched, and the total number of
+blocks searched.</p>
+<div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>Backfill<span class="w"> </span>StarkNet<span class="w"> </span>Full<span class="w"> </span>Blocks<span class="w"> </span>⠴<span class="w"> </span>━━━━╸━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━<span class="w">  </span><span class="m">12</span>%<span class="w"> </span><span class="m">0</span>:00:22<span class="w"> </span><span class="m">0</span>:02:19<span class="w"> </span>Searched:<span class="w"> </span><span class="m">60</span>/500<span class="w"> </span>Searching<span class="w"> </span>Block:<span class="w"> </span><span class="m">620060</span>
+</pre></div>
+</div>
+</section>
+<section id="events">
+<h3>Events<a class="headerlink" href="#events" title="Permalink to this heading">#</a></h3>
+<p>The entro tool can also backfill specific events for a contract address.  This is a particularly useful tool for
+generating analytics datasets from just an RPC node.  For this example, we will backfill the ‘Transfer’ event for
+the Starknet ETH contract</p>
+<div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>entro<span class="w"> </span>backfill<span class="w"> </span>starknet<span class="w"> </span>events<span class="w"> </span>--contract-address<span class="w"> </span>0x049d36570d4e46f48e99674bd3fcc84644ddd6b96f7c741b1562b82f9e004dc7<span class="w"> </span>--event-name<span class="w"> </span>Transfer<span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>--from-block<span class="w"> </span><span class="m">620000</span><span class="w"> </span>--to-block<span class="w"> </span><span class="m">640000</span><span class="w"> </span>--json-rpc<span class="w"> </span>http://localhost:8545<span class="w"> </span>--event-file<span class="w"> </span>starknet-transfer-events.csv<span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>--decode-abis<span class="w"> </span>Starknet-ETH
+</pre></div>
+</div>
+<p>This will backfill the ‘Transfer’ event for the Starknet ETH contract between blocks 620000 and 640000, and write the
+output to the file ‘starknet-transfer-events.csv’.  The Starknet-ETH ABI will be used to decode the event data.</p>
+<div class="highlight-shell notranslate"><div class="highlight"><pre><span></span><span class="w">                         </span>Backfill<span class="w"> </span>Block<span class="w"> </span>Ranges
+┏━━━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
+┃<span class="w"> </span>Start<span class="w"> </span>Block<span class="w">              </span>┃<span class="w"> </span>End<span class="w"> </span>Block<span class="w">            </span>┃<span class="w">               </span>Total<span class="w"> </span>Blocks<span class="w"> </span>┃
+┡━━━━━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━━━━━━━━━━━┩
+│<span class="w"> </span><span class="m">620</span>,000<span class="w">                  </span>│<span class="w"> </span><span class="m">640</span>,000<span class="w">              </span>│<span class="w">                     </span><span class="m">20</span>,000<span class="w"> </span>│
+└──────────────────────────┴──────────────────────┴────────────────────────────┘
+<span class="w">                                  </span>Backfill<span class="w"> </span>Filters<span class="w"> </span><span class="p">&amp;</span><span class="w"> </span>Metadata
+┏━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
+┃<span class="w"> </span>Key<span class="w">              </span>┃<span class="w"> </span>Value<span class="w">                                                                    </span>┃
+┡━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┩
+│<span class="w"> </span>contract_address<span class="w"> </span>│<span class="w"> </span>0x049d36570d4e46f48e99674bd3fcc84644ddd6b96f7c741b1562b82f9e004dc7<span class="w">       </span>│
+│<span class="w"> </span>event_names<span class="w">      </span>│<span class="w"> </span><span class="o">[</span><span class="s1">&#39;Transfer&#39;</span><span class="o">]</span><span class="w">                                                             </span>│
+│<span class="w"> </span>abi_name<span class="w">         </span>│<span class="w"> </span>Starknet-ETH<span class="w">                                                             </span>│
+│<span class="w"> </span>json_rpc<span class="w">         </span>│<span class="w"> </span>http://homelab.cicerolabs.xyz:9545<span class="w">                                       </span>│
+│<span class="w"> </span>no_interaction<span class="w">   </span>│<span class="w"> </span>False<span class="w">                                                                    </span>│
+│<span class="w"> </span>topics<span class="w">           </span>│<span class="w"> </span><span class="o">[[</span><span class="s1">&#39;0x0099cd8bde557814842a3121e8ddfd433a539b8c9f14bf31ebf108d12e6196e9&#39;</span><span class="o">]]</span><span class="w"> </span>│
+└──────────────────┴──────────────────────────────────────────────────────────────────────────┘
+<span class="w">                                                       </span>Cairo<span class="w"> </span>Decoder<span class="w"> </span>ABIs
+┏━━━━━━━━━━━━━━┳━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
+┃<span class="w"> </span>Name<span class="w">         </span>┃<span class="w"> </span>Priority<span class="w"> </span>┃<span class="w"> </span>Events<span class="w">                                                                                             </span>┃
+┡━━━━━━━━━━━━━━╇━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┩
+│<span class="w"> </span>Starknet-ETH<span class="w"> </span>│<span class="w"> </span><span class="m">100</span><span class="w">      </span>│<span class="w"> </span><span class="s1">&#39;Approval&#39;</span>,<span class="w"> </span><span class="s1">&#39;GovernanceAdminAdded&#39;</span>,<span class="w"> </span><span class="s1">&#39;GovernanceAdminRemoved&#39;</span>,<span class="w"> </span><span class="s1">&#39;ImplementationAdded&#39;</span>,<span class="w">               </span>│
+│<span class="w">              </span>│<span class="w">          </span>│<span class="w"> </span><span class="s1">&#39;ImplementationFinalized&#39;</span>,<span class="w"> </span><span class="s1">&#39;ImplementationRemoved&#39;</span>,<span class="w"> </span><span class="s1">&#39;ImplementationReplaced&#39;</span>,<span class="w"> </span><span class="s1">&#39;RoleAdminChanged&#39;</span>,<span class="w">  </span>│
+│<span class="w">              </span>│<span class="w">          </span>│<span class="w"> </span><span class="s1">&#39;RoleGranted&#39;</span>,<span class="w"> </span><span class="s1">&#39;RoleRevoked&#39;</span>,<span class="w"> </span><span class="s1">&#39;Transfer&#39;</span>,<span class="w"> </span><span class="s1">&#39;UpgradeGovernorAdded&#39;</span>,<span class="w"> </span><span class="s1">&#39;UpgradeGovernorRemoved&#39;</span>,<span class="w">        </span>│
+└──────────────┴──────────┴────────────────────────────────────────────────────────────────────────────────────────────────────┘
+Querying<span class="w"> </span>Events<span class="w"> </span><span class="k">for</span><span class="w"> </span>Contract:<span class="w"> </span>0x049d36570d4e46f48e99674bd3fcc84644ddd6b96f7c741b1562b82f9e004dc7
+Starknet-ETH<span class="w"> </span>ABI<span class="w"> </span>Decoding<span class="w"> </span>Events:
+<span class="w">        </span><span class="s1">&#39;Transfer&#39;</span>,
+------------------------------------------------------------------------------------------------------------------------------------------------
+Execute<span class="w"> </span>Backfill?<span class="w">   </span><span class="o">[</span>y/n<span class="o">]</span>:
+</pre></div>
+</div>
+</section>
+<section id="timestamps">
+<h3>Timestamps<a class="headerlink" href="#timestamps" title="Permalink to this heading">#</a></h3>
+<p>The entro tool can also backfill block timestamps for a block range.
+This is used by the entro.backfill.TimestampConverter which provides utilities for
+converting block numbers to approximate timestamps, and vice versa.  This backfills
+timestamps using a block resolution, and when queried, will calculate the approximate
+timestamp for a block number.</p>
+<p>Timestamps are cached to the system application directory by default</p>
+<div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>entro<span class="w"> </span>backfill<span class="w"> </span>starknet<span class="w"> </span>timestamps<span class="w"> </span>--json-rpc<span class="w"> </span>http://localhost:8545
+</pre></div>
+</div>
+<p>This will backfill every 100th starknet block, and cache the timestamp for these blocks.  When requesting
+block numbers with exact block % 100 == 0, the timestamp will be returned from the cache.  Otherwise, the
+timestamp will be calculated by taking the
+average block time, and the closest_block_in_cache + (distance * average_block_time).</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">nethermind.entro.backfill</span> <span class="kn">import</span> <span class="n">TimestampConverter</span><span class="p">,</span> <span class="n">SupportedNetwork</span>
+
+<span class="n">starknet_converter</span> <span class="o">=</span> <span class="n">TimestampConverter</span><span class="p">(</span><span class="n">SupportedNetwork</span><span class="o">.</span><span class="n">starknet</span><span class="p">,</span> <span class="n">rpc_url</span><span class="o">=</span><span class="s1">&#39;http://localhost:8545&#39;</span><span class="p">)</span>
+
+<span class="c1"># Get the timestamp for block 620000</span>
+<span class="n">timestamp</span> <span class="o">=</span> <span class="n">starknet_converter</span><span class="o">.</span><span class="n">get_timestamp</span><span class="p">(</span><span class="mi">620000</span><span class="p">)</span>
+
+<span class="c1"># 2024-05-11T16:41:26+00:00</span>
+</pre></div>
+</div>
+</section>
+</section>
+</section>
+
+
+                </article>
+              
+
+              
+              
+              
+              
+                <footer class="prev-next-footer d-print-none">
+                  
+<div class="prev-next-area">
+    <a class="left-prev"
+       href="Ethereum.html"
+       title="previous page">
+      <i class="fa-solid fa-angle-left"></i>
+      <div class="prev-next-info">
+        <p class="prev-next-subtitle">previous</p>
+        <p class="prev-next-title">Ethereum Commands</p>
+      </div>
+    </a>
+    <a class="right-next"
+       href="../uniswap/Extracting%20Block-by-Block%20Price%20Data.html"
+       title="next page">
+      <div class="prev-next-info">
+        <p class="prev-next-subtitle">next</p>
+        <p class="prev-next-title">Extracting Block-by-Block Price Data</p>
+      </div>
+      <i class="fa-solid fa-angle-right"></i>
+    </a>
+</div>
+                </footer>
+              
+            </div>
+            
+            
+              
+                <div class="bd-sidebar-secondary bd-toc"><div class="sidebar-secondary-items sidebar-secondary__inner">
+
+
+  <div class="sidebar-secondary-item">
+  <div class="page-toc tocsection onthispage">
+    <i class="fa-solid fa-list"></i> Contents
+  </div>
+  <nav class="bd-toc-nav page-toc">
+    <ul class="visible nav section-nav flex-column">
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#get">GET</a><ul class="visible nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#class-abi">Class ABI</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#contract-implementation">Contract Implementation</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#decoded-transaction">Decoded Transaction</a></li>
+</ul>
+</li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#backfill">BACKFILL</a><ul class="visible nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#full-blocks">Full Blocks</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#events">Events</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#timestamps">Timestamps</a></li>
+</ul>
+</li>
+</ul>
+  </nav></div>
+
+</div></div>
+              
+            
+          </div>
+          <footer class="bd-footer-content">
+            
+<div class="bd-footer-content__inner container">
+  
+  <div class="footer-item">
+    
+<p class="component-author">
+By Nethermind
+</p>
+
+  </div>
+  
+  <div class="footer-item">
+    
+
+  <p class="copyright">
+    
+      © Copyright 2023, Nethermind.
+      <br/>
+    
+  </p>
+
+  </div>
+  
+  <div class="footer-item">
+    
+  </div>
+  
+  <div class="footer-item">
+    
+  </div>
+  
+</div>
+          </footer>
+        
+
+      </main>
+    </div>
+  </div>
+  
+  <!-- Scripts loaded after <body> so the DOM is not blocked -->
+  <script src="../_static/scripts/bootstrap.js?digest=dfe6caa3a7d634c4db9b"></script>
+<script src="../_static/scripts/pydata-sphinx-theme.js?digest=dfe6caa3a7d634c4db9b"></script>
+
+  <footer class="bd-footer">
+  </footer>
+  </body>
+</html>

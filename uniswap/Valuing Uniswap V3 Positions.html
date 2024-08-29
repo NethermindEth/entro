@@ -1,0 +1,601 @@
+
+
+<!DOCTYPE html>
+
+
+<html lang="en" data-content_root="" >
+
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="generator" content="Docutils 0.19: https://docutils.sourceforge.io/" />
+
+    <title>Valuing Uniswap V3 Liquidity Positions &#8212; Nethermind Entro Documentation</title>
+  
+  
+  
+  <script data-cfasync="false">
+    document.documentElement.dataset.mode = localStorage.getItem("mode") || "";
+    document.documentElement.dataset.theme = localStorage.getItem("theme") || "";
+  </script>
+  
+  <!-- Loaded before other Sphinx assets -->
+  <link href="../_static/styles/theme.css?digest=dfe6caa3a7d634c4db9b" rel="stylesheet" />
+<link href="../_static/styles/bootstrap.css?digest=dfe6caa3a7d634c4db9b" rel="stylesheet" />
+<link href="../_static/styles/pydata-sphinx-theme.css?digest=dfe6caa3a7d634c4db9b" rel="stylesheet" />
+
+  
+  <link href="../_static/vendor/fontawesome/6.5.2/css/all.min.css?digest=dfe6caa3a7d634c4db9b" rel="stylesheet" />
+  <link rel="preload" as="font" type="font/woff2" crossorigin href="../_static/vendor/fontawesome/6.5.2/webfonts/fa-solid-900.woff2" />
+<link rel="preload" as="font" type="font/woff2" crossorigin href="../_static/vendor/fontawesome/6.5.2/webfonts/fa-brands-400.woff2" />
+<link rel="preload" as="font" type="font/woff2" crossorigin href="../_static/vendor/fontawesome/6.5.2/webfonts/fa-regular-400.woff2" />
+
+    <link rel="stylesheet" type="text/css" href="../_static/pygments.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/styles/sphinx-book-theme.css" />
+  
+  <!-- Pre-loaded scripts that we'll load fully later -->
+  <link rel="preload" as="script" href="../_static/scripts/bootstrap.js?digest=dfe6caa3a7d634c4db9b" />
+<link rel="preload" as="script" href="../_static/scripts/pydata-sphinx-theme.js?digest=dfe6caa3a7d634c4db9b" />
+  <script src="../_static/vendor/fontawesome/6.5.2/js/all.min.js?digest=dfe6caa3a7d634c4db9b"></script>
+
+    <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js"></script>
+    <script src="../_static/doctools.js"></script>
+    <script src="../_static/sphinx_highlight.js"></script>
+    <script src="../_static/scripts/sphinx-book-theme.js"></script>
+    <script>DOCUMENTATION_OPTIONS.pagename = 'uniswap/Valuing Uniswap V3 Positions';</script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="Standard Token Interface" href="../api/ERC20Token.html" />
+    <link rel="prev" title="Uniswap Quickstart" href="Uniswap%20Quickstart.html" />
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <meta name="docsearch:language" content="en"/>
+  </head>
+  
+  
+  <body data-bs-spy="scroll" data-bs-target=".bd-toc-nav" data-offset="180" data-bs-root-margin="0px 0px -60%" data-default-mode="">
+
+  
+  
+  <div id="pst-skip-link" class="skip-link d-print-none"><a href="#main-content">Skip to main content</a></div>
+  
+  <div id="pst-scroll-pixel-helper"></div>
+  
+  <button type="button" class="btn rounded-pill" id="pst-back-to-top">
+    <i class="fa-solid fa-arrow-up"></i>Back to top</button>
+
+  
+  <input type="checkbox"
+          class="sidebar-toggle"
+          id="pst-primary-sidebar-checkbox"/>
+  <label class="overlay overlay-primary" for="pst-primary-sidebar-checkbox"></label>
+  
+  <input type="checkbox"
+          class="sidebar-toggle"
+          id="pst-secondary-sidebar-checkbox"/>
+  <label class="overlay overlay-secondary" for="pst-secondary-sidebar-checkbox"></label>
+  
+  <div class="search-button__wrapper">
+    <div class="search-button__overlay"></div>
+    <div class="search-button__search-container">
+<form class="bd-search d-flex align-items-center"
+      action="../search.html"
+      method="get">
+  <i class="fa-solid fa-magnifying-glass"></i>
+  <input type="search"
+         class="form-control"
+         name="q"
+         id="search-input"
+         placeholder="Search..."
+         aria-label="Search..."
+         autocomplete="off"
+         autocorrect="off"
+         autocapitalize="off"
+         spellcheck="false"/>
+  <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd>K</kbd></span>
+</form></div>
+  </div>
+
+  <div class="pst-async-banner-revealer d-none">
+  <aside id="bd-header-version-warning" class="d-none d-print-none" aria-label="Version warning"></aside>
+</div>
+
+  
+    <header class="bd-header navbar navbar-expand-lg bd-navbar d-print-none">
+    </header>
+  
+
+  <div class="bd-container">
+    <div class="bd-container__inner bd-page-width">
+      
+      
+      
+      <div class="bd-sidebar-primary bd-sidebar">
+        
+
+  
+  <div class="sidebar-header-items sidebar-primary__section">
+    
+    
+    
+    
+  </div>
+  
+    <div class="sidebar-primary-items__start sidebar-primary__section">
+        <div class="sidebar-primary-item">
+
+  
+     
+  
+
+<a class="navbar-brand logo" href="https://nethermind.io">
+  
+  
+  
+  
+  
+    
+    
+      
+    
+    
+    <img src="../_static/logo-light.svg" class="logo__image only-light" alt="Nethermind Entro Documentation - Home"/>
+    <script>document.write(`<img src="../_static/logo-dark.svg" class="logo__image only-dark" alt="Nethermind Entro Documentation - Home"/>`);</script>
+  
+  
+</a></div>
+        <div class="sidebar-primary-item">
+
+ <script>
+ document.write(`
+   <button class="btn search-button-field search-button__button" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+    <i class="fa-solid fa-magnifying-glass"></i>
+    <span class="search-button__default-text">Search</span>
+    <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+   </button>
+ `);
+ </script></div>
+        <div class="sidebar-primary-item"><nav class="bd-links bd-docs-nav" aria-label="Main">
+    <div class="bd-toc-item navbar-nav active">
+        <p aria-level="2" class="caption" role="heading"><span class="caption-text">Intro</span></p>
+<ul class="nav bd-sidenav">
+<li class="toctree-l1"><a class="reference internal" href="../Installation.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../Quickstart.html">Quickstart</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../Changelog.html">Releases</a></li>
+</ul>
+<p aria-level="2" class="caption" role="heading"><span class="caption-text">CLI Guide</span></p>
+<ul class="nav bd-sidenav">
+<li class="toctree-l1"><a class="reference internal" href="../cli_guide/Data-Persistence.html">Data Persistence</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../cli_guide/Decoding.html">Decoding</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../cli_guide/Ethereum.html">Ethereum Commands</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../cli_guide/Starknet.html">Starknet Commands</a></li>
+</ul>
+<p aria-level="2" class="caption" role="heading"><span class="caption-text">Uniswap Guide</span></p>
+<ul class="current nav bd-sidenav">
+<li class="toctree-l1"><a class="reference internal" href="Extracting%20Block-by-Block%20Price%20Data.html">Extracting Block-by-Block Price Data</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Uniswap%20Quickstart.html">Uniswap Quickstart</a></li>
+<li class="toctree-l1 current active"><a class="current reference internal" href="#">Valuing Uniswap V3 Liquidity Positions</a></li>
+</ul>
+<p aria-level="2" class="caption" role="heading"><span class="caption-text">API Reference</span></p>
+<ul class="nav bd-sidenav">
+<li class="toctree-l1"><a class="reference internal" href="../api/ERC20Token.html">Standard Token Interface</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../api/Exceptions.html">Exceptions</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../api/PricingOracle.html">Pricing Oracle</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../api/UniswapV3Pool.html">UniswapV3Pool</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../genindex.html">API Glossary</a></li>
+</ul>
+
+    </div>
+</nav></div>
+    </div>
+  
+  
+  <div class="sidebar-primary-items__end sidebar-primary__section">
+  </div>
+  
+  <div id="rtd-footer-container"></div>
+
+
+      </div>
+      
+      <main id="main-content" class="bd-main" role="main">
+        
+        
+
+<div class="sbt-scroll-pixel-helper"></div>
+
+          <div class="bd-content">
+            <div class="bd-article-container">
+              
+              <div class="bd-header-article d-print-none">
+<div class="header-article-items header-article__inner">
+  
+    <div class="header-article-items__start">
+      
+        <div class="header-article-item"><button class="sidebar-toggle primary-toggle btn btn-sm" title="Toggle primary sidebar" data-bs-placement="bottom" data-bs-toggle="tooltip">
+  <span class="fa-solid fa-bars"></span>
+</button></div>
+      
+    </div>
+  
+  
+    <div class="header-article-items__end">
+      
+        <div class="header-article-item">
+
+<div class="article-header-buttons">
+
+
+
+
+
+<div class="dropdown dropdown-download-buttons">
+  <button class="btn dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false" aria-label="Download this page">
+    <i class="fas fa-download"></i>
+  </button>
+  <ul class="dropdown-menu">
+      
+      
+      
+      <li><a href="../_sources/uniswap/Valuing Uniswap V3 Positions.rst" target="_blank"
+   class="btn btn-sm btn-download-source-button dropdown-item"
+   title="Download source file"
+   data-bs-placement="left" data-bs-toggle="tooltip"
+>
+  
+
+<span class="btn__icon-container">
+  <i class="fas fa-file"></i>
+  </span>
+<span class="btn__text-container">.rst</span>
+</a>
+</li>
+      
+      
+      
+      
+      <li>
+<button onclick="window.print()"
+  class="btn btn-sm btn-download-pdf-button dropdown-item"
+  title="Print to PDF"
+  data-bs-placement="left" data-bs-toggle="tooltip"
+>
+  
+
+<span class="btn__icon-container">
+  <i class="fas fa-file-pdf"></i>
+  </span>
+<span class="btn__text-container">.pdf</span>
+</button>
+</li>
+      
+  </ul>
+</div>
+
+
+
+
+<button onclick="toggleFullScreen()"
+  class="btn btn-sm btn-fullscreen-button"
+  title="Fullscreen mode"
+  data-bs-placement="bottom" data-bs-toggle="tooltip"
+>
+  
+
+<span class="btn__icon-container">
+  <i class="fas fa-expand"></i>
+  </span>
+
+</button>
+
+
+
+<script>
+document.write(`
+  <button class="btn btn-sm nav-link pst-navbar-icon theme-switch-button" title="light/dark" aria-label="light/dark" data-bs-placement="bottom" data-bs-toggle="tooltip">
+    <i class="theme-switch fa-solid fa-sun fa-lg" data-mode="light"></i>
+    <i class="theme-switch fa-solid fa-moon fa-lg" data-mode="dark"></i>
+    <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg" data-mode="auto"></i>
+  </button>
+`);
+</script>
+
+
+<script>
+document.write(`
+  <button class="btn btn-sm pst-navbar-icon search-button search-button__button" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+    <i class="fa-solid fa-magnifying-glass fa-lg"></i>
+  </button>
+`);
+</script>
+<button class="sidebar-toggle secondary-toggle btn btn-sm" title="Toggle secondary sidebar" data-bs-placement="bottom" data-bs-toggle="tooltip">
+    <span class="fa-solid fa-list"></span>
+</button>
+</div></div>
+      
+    </div>
+  
+</div>
+</div>
+              
+              
+
+<div id="jb-print-docs-body" class="onlyprint">
+    <h1>Valuing Uniswap V3 Liquidity Positions</h1>
+    <!-- Table of contents -->
+    <div id="print-main-content">
+        <div id="jb-print-toc">
+            
+            <div>
+                <h2> Contents </h2>
+            </div>
+            <nav aria-label="Page">
+                <ul class="visible nav section-nav flex-column">
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#setting-up-simulation">Setting up Simulation</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#querying-historical-pool-states">Querying Historical Pool States</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#simulating-pool-activity">Simulating Pool Activity</a><ul class="visible nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#simulating-synthetic-swap-dataset">Simulating Synthetic Swap Dataset</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#getting-historical-pool-swaps">Getting Historical Pool Swaps</a></li>
+</ul>
+</li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#visualizing-position-valuations">Visualizing Position Valuations</a></li>
+</ul>
+            </nav>
+        </div>
+    </div>
+</div>
+
+              
+                
+<div id="searchbox"></div>
+                <article class="bd-article">
+                  
+  <section id="valuing-uniswap-v3-liquidity-positions">
+<h1>Valuing Uniswap V3 Liquidity Positions<a class="headerlink" href="#valuing-uniswap-v3-liquidity-positions" title="Permalink to this heading">#</a></h1>
+<p>This guide walks through the process of querying a Uniswap V3 pool from an on-chain state</p>
+<section id="setting-up-simulation">
+<h2>Setting up Simulation<a class="headerlink" href="#setting-up-simulation" title="Permalink to this heading">#</a></h2>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">logging</span>
+
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">from</span> <span class="nn">tqdm</span> <span class="kn">import</span> <span class="n">tqdm</span>
+<span class="kn">from</span> <span class="nn">matplotlib</span> <span class="kn">import</span> <span class="n">pyplot</span> <span class="k">as</span> <span class="n">plt</span>
+<span class="kn">from</span> <span class="nn">web3</span> <span class="kn">import</span> <span class="n">Web3</span>
+<span class="kn">from</span> <span class="nn">eth_utils</span> <span class="kn">import</span> <span class="n">to_checksum_address</span>
+
+<span class="kn">from</span> <span class="nn">nethermind.entro.base</span> <span class="kn">import</span> <span class="n">PoolFactory</span>
+<span class="kn">from</span> <span class="nn">nethermind.entro.uniswap_v3</span> <span class="kn">import</span> <span class="n">UniswapV3Pool</span>
+
+<span class="n">LIQUIDITY_SNAPSHOT_BLOCK</span> <span class="o">=</span> <span class="mi">14000000</span>
+<span class="n">LP_POSITION_MANAGER</span> <span class="o">=</span> <span class="n">to_checksum_address</span><span class="p">(</span><span class="s2">&quot;0xC36442b4a4522E871399CD717aBDD847Ab11FE88&quot;</span><span class="p">)</span>
+
+<span class="n">pool_factory</span> <span class="o">=</span> <span class="n">PoolFactory</span><span class="p">(</span>
+    <span class="n">sqlalchemy_uri</span><span class="o">=</span><span class="sa">f</span><span class="s2">&quot;postgresql://user:pass@host/db_name&quot;</span>
+    <span class="n">w3</span><span class="o">=</span><span class="n">Web3</span><span class="p">(</span><span class="n">Web3</span><span class="o">.</span><span class="n">HTTPProvider</span><span class="p">(</span><span class="s2">&quot;https://localhost:8545&quot;</span><span class="p">,</span> <span class="n">request_kwargs</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;timeout&quot;</span><span class="p">:</span> <span class="mi">60</span><span class="p">})),</span>
+    <span class="n">logger</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">get_logger</span><span class="p">(</span><span class="s2">&quot;position_simulations&quot;</span><span class="p">)</span>
+<span class="p">)</span>
+</pre></div>
+</div>
+</section>
+<section id="querying-historical-pool-states">
+<h2>Querying Historical Pool States<a class="headerlink" href="#querying-historical-pool-states" title="Permalink to this heading">#</a></h2>
+<div class="admonition-caching-pool-states admonition">
+<p class="admonition-title">Caching Pool States</p>
+<p>Through the load_pool() and save_pool() methods, the on-chain query results can be cached.  This reduces
+the setup time for a pool from 10-40 minutes to a few seconds.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">def</span> <span class="nf">initialize_pool</span><span class="p">(</span><span class="n">pool_factory</span><span class="p">,</span> <span class="n">pool_address</span><span class="p">,</span> <span class="n">at_block</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">UniswapV3Pool</span><span class="p">:</span>
+    <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">isfile</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;pool_states/</span><span class="si">{</span><span class="n">pool_address</span><span class="si">}</span><span class="s2">_</span><span class="si">{</span><span class="n">at_block</span><span class="si">}</span><span class="s2">_pool_state.json&quot;</span><span class="p">):</span>
+        <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;pool_states/</span><span class="si">{</span><span class="n">pool_address</span><span class="si">}</span><span class="s2">_</span><span class="si">{</span><span class="n">at_block</span><span class="si">}</span><span class="s2">_pool_state.json&quot;</span><span class="p">,</span> <span class="s2">&quot;r&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">UniswapV3Pool</span><span class="o">.</span><span class="n">load_pool</span><span class="p">(</span><span class="n">f</span><span class="p">,</span> <span class="n">pool_factory</span><span class="p">)</span>
+
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">pool</span> <span class="o">=</span> <span class="n">pool_factory</span><span class="o">.</span><span class="n">initialize_from_chain</span><span class="p">(</span>
+            <span class="n">pool_type</span><span class="o">=</span><span class="s2">&quot;uniswap_v3&quot;</span><span class="p">,</span>
+            <span class="n">pool_address</span><span class="o">=</span><span class="n">to_checksum_address</span><span class="p">(</span><span class="n">pool_address</span><span class="p">),</span>
+            <span class="n">at_block</span><span class="o">=</span><span class="n">at_block</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;pool_states/</span><span class="si">{</span><span class="n">pool_address</span><span class="si">}</span><span class="s2">_</span><span class="si">{</span><span class="n">at_block</span><span class="si">}</span><span class="s2">_pool_state.json&quot;</span><span class="p">,</span> <span class="s2">&quot;w&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+            <span class="n">pool</span><span class="o">.</span><span class="n">save_pool</span><span class="p">(</span><span class="n">f</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">pool</span>
+</pre></div>
+</div>
+</div>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">usdc_weth_pool</span> <span class="o">=</span> <span class="n">initialize_pool</span><span class="p">(</span><span class="n">pool_factory</span><span class="p">,</span> <span class="s2">&quot;0x88e6A0c2dDD26FEEb64F039a2c41296FcB3f5640&quot;</span><span class="p">,</span> <span class="n">LIQUIDITY_SNAPSHOT_BLOCK</span><span class="p">)</span>
+
+<span class="go"># Verify that pool is initialized correctly</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">usdc_weth_pool</span><span class="o">.</span><span class="n">immutables</span><span class="o">.</span><span class="n">fee</span>
+<span class="go">500</span>
+</pre></div>
+</div>
+</section>
+<section id="simulating-pool-activity">
+<h2>Simulating Pool Activity<a class="headerlink" href="#simulating-pool-activity" title="Permalink to this heading">#</a></h2>
+<p>Now that we have a pool state initialized, we can simulate ppool swaps and analyze their impact on
+individual positions, and the greater pool state.</p>
+<section id="simulating-synthetic-swap-dataset">
+<h3>Simulating Synthetic Swap Dataset<a class="headerlink" href="#simulating-synthetic-swap-dataset" title="Permalink to this heading">#</a></h3>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">TRADE_COUNT</span> <span class="o">=</span> <span class="mi">10_000</span>  <span class="c1"># Number of Swaps to Simulate</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">MAX_TRADE_SIZING</span> <span class="o">=</span> <span class="mi">100_000</span>  <span class="c1"># Max Trade Size in USD</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">MIN_TRADE_SIZING</span> <span class="o">=</span> <span class="mi">10_000</span>  <span class="c1"># Min Trade Size in USD</span>
+
+<span class="gp">&gt;&gt;&gt; </span><span class="n">normal_distribution</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">normal</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mf">0.2</span><span class="p">,</span> <span class="n">TRADE_COUNT</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">trade_range</span> <span class="o">=</span> <span class="p">(</span><span class="n">MAX_TRADE_SIZING</span> <span class="o">+</span> <span class="n">MIN_TRADE_SIZING</span><span class="p">)</span> <span class="o">/</span> <span class="mi">2</span>
+
+<span class="gp">&gt;&gt;&gt; </span><span class="n">trade_amounts</span> <span class="o">=</span> <span class="p">[]</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="k">for</span> <span class="n">datapoint</span> <span class="ow">in</span> <span class="n">normal_distribution</span><span class="p">:</span>
+<span class="gp">... </span>   <span class="n">trade_amounts</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">trade_range</span> <span class="o">+</span> <span class="p">(</span><span class="n">datapoint</span> <span class="o">*</span> <span class="n">trade_range</span><span class="p">))</span>
+
+<span class="go"># Plot the trade sizing</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">plt</span><span class="o">.</span><span class="n">hist</span><span class="p">(</span><span class="n">trade_amounts</span><span class="p">,</span> <span class="n">bins</span><span class="o">=</span><span class="mi">30</span><span class="p">,</span> <span class="n">alpha</span><span class="o">=</span><span class="mf">0.5</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="s2">&quot;lightblue&quot;</span><span class="p">,</span> <span class="n">edgecolor</span><span class="o">=</span><span class="s2">&quot;black&quot;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+</pre></div>
+</div>
+<img alt="../_images/trade-sizing.png" src="../_images/trade-sizing.png" />
+<p>The next step is to convert these USD trade sizes into raw token_0 and token_1 amounts, and execute
+the swaps on the pool</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="k">for</span> <span class="n">index</span><span class="p">,</span> <span class="n">trade_amount</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">tqdm</span><span class="p">(</span><span class="n">trade_amounts</span><span class="p">)):</span>
+<span class="gp">... </span>   <span class="n">swap_direction</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">choice</span><span class="p">([</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">])</span>
+<span class="gp">... </span>   <span class="n">sqrt_price_limit</span> <span class="o">=</span> <span class="n">TickMathModule</span><span class="o">.</span><span class="n">MIN_SQRT_RATIO</span> <span class="o">+</span> <span class="mi">1</span> <span class="k">if</span> <span class="n">swap_direction</span> <span class="k">else</span> <span class="n">TickMathModule</span><span class="o">.</span><span class="n">MAX_SQRT_RATIO</span> <span class="o">-</span> <span class="mi">1</span>
+<span class="gp">... </span>   <span class="n">amount_specified</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">trade_amount</span> <span class="o">*</span> <span class="p">(</span><span class="mi">10</span> <span class="o">**</span> <span class="mi">6</span><span class="p">)</span> <span class="o">*</span> <span class="p">(</span><span class="mi">1</span> <span class="k">if</span> <span class="n">swap_direction</span> <span class="k">else</span> <span class="o">-</span><span class="mi">1</span><span class="p">))</span>
+<span class="gp">... </span>   <span class="n">pool</span><span class="o">.</span><span class="n">swap</span><span class="p">(</span><span class="n">amount_specified</span><span class="o">=</span><span class="n">trade_data</span><span class="p">,</span> <span class="n">swap_direction</span><span class="p">,</span> <span class="n">sqrt_price_limit</span><span class="p">)</span>
+<span class="gp">... </span>   <span class="n">pool</span><span class="o">.</span><span class="n">advance_block</span><span class="p">(</span><span class="mi">4</span><span class="p">)</span>
+<span class="gp">...</span>
+<span class="gp">... </span>   <span class="c1"># Every 50 swaps, log position valuations to the database</span>
+<span class="gp">... </span>   <span class="k">if</span> <span class="n">index</span> <span class="o">%</span> <span class="mi">50</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+<span class="gp">... </span>       <span class="n">pool</span><span class="o">.</span><span class="n">save_position_snapshot</span><span class="p">()</span>
+</pre></div>
+</div>
+</section>
+<section id="getting-historical-pool-swaps">
+<h3>Getting Historical Pool Swaps<a class="headerlink" href="#getting-historical-pool-swaps" title="Permalink to this heading">#</a></h3>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This Process is in the process of being automated with improved UX.  This is currently possible
+by scraping swap events starting at the pool_initialization block, and going forward a few months.</p>
+</div>
+</section>
+</section>
+<section id="visualizing-position-valuations">
+<h2>Visualizing Position Valuations<a class="headerlink" href="#visualizing-position-valuations" title="Permalink to this heading">#</a></h2>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>USD Position Valuation is in the process of being implemented.</p>
+</div>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">active_position</span> <span class="o">=</span> <span class="n">usdc_weth_pool</span><span class="o">.</span><span class="n">get_position_valuation</span><span class="p">(</span><span class="n">LP_POSITION_MANAGER</span><span class="p">,</span> <span class="mi">194890</span><span class="p">,</span> <span class="mi">195510</span><span class="p">)</span>
+
+<span class="gp">&gt;&gt;&gt; </span><span class="n">active_position</span>
+
+<span class="go">     block_number  token_0_value  ...  token_1_value_usd position_value_usd</span>
+<span class="go">0        12384693   3.953397e+06  ...               None               None</span>
+<span class="go">1        12384653   4.339269e+06  ...               None               None</span>
+<span class="go">2        12384613   4.800521e+06  ...               None               None</span>
+<span class="go">3        12384573   4.742173e+06  ...               None               None</span>
+<span class="go">4        12384533   4.874176e+06  ...               None               None</span>
+<span class="go">..            ...            ...  ...                ...                ...</span>
+<span class="go">195      12376893   6.523035e+06  ...               None               None</span>
+<span class="go">196      12376853   6.374573e+06  ...               None               None</span>
+<span class="go">197      12376813   6.320359e+06  ...               None               None</span>
+<span class="go">198      12376773   6.687767e+06  ...               None               None</span>
+<span class="go">199      12376733   6.326365e+06  ...               None               None</span>
+<span class="go">[200 rows x 6 columns]</span>
+
+
+<span class="gp">&gt;&gt;&gt; </span><span class="n">fig</span><span class="p">,</span> <span class="n">ax</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">subplots</span><span class="p">(</span><span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">20</span><span class="p">,</span><span class="mi">10</span><span class="p">))</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">pos_1</span><span class="o">.</span><span class="n">plot</span><span class="o">.</span><span class="n">line</span><span class="p">(</span><span class="n">x</span><span class="o">=</span><span class="s2">&quot;block_number&quot;</span><span class="p">,</span> <span class="n">y</span><span class="o">=</span><span class="s2">&quot;token_0_value&quot;</span><span class="p">,</span> <span class="n">ax</span><span class="o">=</span><span class="n">ax</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">pos_1</span><span class="o">.</span><span class="n">plot</span><span class="o">.</span><span class="n">line</span><span class="p">(</span><span class="n">x</span><span class="o">=</span><span class="s2">&quot;block_number&quot;</span><span class="p">,</span> <span class="n">y</span><span class="o">=</span><span class="s2">&quot;token_1_value&quot;</span><span class="p">,</span> <span class="n">secondary_y</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">ax</span><span class="o">=</span><span class="n">ax</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+</pre></div>
+</div>
+<figure class="align-default">
+<img alt="../_images/position-valuation.png" src="../_images/position-valuation.png" />
+</figure>
+</section>
+</section>
+
+
+                </article>
+              
+
+              
+              
+              
+              
+                <footer class="prev-next-footer d-print-none">
+                  
+<div class="prev-next-area">
+    <a class="left-prev"
+       href="Uniswap%20Quickstart.html"
+       title="previous page">
+      <i class="fa-solid fa-angle-left"></i>
+      <div class="prev-next-info">
+        <p class="prev-next-subtitle">previous</p>
+        <p class="prev-next-title">Uniswap Quickstart</p>
+      </div>
+    </a>
+    <a class="right-next"
+       href="../api/ERC20Token.html"
+       title="next page">
+      <div class="prev-next-info">
+        <p class="prev-next-subtitle">next</p>
+        <p class="prev-next-title">Standard Token Interface</p>
+      </div>
+      <i class="fa-solid fa-angle-right"></i>
+    </a>
+</div>
+                </footer>
+              
+            </div>
+            
+            
+              
+                <div class="bd-sidebar-secondary bd-toc"><div class="sidebar-secondary-items sidebar-secondary__inner">
+
+
+  <div class="sidebar-secondary-item">
+  <div class="page-toc tocsection onthispage">
+    <i class="fa-solid fa-list"></i> Contents
+  </div>
+  <nav class="bd-toc-nav page-toc">
+    <ul class="visible nav section-nav flex-column">
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#setting-up-simulation">Setting up Simulation</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#querying-historical-pool-states">Querying Historical Pool States</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#simulating-pool-activity">Simulating Pool Activity</a><ul class="visible nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#simulating-synthetic-swap-dataset">Simulating Synthetic Swap Dataset</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#getting-historical-pool-swaps">Getting Historical Pool Swaps</a></li>
+</ul>
+</li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#visualizing-position-valuations">Visualizing Position Valuations</a></li>
+</ul>
+  </nav></div>
+
+</div></div>
+              
+            
+          </div>
+          <footer class="bd-footer-content">
+            
+<div class="bd-footer-content__inner container">
+  
+  <div class="footer-item">
+    
+<p class="component-author">
+By Nethermind
+</p>
+
+  </div>
+  
+  <div class="footer-item">
+    
+
+  <p class="copyright">
+    
+      © Copyright 2023, Nethermind.
+      <br/>
+    
+  </p>
+
+  </div>
+  
+  <div class="footer-item">
+    
+  </div>
+  
+  <div class="footer-item">
+    
+  </div>
+  
+</div>
+          </footer>
+        
+
+      </main>
+    </div>
+  </div>
+  
+  <!-- Scripts loaded after <body> so the DOM is not blocked -->
+  <script src="../_static/scripts/bootstrap.js?digest=dfe6caa3a7d634c4db9b"></script>
+<script src="../_static/scripts/pydata-sphinx-theme.js?digest=dfe6caa3a7d634c4db9b"></script>
+
+  <footer class="bd-footer">
+  </footer>
+  </body>
+</html>
