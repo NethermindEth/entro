@@ -1,12 +1,9 @@
-import uuid
-
 import pytest
 
 from nethermind.entro.backfill.filter import (
     _filter_conflicting_backfills,
     _verify_filters,
 )
-from nethermind.entro.backfill.planner import BackfillRangePlan
 from nethermind.entro.database.models import BackfilledRange
 from nethermind.entro.exceptions import BackfillError
 from nethermind.entro.types.backfill import BackfillDataType
@@ -70,7 +67,7 @@ class TestFiltering:
 
     def test_valid_filters(self):
         valid_filters = [
-            _verify_filters(BackfillDataType.events, {"contract_address": self.a2, "contract_abi": "ERC20", "event_names": ["Transfer"]}), # Valid Event Filter
+            _verify_filters(BackfillDataType.events, {"contract_address": self.a2, "abi_name": "ERC20", "event_names": ["Transfer"]}), # Valid Event Filter
             _verify_filters(BackfillDataType.transactions, {"for_address": self.a1}),
             # _verify_filters(BackfillDataType.transactions, {"from_address": self.a3})  # From address has been replaced by For Address
             _verify_filters(BackfillDataType.traces, {"from_address": self.a1}), # Valid Trace Filter
