@@ -28,8 +28,6 @@ jobs:
       - name: Install Poetry
         if: steps.cached-poetry.outputs.cache-hit != 'true'
         uses: snok/install-poetry@v1
-        with:
-          virtualenvs-in-project: true
 
       - name: Load Cached Virtualenv
         id: cached-poetry-dependencies
@@ -41,7 +39,7 @@ jobs:
       - name: Install Dependencies
         if: steps.cached-poetry-dependencies.outputs.cache-hit != 'true'
         run: |
-          poetry config virtualenvs.create true
+          poetry config virtualenvs.in-project true
           poetry install --no-interaction --with docs --with evm --with dev
 
   lint:
