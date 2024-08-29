@@ -1,7 +1,7 @@
 [tool.poetry]
 name = "entro"
-version = "0.0.1"
-description = "Python package for interacting with AMMs and simulating their behavior"
+version = "0.1.0"
+description = "Python package for interacting with blockchains"
 authors = ["Eli Barbieri <eli@nethermind.io>"]
 readme = "README.md"
 packages = [

@@ -1,5 +1,7 @@
 ## Python package for Interacting with Blockchains
 
+> This package is current an early release.  If you encounter any issues, please open an issue on the repository
+
 ## Features:
 * Backfill & Decode blockchain Data to CSV (ethereum-etl w/ ABI decoding)
 * Starknet Data Backfilling
@@ -407,8 +409,3 @@ entro backfill starknet events --help
 #    --event-file PATH               File to save event data
 #    --help                          Show this message and exit.
 ```
-
-
-## Documentation:
-Documentation is currently being refactored and not live on github.  To view current documentation,
-clone & setup the Repo & Run `poetry run sphinx-build docs/source/ docs/_build/`
