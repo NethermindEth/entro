@@ -6,8 +6,8 @@ class DecodedFuncDataclass(Protocol):
 
     abi_name: str
     name: str
-    input: dict[str, Any] | None
-    output: list[Any] | None
+    inputs: dict[str, Any] | None
+    outputs: list[Any] | None
 
 
 class DecodedEventDataclass(Protocol):
@@ -28,21 +28,26 @@ class DecodedEventDataclass(Protocol):
 
 
 class AbiFunctionDecoder(Protocol):
+    """Abstract Protocol for ABI Function Decoders"""
+
     name: str
     signature: bytes
     abi_name: str
 
     priority: int
 
-    def decode(self, calldata: list[bytes], result: list[bytes] | None = None) -> DecodedEventDataclass | None:
-        ...
+    def decode(self, calldata: list[bytes], result: list[bytes] | None = None) -> DecodedFuncDataclass | None:
+        """Decode Function from calldata and result bytes"""
+        raise NotImplementedError()
 
     def id_str(self, full_signature: bool = True) -> str:
         """Return Human Readable representation of the function signature"""
-        ...
+        raise NotImplementedError()
 
 
 class AbiEventDecoder(Protocol):
+    """Abstract Protocol for ABI Event"""
+
     name: str
     signature: bytes
     abi_name: str
@@ -51,8 +56,9 @@ class AbiEventDecoder(Protocol):
     indexed_params: int
 
     def decode(self, data: list[bytes], keys: list[bytes]) -> DecodedEventDataclass | None:
-        ...
+        """Decode Event from lists of data and key bytes"""
+        raise NotImplementedError()
 
     def id_str(self, full_signature: bool = True) -> str:
         """Return Human Readable representation of the event signature"""
-        ...
+        raise NotImplementedError()

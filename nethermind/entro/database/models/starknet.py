@@ -1,6 +1,6 @@
 from typing import Any
 
-from sqlalchemy import JSON, BigInteger, Integer, Numeric, PrimaryKeyConstraint, Text
+from sqlalchemy import JSON, BigInteger, Numeric, PrimaryKeyConstraint, Text
 from sqlalchemy.orm import Mapped, mapped_column
 
 from nethermind.entro.database.models.base import (
@@ -10,9 +10,16 @@ from nethermind.entro.database.models.base import (
     AbstractTransaction,
     BlockNumberPK,
     Hash32,
-    IndexedAddress,
+    Hash32PK,
+    IndexedBlockNumber,
 )
-from nethermind.idealis.types.starknet.enums import BlockDataAvailabilityMode
+from nethermind.idealis.types.starknet import DecodedOperation
+from nethermind.idealis.types.starknet.enums import (
+    BlockDataAvailabilityMode,
+    StarknetFeeUnit,
+    StarknetTxType,
+    TransactionStatus,
+)
 
 # pylint: disable=missing-class-docstring
 
@@ -25,7 +32,7 @@ class Block(AbstractBlock):
 
     block_hash: Mapped[Hash32]
     parent_hash: Mapped[Hash32]
-    new_root: Mapped[Hash32]
+    state_root: Mapped[Hash32]
     sequencer_address: Mapped[Hash32]
 
     l1_gas_price_wei: Mapped[int] = mapped_column(Numeric, nullable=False)
@@ -44,12 +51,16 @@ class Block(AbstractBlock):
 class DefaultEvent(AbstractEvent):
     __tablename__ = "default_events"
 
+    keys: Mapped[list[str]] = mapped_column(JSON)
+    data: Mapped[list[str] | None] = mapped_column(JSON, nullable=True)
+
+    class_hash: Mapped[str | None] = mapped_column(Text, nullable=True)
+
     event_name: Mapped[str | None] = mapped_column(Text, index=True)
-    abi_name: Mapped[str | None] = mapped_column(Text, index=True)
-    decoded_event: Mapped[dict[str, Any] | None] = mapped_column(JSON, nullable=True)
+    decoded_params: Mapped[dict[str, Any] | None] = mapped_column(JSON, nullable=True)
 
     __table_args__ = (
-        PrimaryKeyConstraint("block_number", "log_index"),
+        PrimaryKeyConstraint("block_number", "transaction_index", "event_index"),
         {"schema": "starknet_data"},
     )
 
@@ -57,18 +68,35 @@ class DefaultEvent(AbstractEvent):
 class Transaction(AbstractTransaction):
     __tablename__ = "transactions"
 
+    transaction_hash: Mapped[Hash32PK]
+    block_number: Mapped[IndexedBlockNumber]
+    transaction_index: Mapped[int]
+
+    type: Mapped[StarknetTxType]
     nonce: Mapped[int]
-    max_fee: Mapped[int]
-    type: Mapped[str]  # "DECLARE", "DEPLOY", "DEPLOY_ACCOUNT", "INVOKE", "L1_HANDLER"
-    signature: Mapped[str]
+    signature: Mapped[list[str]] = mapped_column(JSON)
+    version: Mapped[int]
+    timestamp: Mapped[int]
+    status: Mapped[TransactionStatus]
 
-    sender_address: Mapped[IndexedAddress]
-    calldata: Mapped[list[str] | None] = mapped_column(JSON, nullable=True)
+    max_fee: Mapped[int] = mapped_column(Numeric)
+    actual_fee: Mapped[int] = mapped_column(Numeric)
+    fee_unit: Mapped[StarknetFeeUnit]
+    execution_resources: Mapped[dict[str, Any]] = mapped_column(JSON)
+    gas_used: Mapped[int] = mapped_column(BigInteger)
 
-    # Receipt Data
-    actual_fee: Mapped[int | None]
-    execution_resources: Mapped[dict[str, int] | None] = mapped_column(JSON, nullable=True)
-    gas_used: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    tip: Mapped[int] = mapped_column(Numeric)  # Not In Use
+    resource_bounds: Mapped[dict[str, int] | None] = mapped_column(JSON, nullable=True)
+    paymaster_data: Mapped[list[str]] = mapped_column(JSON)
+    account_deployment_data: Mapped[list[str]] = mapped_column(JSON)
+
+    contract_address: Mapped[str | None] = mapped_column(Text, index=True, nullable=True)
+    selector: Mapped[str]
+    calldata: Mapped[list[str]] = mapped_column(JSON)
+    class_hash: Mapped[str | None]  # Deploy Account & Declare V2
+
+    user_operations: Mapped[list[DecodedOperation]] = mapped_column(JSON)
+    revert_error: Mapped[str | None]
 
     __table_args__ = {"schema": "starknet_data"}
 
@@ -76,4 +104,4 @@ class Transaction(AbstractTransaction):
 class ERC20Transfer(AbstractERC20Transfer):
     __tablename__ = "erc20_transfers"
 
-    __table_args__ = (PrimaryKeyConstraint("transaction_hash", "log_index"), {"schema": "starknet_data"})
+    __table_args__ = (PrimaryKeyConstraint("transaction_hash", "event_index"), {"schema": "starknet_data"})

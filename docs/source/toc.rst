@@ -10,7 +10,7 @@ Table of Contents
     Changelog
 
 .. toctree::
-    :maxdepth: 1
+    :maxdepth: 3
     :caption: CLI Guide
     :glob:
 

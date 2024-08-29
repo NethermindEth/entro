@@ -6,7 +6,7 @@ from .starknet import starknet_group
 
 @click.group()
 def backfill_group():
-    pass
+    """Backfill blockchain data for Blockchain Networks"""
 
 
 @backfill_group.command(name="list")

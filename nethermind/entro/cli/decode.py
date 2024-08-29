@@ -1,28 +1,17 @@
-import json
 import logging
+from typing import Literal
 
 import click
-
-from rich.logging import RichHandler
-from rich.console import Console
-
-from nethermind.entro.database.readers.internal import get_abis
-from nethermind.entro.database.writers.internal import write_abi
-from nethermind.entro.database.models.internal import ContractABI, BackfilledRange
-
-from nethermind.entro.exceptions import DecodingError
-from nethermind.entro.decoding import DecodingDispatcher
 
 
 from nethermind.entro.cli.utils import (
     db_url_option,
     group_options,
-    create_cli_session,
     json_rpc_option,
 )
 
 # isort: skip_file
-# pylint: disable=too-many-arguments,raise-missing-from,import-outside-toplevel,too-many-locals
+# pylint: disable=too-many-arguments,import-outside-toplevel,too-many-locals
 
 root_logger = logging.getLogger("nethermind")
 logger = root_logger.getChild("entro").getChild("backfill")
@@ -30,7 +19,7 @@ logger = root_logger.getChild("entro").getChild("backfill")
 
 @click.group("decode", short_help="ABI Decoding & Event Classification")
 def decode_group():
-    pass
+    """ABI Decoding & Event Classification"""
 
 
 # TODO: Fix DRY betweem add-abi & add-class
@@ -44,15 +33,21 @@ def decode_group():
 def add_abi(db_url: str | None, abi_name: str, abi_json, priority: int):
     """Adds an ABI to the database"""
 
-    rich_console = Console()
-    if not root_logger.hasHandlers():
-        root_logger.addHandler(RichHandler(show_path=False, console=rich_console))
-        root_logger.setLevel(logging.WARNING)
+    import json
+    from nethermind.entro.cli.utils import cli_logger_config, create_cli_session
+    from nethermind.entro.database.readers.internal import get_abis
+    from nethermind.entro.database.writers.internal import write_abi
+    from nethermind.entro.database.models.internal import ContractABI
+    from nethermind.entro.exceptions import DecodingError
+    from nethermind.entro.decoding import DecodingDispatcher
+
+    console = cli_logger_config(root_logger)
+    root_logger.setLevel(logging.WARNING)
 
     db_session = create_cli_session(db_url) if db_url else None
     loaded_abis = get_abis(db_session)
 
-    rich_console.print(
+    console.print(
         f"Attempting to add ABI {abi_name} to Decoder with priority {priority}.  Checking for "
         f"conflicts with {len(loaded_abis)} existing ABIs"
     )
@@ -75,9 +70,11 @@ def add_abi(db_url: str | None, abi_name: str, abi_json, priority: int):
         logger.error(e)
         return
 
-    write_abi(ContractABI(abi_name=abi_name, abi_json=add_abi_dict, priority=priority, os="EVM"), db_session)
+    write_abi(ContractABI(abi_name=abi_name, abi_json=add_abi_dict, priority=priority, decoder_os="EVM"), db_session)
+    if db_session:
+        db_session.close()
 
-    rich_console.print(f"[green]Successfully Added {abi_name} to Database with Priority {priority}")
+    console.print(f"[green]Successfully Added {abi_name} to Database with Priority {priority}")
 
 
 @decode_group.command()
@@ -86,17 +83,23 @@ def add_abi(db_url: str | None, abi_name: str, abi_json, priority: int):
 @click.argument("class_hash")
 @click.option("--priority", type=int, default=0)
 def add_class(db_url: str | None, json_rpc: str, abi_name: str, class_hash: str, priority: int):
+    """Add a StarkNet Class to the Decoder"""
+    import json
+    from nethermind.entro.cli.utils import cli_logger_config, create_cli_session
     from nethermind.idealis.utils.starknet.decode import get_parsed_abi_json
+    from nethermind.entro.database.readers.internal import get_abis
+    from nethermind.entro.database.writers.internal import write_abi
+    from nethermind.entro.database.models.internal import ContractABI
+    from nethermind.entro.decoding import DecodingDispatcher
+    from nethermind.entro.exceptions import DecodingError
 
-    rich_console = Console()
-    if not root_logger.hasHandlers():
-        root_logger.addHandler(RichHandler(show_path=False, console=rich_console))
-        root_logger.setLevel(logging.INFO)
+    console = cli_logger_config(root_logger)
+    root_logger.setLevel(logging.WARNING)
 
     db_session = create_cli_session(db_url) if db_url else None
     loaded_abis = get_abis(db_session, decoder_os="Cairo")
 
-    rich_console.print(
+    console.print(
         f"Attempting to add StarkNet Class {class_hash} to Decoder with priority {priority}.  Checking for "
         f"conflicts with {len(loaded_abis)} existing Decode Classes"
     )
@@ -121,59 +124,90 @@ def add_class(db_url: str | None, json_rpc: str, abi_name: str, class_hash: str,
         logger.error(e)
         return
 
-    write_abi(ContractABI(abi_name=abi_name, abi_json=starknet_class_abi, priority=priority, os="Cairo"), db_session)
+    write_abi(
+        ContractABI(abi_name=abi_name, abi_json=starknet_class_abi, priority=priority, decoder_os="Cairo"), db_session
+    )
+    if db_session:
+        db_session.close()
 
-    rich_console.print(f"[green]Successfully Added {abi_name} to Database with Priority {priority}")
+    console.print(f"[green]Successfully Added {abi_name} to Database with Priority {priority}")
 
 
 @decode_group.command()
 @group_options(db_url_option)
 def list_abis(db_url: str | None):
     """Lists all available ABIs that can be used for classification"""
+    from rich.panel import Panel
+    from rich.table import Table
+    from nethermind.entro.cli.utils import cli_logger_config, create_cli_session
+    from nethermind.entro.database.readers.internal import get_abis
 
-    # TODO: switch to rich output
-    if not root_logger.hasHandlers():
-        root_logger.addHandler(RichHandler(show_path=False))
-        root_logger.setLevel(logging.WARNING)
+    console = cli_logger_config(root_logger)
 
     db_session = create_cli_session(db_url) if db_url else None
-    evm_abis = get_abis(db_session)
-    starknet_abis = get_abis(db_session, decoder_os="Cairo")
-    longest_abi_name = max(len(abi.abi_name) for abi in evm_abis + starknet_abis)
+    evm_abis = sorted(get_abis(db_session), key=lambda x: x.priority, reverse=True)
+    starknet_abis = sorted(get_abis(db_session, decoder_os="Cairo"), key=lambda x: x.priority, reverse=True)
 
-    # click.echo("  ABI Name" + " " * (longest_abi_name - 4) + "Priority")
-    pager_text = [
-        "-------- EVM ABIs -------\n",
-        *[f"{abi.abi_name} {'-' * (longest_abi_name - len(abi.abi_name) + 2)}> {abi.priority}\n" for abi in evm_abis],
-        "------- Cairo ABIs ------\n",
-        *[
-            f"{abi.abi_name} {'-' * (longest_abi_name - len(abi.abi_name) + 2)}> {abi.priority}\n"
-            for abi in starknet_abis
-        ],
-    ]
-    click.echo_via_pager(pager_text)
+    if db_session:
+        db_session.close()
+
+    if len(evm_abis):
+        evm_table = Table(box=None)
+        evm_table.add_column("ABI Name", style="bold")
+        evm_table.add_column("Priority")
+        for abi in evm_abis:
+            evm_table.add_row(abi.abi_name, str(abi.priority))
+
+        console.print(Panel("-- EVM ABIs --", width=40))
+        console.print(evm_table)
+
+    if len(starknet_abis):
+        cairo_table = Table(box=None)
+        cairo_table.add_column("ABI Name", style="bold")
+        cairo_table.add_column("Priority")
+        for abi in starknet_abis:
+            cairo_table.add_row(abi.abi_name, str(abi.priority))
+
+        console.print(Panel("-- Cairo ABIs --", width=40))
+        console.print(cairo_table)
 
 
 @decode_group.command()
+@click.argument("decoder_type", type=click.Choice(["EVM", "Cairo"]))
 @click.option("--full-signatures", is_flag=True, default=False)
 @group_options(db_url_option)
-def list_abi_decoders(db_url, full_signatures):
+def list_abi_decoders(decoder_type, db_url, full_signatures):
     """Lists all Available ABIs in Database, along with the function and event signatures each ABI will classify"""
-    if not root_logger.hasHandlers():
-        root_logger.addHandler(RichHandler(show_path=False))
-        root_logger.setLevel(logging.WARNING)
+    from nethermind.entro.cli.utils import cli_logger_config, create_cli_session
+    from nethermind.entro.decoding import DecodingDispatcher
+
+    console = cli_logger_config(root_logger)
+    root_logger.setLevel(logging.WARNING)
 
     db_session = create_cli_session(db_url) if db_url else None
 
-    console = Console()
-
-    evm_decoder = DecodingDispatcher.from_abis(classify_abis=[], db_session=db_session, decoder_os="EVM", all_abis=True)
-    cairo_decoder = DecodingDispatcher.from_abis(
-        classify_abis=[], db_session=db_session, decoder_os="Cairo", all_abis=True
+    decoder = DecodingDispatcher.from_cache(
+        classify_abis=[], db_session=db_session, decoder_os=decoder_type, all_abis=True
     )
 
-    if len(evm_decoder.loaded_abis):
-        console.print(evm_decoder.decoder_table(full_signatures=full_signatures))
+    if decoder.loaded_abis:
+        console.print(decoder.decoder_table(full_signatures=full_signatures))
 
-    if len(cairo_decoder.loaded_abis):
-        console.print(cairo_decoder.decoder_table(full_signatures=full_signatures))
+
+@decode_group.command()
+@group_options(db_url_option)
+@click.argument("abi_name")
+@click.argument("decoder_type", type=click.Choice(["EVM", "Cairo"]))
+def delete_abi(abi_name: str, decoder_type: Literal["EVM", "Cairo"], db_url: str | None):
+    """Deletes an ABI from the data cache"""
+    from nethermind.entro.cli.utils import cli_logger_config, create_cli_session
+    from nethermind.entro.database.writers.internal import delete_abi
+
+    cli_logger_config(root_logger)
+
+    db_session = create_cli_session(db_url) if db_url else None
+
+    delete_abi(abi_name, db_session, decoder_type)
+
+    if db_session:
+        db_session.close()

@@ -1,13 +1,11 @@
 from click.testing import CliRunner
 
-from integration_tests.backfill_cli.utils import printout_error_and_traceback
 from nethermind.entro.cli import entro_cli
 from nethermind.entro.database.models.zk_sync import (
     EraBlock,
     EraDefaultEvent,
     EraTransaction,
 )
-from nethermind.entro.database.writers.utils import model_to_dict
 from tests.resources.ABI import (
     ERC20_ABI_JSON,
     ERC721_ABI_JSON,
@@ -96,7 +94,7 @@ def test_full_backfill_zk_sync_era(
         router_res = runner.invoke(
             entro_cli,
             [
-                "decoding" "add-abi",
+                "decode" "add-abi",
                 "SyncSwapRouter",
                 "SyncSwapRouter.json",
                 "--priority",
@@ -113,8 +111,9 @@ def test_full_backfill_zk_sync_era(
     backfill_res = runner.invoke(
         entro_cli,
         [
-            "decoding" "backfill",
-            "zk_sync" "full_blocks",
+            "backfill",
+            "zk-sync",
+            "full-blocks",
             "--all-abis",
             "--from-block",
             17570000,
@@ -159,10 +158,10 @@ def test_full_backfill_zk_sync_era(
     blocks = integration_db_session.query(EraBlock).all()
     assert blocks[0].block_number == 17570000
     assert blocks[0].timestamp == 1698541582
-    assert blocks[0].effective_gas_price == 0.25e9
+    assert blocks[0].base_fee_per_gas == 0.25e9
 
     assert blocks[-1].block_number == 17570099
     assert blocks[-1].timestamp == 1698541685
-    assert blocks[-1].effective_gas_price == 0.25e9
+    assert blocks[-1].base_fee_per_gas == 0.25e9
 
     assert len(blocks) == 100

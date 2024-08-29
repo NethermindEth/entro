@@ -1,5 +1,4 @@
 import click
-from sqlalchemy import create_engine
 
 from nethermind.entro.cli.backfill import backfill_group
 from nethermind.entro.cli.decode import decode_group
@@ -7,7 +6,8 @@ from nethermind.entro.cli.get import get_group
 from nethermind.entro.cli.prices import prices_group
 from nethermind.entro.cli.tokens import tokens_group
 from nethermind.entro.cli.utils import db_url_option, group_options
-from nethermind.entro.database.migrations import migrate_up
+
+# pylint: disable=import-outside-toplevel
 
 
 @click.group()
@@ -21,6 +21,10 @@ def cli_migrate_up(db_url):
     """
     Migrate DB Tables to Latest Version
     """
+    from sqlalchemy import create_engine
+
+    from nethermind.entro.database.migrations import migrate_up
+
     db_engine = create_engine(db_url)
     click.echo("Starting Database Migrations")
 

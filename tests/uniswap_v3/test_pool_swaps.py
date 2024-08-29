@@ -1,15 +1,13 @@
 # type: ignore
 import copy
 import json
-import logging
 import math
-import os
+from dataclasses import dataclass
 from pathlib import Path
-from typing import List, Optional
+from typing import List
 
 import pytest
 from eth_utils import to_checksum_address
-from pydantic import BaseModel
 
 from nethermind.entro.exceptions import UniswapV3Revert
 from nethermind.entro.types.uniswap_v3 import Slot0
@@ -31,21 +29,24 @@ class TestArbitrages:
     pass
 
 
-class SwapCase(BaseModel):
+@dataclass
+class SwapCase:
     zero_for_one: bool
-    exact_out: Optional[bool]
-    amount_0: Optional[int]
-    amount_1: Optional[int]
-    sqrt_price_limit: Optional[int]
+    exact_out: bool | None = None
+    amount_0: int | None = None
+    amount_1: int | None = None
+    sqrt_price_limit: int | None = None
 
 
-class Position(BaseModel):
+@dataclass
+class Position:
     tick_lower: int
     tick_upper: int
     liquidity: int
 
 
-class PoolTestCase(BaseModel):
+@dataclass
+class PoolTestCase:
     fee_amount: int
     tick_spacing: int
     starting_price: int

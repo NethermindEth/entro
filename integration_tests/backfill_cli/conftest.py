@@ -27,7 +27,7 @@ def eth_rpc_cli_config() -> List[str]:
 
 @pytest.fixture()
 def etherscan_cli_config() -> List[str]:
-    return ["--api-key", os.environ["ETHERSCAN_API_KEY"]]
+    return ["--etherscan-api-key", os.environ["ETHERSCAN_API_KEY"]]
 
 
 @pytest.fixture()

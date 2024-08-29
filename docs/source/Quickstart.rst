@@ -1,1 +1,7 @@
 .. _quickstart:
+
+Quickstart
+==========
+
+Installation
+------------

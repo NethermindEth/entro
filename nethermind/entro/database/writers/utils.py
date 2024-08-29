@@ -1,5 +1,4 @@
 import logging
-from enum import Enum
 from typing import Any, Type
 
 from hexbytes import HexBytes
@@ -17,29 +16,6 @@ logger = root_logger.getChild("entro").getChild("db").getChild("utils")
 def model_to_dict(model) -> dict[str, Any]:
     """Converts a SQLAlchemy model to a dictionary"""
     return {c.key: getattr(model, c.key) for c in inspect(model).mapper.column_attrs}
-
-
-def db_encode_dict(data: Any) -> Any:
-    """
-    Recursively encodes a dictionary.  Converts all binary types to hexstrings that can be saved to the database
-    in JSON columns.
-
-    :param data:
-    :return:
-    """
-    if isinstance(data, dict):
-        return {k: db_encode_dict(v) for k, v in data.items()}
-
-    if isinstance(data, (list, tuple)):
-        return [db_encode_dict(d) for d in data]
-
-    if isinstance(data, Enum):
-        return data.value
-
-    if isinstance(data, bytes):
-        return "0x" + data.hex()
-
-    return data
 
 
 def db_encode_hex(data: str | HexBytes | bytes, db_dialect: str) -> str | bytes:

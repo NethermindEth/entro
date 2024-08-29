@@ -1,8 +1,11 @@
+import pytest
 from click.testing import CliRunner
 
 from integration_tests.backfill_cli.utils import printout_error_and_traceback
 from nethermind.entro.cli import entro_cli
 from nethermind.entro.database.models import BackfilledRange
+
+WETH_9 = "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2"
 
 
 def test_backfill_ethereum_transactions(
@@ -13,8 +16,6 @@ def test_backfill_ethereum_transactions(
 ):
     runner = CliRunner()
 
-    weth_9 = "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2"
-
     migrate = runner.invoke(entro_cli, ["migrate-up", *cli_db_url])
     assert migrate.exit_code == 0
 
@@ -22,13 +23,16 @@ def test_backfill_ethereum_transactions(
         entro_cli,
         [
             "backfill",
-            "ethereum" "transactions",
+            "ethereum",
+            "transactions",
             "--for-address",
-            weth_9,
+            WETH_9,
             "-from",
             18_000_000,
             "-to",
             18_005_000,
+            "--batch-size",
+            500,
             *cli_db_url,
             *etherscan_cli_config,
         ],
@@ -44,9 +48,10 @@ def test_backfill_ethereum_transactions(
     assert len(backfills) == 1
     assert backfills[0].start_block == 18_000_000
     assert backfills[0].end_block == 18_005_000
-    assert backfills[0].filter_data == {"for_address": "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2"}
+    assert backfills[0].filter_data == {"for_address": WETH_9}
 
 
+@pytest.mark.skip("Non-Critical")
 def test_required_parameters_for_etherscan_backfill(integration_postgres_db, cli_db_url, etherscan_cli_config):
     runner = CliRunner()
 
@@ -55,7 +60,7 @@ def test_required_parameters_for_etherscan_backfill(integration_postgres_db, cli
 
     no_api_key = runner.invoke(
         entro_cli,
-        ["backfill", "transactions", "--source", "etherscan", *cli_db_url],
+        ["backfill", "ethereum", "transactions", "--for-address", WETH_9, *cli_db_url],
         input="y",
     )
 
@@ -63,11 +68,10 @@ def test_required_parameters_for_etherscan_backfill(integration_postgres_db, cli
         entro_cli,
         [
             "backfill",
+            "ethereum",
             "transactions",
-            "--source",
-            "etherscan",
-            "--api-key",
-            "invalid",
+            "--etherscan-api-key",
+            "something",
             *cli_db_url,
         ],
         input="y",

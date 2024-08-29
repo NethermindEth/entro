@@ -76,7 +76,7 @@ def call_evm_contract(
             calldata=data,
         )
     except RuntimeError:
-        raise exception_class if exception_class else RuntimeError  # pylint: disable=raise-missing-from
+        raise exception_class if exception_class else RuntimeError
     return tx_result
 
 

@@ -7,6 +7,10 @@
 * Simulate Uniswap V3 Behavior
 
 
+## Documentation
+[Entro Documentation](https://nethermindeth.github.io/entro/)
+
+
 ## Installation
 ```bash
 # Using pip install
@@ -26,6 +30,11 @@ the [Rich Documentation](https://rich.readthedocs.io/en/stable/introduction.html
 # Configure RPC Node for CLI
 export JSON_RPC=https://free-rpc.nethermind.io/mainnet-juno/
 
+# If you have a Starknet API Key from voyager.online:
+export JSON_RPC=https://rpc.nethermind.io/mainnet-juno/?apikey=YOUR_API_KEY
+
+# WARNING: The get contract command can calls the RPC hundreds of times in some cases with complex contracts
+# This algorithm uses bisection to locate block numbers where contract classes are deployed/updated
 entro get starknet contract 0x049d36570d4e46f48e99674bd3fcc84644ddd6b96f7c741b1562b82f9e004dc7
 
 # Outputs the Contract Implementation History for a Contract Address
@@ -241,16 +250,8 @@ entro decode add-class Starknet-ETH 0x07f3777c99f3700505ea966676aac4a0d692c2a9f5
 entro decode add-class AVNU-Exchange 0x07b33a07ec099c227130ddffc9d74ad813fbcb8e0ff1c0f3ce097958e3dfc70b --priority=40
 
 # To view the currently known ABIs & the functions they decode, list-abi-decoders
-entro decode list-abi-decoders
+entro decode list-abi-decoders Cairo
 
-                                                    EVM Decoder ABIs                                                    
-┏━━━━━━━┳━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━━━━┓
-┃ Name  ┃ Priority ┃ Functions                                                              ┃ Events                   ┃
-┡━━━━━━━╇━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━━━━━━━━━┩
-│ ERC20 │ 100      │ 'allowance', 'approve', 'balanceOf', 'decimals', 'decreaseAllowance',  │ 'Approval', 'Transfer',  │
-│       │          │ 'increaseAllowance', 'name', 'symbol', 'totalSupply', 'transfer',      │                          │
-│       │          │ 'transferFrom',                                                        │                          │
-└───────┴──────────┴────────────────────────────────────────────────────────────────────────┴──────────────────────────┘
                                                                Cairo Decoder ABIs                                                               
 ┏━━━━━━━━━━━━━━━┳━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
 ┃ Name          ┃ Priority ┃ Functions                                                                  ┃ Events                               ┃

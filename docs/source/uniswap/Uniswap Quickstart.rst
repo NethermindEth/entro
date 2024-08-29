@@ -137,7 +137,7 @@ Analyzing Liquidity
     >>> compressed_dataframe.plot.bar(x="price", y="active_liquidity", width=1, figsize=(15, 7)))
     >>> plt.show()
 
-.. image:: _static/liquidity-bar-chart.png
+.. image:: ../_static/liquidity-bar-chart.png
 
 
 

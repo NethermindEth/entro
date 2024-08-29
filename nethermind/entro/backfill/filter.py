@@ -1,5 +1,5 @@
 import logging
-from typing import Any, Literal, Sequence, TypedDict
+from typing import Any, Sequence, TypedDict
 
 from eth_utils import to_checksum_address as tca
 
@@ -261,7 +261,7 @@ def _generate_topics(
     """
     assert len(decoder.loaded_abis) == 1, "Indexed Topic Event Backfills can only use 1 ABI"
 
-    _named_events = {e.name: e for e in decoder.event_decoders.values()}
+    _named_events = {e.name: e for e in decoder.get_flattened_events()}
 
     if len(event_names) == 0:  # Backfill all events in ABI
         event_names = list(_named_events.keys())

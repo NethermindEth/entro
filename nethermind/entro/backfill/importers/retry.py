@@ -1,9 +1,7 @@
 import asyncio
-import time
-import traceback
 import logging
-
-from typing import Callable, Any
+import time
+from typing import Any, Callable
 
 from nethermind.entro.exceptions import BackfillError
 from nethermind.idealis.exceptions import RPCRateLimitError
@@ -25,7 +23,7 @@ def retry_async_run(func: Callable[..., Any], **kwargs: Any) -> Any:
         try:
             result = asyncio.run(func(max_concurrency=max_concurrency, **kwargs))
             if retry_count > 0:
-                logger.info(f"Successful Retry... Continuing to next Data Batch")
+                logger.info("Successful Retry... Continuing to next Data Batch")
             return result
 
         except RPCRateLimitError:

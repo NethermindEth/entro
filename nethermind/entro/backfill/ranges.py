@@ -109,6 +109,8 @@ class BackfillRangePlan:
         )
 
     def _process_extend(self, finished_range: tuple[int, int]):
+        print(f"Processing Extend: {finished_range}")
+        print(f"Add Backfill: {self.add_backfill}")
         if self.add_backfill is None:
             raise BackfillError("Cannot Extend Non-existent Add Backfill")
 

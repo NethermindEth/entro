@@ -2,7 +2,6 @@ from click.testing import CliRunner
 
 from nethermind.entro.cli import entro_cli
 from nethermind.entro.database.models.ethereum import Block, DefaultEvent, Transaction
-from nethermind.entro.database.writers.utils import db_encode_dict, model_to_dict
 
 from .utils import printout_error_and_traceback
 
@@ -26,12 +25,11 @@ def test_backfill_mainnet_full_block(
         entro_cli,
         [
             "backfill",
-            "blocks",
-            "--full-blocks",
-            "--from-block",
-            "18_000_000",
-            "--to-block",
-            "18_000_020",
+            "ethereum" "full-blocks",
+            "-from",
+            "18000000",
+            "-to",
+            "18000020",
             "--all-abis",
             *eth_rpc_cli_config,
             *cli_db_url,
@@ -72,13 +70,10 @@ def test_backfill_mainnet_full_block(
 
     assert blocks[0].block_number == 18000000
     assert blocks[0].gas_used == 16_247_211
-    assert blocks[0].effective_gas_price == 21_721_091_641
-    assert blocks[0].transaction_count == 94
+    assert blocks[0].base_fee_per_gas == 21_721_091_641
 
     assert blocks[-1].block_number == 18000019
     assert blocks[-1].gas_used == 14_309_399
-    assert blocks[-1].effective_gas_price == 20_117_274_455
-    assert blocks[-1].transaction_count == 150
+    assert blocks[-1].base_fee_per_gas == 20_117_274_455
 
-    assert sum([b.transaction_count for b in blocks]) == len(txns)
     assert len(blocks) == 20

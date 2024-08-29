@@ -2,22 +2,6 @@ import logging
 
 import click
 
-from rich.logging import RichHandler
-from rich.console import Console
-from rich.prompt import Prompt
-from rich.progress import Progress
-
-
-from nethermind.entro.exceptions import DatabaseError, BackfillError
-
-from nethermind.entro.types import BlockIdentifier
-from nethermind.entro.backfill.planner import BackfillPlan
-from nethermind.entro.types.backfill import (
-    BackfillDataType,
-    DataSources,
-    SupportedNetwork,
-)
-
 from nethermind.entro.cli.utils import (
     cli_logger_config,
     db_url_option,
@@ -31,18 +15,17 @@ from nethermind.entro.cli.utils import (
     contract_address_option,
     event_name_option,
     source_option,
-    network_option,
-    api_key_option,
+    etherscan_api_key_option,
     max_concurrency_option,
-    create_cli_session,
     batch_size_option,
     page_size_option,
+    block_file_option,
+    transaction_file_option,
+    resolution_option,
 )
-from nethermind.entro.backfill.utils import progress_defaults
-
 
 # isort: skip_file
-# pylint: disable=too-many-arguments,raise-missing-from,import-outside-toplevel,too-many-locals
+# pylint: disable=too-many-arguments,import-outside-toplevel,too-many-locals
 
 root_logger = logging.getLogger("nethermind")
 logger = root_logger.getChild("entro").getChild("backfill")
@@ -67,77 +50,46 @@ def ethereum_group():
     for_address_option,
     decode_abis_option,
     all_abis_option,
-    api_key_option,
+    etherscan_api_key_option,
     max_concurrency_option,
     batch_size_option,
     page_size_option,
+    block_file_option,
+    transaction_file_option,
 )
 def transactions(
-    json_rpc: str,
-    db_url: str,
-    api_key: str | None,
-    from_block: BlockIdentifier,
-    to_block: BlockIdentifier,
-    source: str,
-    network: str,
     **kwargs,
 ):
     """Backfills transaction data"""
-    rich_console = cli_logger_config(root_logger)
-    db_session = create_cli_session(db_url)
+    from rich.prompt import Prompt
+    from nethermind.entro.types.backfill import BackfillDataType, SupportedNetwork
+    from nethermind.entro.backfill.planner import BackfillPlan
+    from nethermind.entro.backfill.utils import GracefulKiller
 
-    backfill_plan = BackfillPlan.generate(
-        db_session=db_session,
-        backfill_type=BackfillDataType.transactions,
-        network=SupportedNetwork(network),
-        start_block=from_block,
-        end_block=to_block,
-        **kwargs,
-    )
+    console = cli_logger_config(root_logger)
 
-    if backfill_plan is None:
-        rich_console.print("Data Range Specified already exists in database.  Exiting...")
+    try:
+        backfill_plan = BackfillPlan.from_cli(
+            network=SupportedNetwork.ethereum,
+            backfill_type=BackfillDataType.transactions,
+            supported_datasources=["json_rpc", "etherscan_api_key"],
+            **kwargs,
+        )
+    except BaseException as e:  # pylint: disable=broad-except
+        logger.error(e)
         return
 
-    backfill_plan.print_backfill_plan(console=rich_console)
+    if not backfill_plan.no_interaction:
+        backfill_plan.print_backfill_plan(console)
+        p = Prompt.ask("Execute Backfill? [y/n] ", console=console, choices=["y", "n"])
+        if p == "n":
+            return
 
-    rich_prompt = Prompt.ask(
-        "Execute Backfill? [y/n] ",
-        console=rich_console,
-        show_choices=True,
-        choices=["y", "n"],
-    )
-    if rich_prompt == "n":
-        return
+    killer = GracefulKiller(console)
 
-    with Progress(*progress_defaults, console=rich_console) as progress:
-        match source:
-            case "etherscan":
-                from nethermind.entro.backfill.etherscan import (
-                    etherscan_backfill_txs,
-                )
+    backfill_plan.execute_backfill(console=console, killer=killer)
 
-                etherscan_backfill_txs(
-                    backfill_plan=backfill_plan,
-                    db_engine=db_session.get_bind(),
-                    api_key=api_key,
-                    progress=progress,
-                )
-            case "json_rpc":
-                from nethermind.entro.backfill.json_rpc import cli_get_blocks
-
-                cli_get_blocks(
-                    backfill_plan=backfill_plan,
-                    db_engine=db_session.get_bind(),
-                    json_rpc=json_rpc,
-                    progress=progress,
-                )
-            case _:
-                raise ValueError("Invalid source")
-
-        progress.console.print("[green]Backfill Complete...  Updating Backfill Status in Database")
-        backfill_plan.save_to_db()
-        db_session.close()
+    killer.finalize(backfill_plan)
 
 
 @ethereum_group.command()
@@ -158,71 +110,42 @@ def transactions(
     contract_address_option,
     decode_abis_option,
     event_name_option,
-    network_option,
     source_option,
     batch_size_option,
 )
 def events(
-    json_rpc: str,
-    db_url: str,
-    from_block: BlockIdentifier,
-    to_block: BlockIdentifier,
-    network: str,
-    source: str,
     **kwargs,
 ):
     """Backfills event data"""
-    rich_console = Console()
-    root_logger.handlers.clear()
+    from rich.prompt import Prompt
+    from nethermind.entro.types.backfill import BackfillDataType, SupportedNetwork
+    from nethermind.entro.backfill.planner import BackfillPlan
+    from nethermind.entro.backfill.utils import GracefulKiller
 
-    root_logger.addHandler(RichHandler(show_path=False, console=rich_console))
-    root_logger.setLevel(logging.WARNING)
-
-    data_source = DataSources(source)
-    db_session = create_cli_session(db_url)
+    console = cli_logger_config(root_logger)
 
     try:
-        backfill_plan = BackfillPlan.generate(
-            db_session=db_session,
+        backfill_plan = BackfillPlan.from_cli(
             backfill_type=BackfillDataType.events,
-            network=SupportedNetwork(network),
-            start_block=from_block,
-            end_block=to_block,
+            network=SupportedNetwork.ethereum,
+            supported_datasources=["json_rpc"],
             **kwargs,
         )
-    except (DatabaseError, BackfillError) as e:
-        rich_console.print(f"[red]Error Occurred Generating Backfill: {e}")
+    except BaseException as e:  # pylint: disable=broad-except
+        logger.error(e)
         return
 
-    if backfill_plan is None:
-        rich_console.print("Data Range Specified already exists in database.  Exiting...")
-        return
+    if not backfill_plan.no_interaction:
+        backfill_plan.print_backfill_plan(console)
+        p = Prompt.ask("Execute Backfill? [y/n] ", console=console, choices=["y", "n"])
+        if p == "n":
+            return
 
-    backfill_plan.print_backfill_plan(console=rich_console)
+    killer = GracefulKiller(console)
 
-    rich_prompt = Prompt.ask(
-        "Execute Backfill? [y/n] ",
-        console=rich_console,
-        show_choices=True,
-        choices=["y", "n"],
-    )
-    if rich_prompt == "n":
-        return
+    backfill_plan.execute_backfill(console=console, killer=killer)
 
-    with Progress(*progress_defaults, console=rich_console) as progress:
-        match data_source:
-            case DataSources.json_rpc:
-                from nethermind.entro.backfill.json_rpc import cli_get_logs
-
-                cli_get_logs(
-                    backfill_plan=backfill_plan,
-                    db_engine=db_session.get_bind(),
-                    json_rpc=json_rpc,
-                    progress=progress,
-                )
-
-        progress.console.print("[green]Backfill Complete...  Updating Backfill Status in Database")
-        backfill_plan.save_to_db()
+    killer.finalize(backfill_plan)
 
 
 # @backfill_group.command()
@@ -259,95 +182,126 @@ def events(
 @group_options(
     json_rpc_option,
     db_url_option,
-    network_option,
     source_option,
     from_block_option,
     to_block_option,
     batch_size_option,
+    block_file_option,
 )
 def blocks(
-    json_rpc: str,
-    db_url: str,
-    network: str,
-    source: str,
-    from_block: BlockIdentifier,
-    to_block: BlockIdentifier,
     **kwargs,
 ):
-    """Backfills block data"""
+    """Backfills Ethereum block data"""
 
-    rich_console = Console()
-    logger.handlers.clear()
+    from rich.prompt import Prompt
+    from nethermind.entro.types.backfill import BackfillDataType, SupportedNetwork
+    from nethermind.entro.backfill.planner import BackfillPlan
+    from nethermind.entro.backfill.utils import GracefulKiller
 
-    root_logger.addHandler(RichHandler(show_path=False, console=rich_console))
-    root_logger.setLevel(logging.WARNING)
+    console = cli_logger_config(root_logger)
 
-    db_session = create_cli_session(db_url)
-
-    backfill_plan = BackfillPlan.generate(
-        db_session=db_session,
-        backfill_type=BackfillDataType.blocks,
-        network=SupportedNetwork(network),
-        start_block=from_block,
-        end_block=to_block,
-        **kwargs,
-    )
-
-    if backfill_plan is None:
-        click.echo("Data Range Specified already exists in database.  Exiting...")
+    try:
+        backfill_plan = BackfillPlan.from_cli(
+            backfill_type=BackfillDataType.blocks,
+            network=SupportedNetwork.ethereum,
+            supported_datasources=["json_rpc"],
+            **kwargs,
+        )
+    except BaseException as e:  # pylint: disable=broad-except
+        logger.error(e)
         return
 
-    backfill_plan.print_backfill_plan(console=rich_console)
+    if not backfill_plan.no_interaction:
+        backfill_plan.print_backfill_plan(console)
+        p = Prompt.ask("Execute Backfill? [y/n] ", console=console, choices=["y", "n"])
+        if p == "n":
+            return
 
-    rich_prompt = Prompt.ask(
-        "Execute Backfill? [y/n] ",
-        console=rich_console,
-        show_choices=True,
-        choices=["y", "n"],
-    )
-    if rich_prompt == "n":
-        return
+    killer = GracefulKiller(console)
 
-    with Progress(*progress_defaults, console=rich_console) as progress:
-        match source:
-            case "etherscan":
-                raise NotImplementedError("Etherscan Block Backfill Not Yet Implemented")
+    backfill_plan.execute_backfill(console=console, killer=killer)
 
-            case "json_rpc":
-                from nethermind.entro.backfill.json_rpc import cli_get_blocks
-
-                cli_get_blocks(
-                    backfill_plan=backfill_plan,
-                    db_engine=db_session.get_bind(),
-                    json_rpc=json_rpc,
-                    progress=progress,
-                )
-            case _:
-                raise ValueError("Invalid source")
-
-        progress.console.print("\n[green]Backfill Complete...  Updating Backfill Status in Database")
-        backfill_plan.save_to_db()
+    killer.finalize(backfill_plan)
 
 
 @ethereum_group.command()
 @group_options(
     json_rpc_option,
     db_url_option,
-    network_option,
     source_option,
     from_block_option,
     to_block_option,
     batch_size_option,
 )
 def full_blocks(
-    json_rpc: str,
-    db_url: str,
-    network: str,
-    source: str,
-    from_block: BlockIdentifier,
-    to_block: BlockIdentifier,
     **kwargs,
 ):
     """
     Backfill Blocks, Transactions w/ Receipts & Events
     """
+
+    from rich.prompt import Prompt
+    from nethermind.entro.types.backfill import BackfillDataType, SupportedNetwork
+    from nethermind.entro.backfill.planner import BackfillPlan
+    from nethermind.entro.backfill.utils import GracefulKiller
+
+    console = cli_logger_config(root_logger)
+
+    try:
+        backfill_plan = BackfillPlan.from_cli(
+            backfill_type=BackfillDataType.full_blocks,
+            network=SupportedNetwork.ethereum,
+            supported_datasources=["json_rpc"],
+            **kwargs,
+        )
+    except BaseException as e:  # pylint: disable=broad-except
+        logger.error(e)
+        return
+
+    if not backfill_plan.no_interaction:
+        backfill_plan.print_backfill_plan(console)
+        p = Prompt.ask("Execute Backfill? [y/n] ", console=console, choices=["y", "n"])
+        if p == "n":
+            return
+
+    killer = GracefulKiller(console)
+
+    backfill_plan.execute_backfill(console=console, killer=killer)
+
+    killer.finalize(backfill_plan)
+
+
+@ethereum_group.command()
+@group_options(
+    json_rpc_option,
+    db_url_option,
+    resolution_option,
+)
+def timestamps(
+    json_rpc: str | None,
+    db_url: str | None,
+    resolution: int | None,
+):
+    """Backfills Ethereum Block Timestamps for the TimestampConverter utility"""
+    from rich.progress import Progress
+
+    from nethermind.entro.backfill.timestamps import TimestampConverter
+    from nethermind.entro.backfill.utils import progress_defaults
+    from nethermind.entro.types.backfill import SupportedNetwork
+
+    console = cli_logger_config(root_logger)
+
+    timestamp_converter = TimestampConverter(
+        network=SupportedNetwork.ethereum,
+        db_url=db_url,
+        json_rpc=json_rpc,
+        resolution=resolution,
+        auto_update=False,
+    )
+
+    logger.info(f"Backfilling Ethereum timestamps with {timestamp_converter.timestamp_resolution} block resolution")
+
+    with Progress(*progress_defaults, console=console) as progress:
+        timestamp_converter.update_timestamps(progress)
+
+    logger.info("Timestamp Backfill Complete")

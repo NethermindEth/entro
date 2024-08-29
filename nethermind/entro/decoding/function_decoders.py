@@ -1,11 +1,15 @@
 import logging
 from typing import Any, Callable, Sequence
 
+from eth_typing.abi import (
+    ABIFunction,  # Dict containing all params in Function Definition
+)
 from eth_utils import to_checksum_address
-from eth_utils.abi import function_signature_to_4byte_selector
-from web3._utils.abi import get_abi_input_types  # For feeding into eth_abi.decode()
-from web3._utils.abi import get_abi_output_types  # ...
-from web3.types import ABIFunction  # Dict containing all params in Function Definition
+from eth_utils.abi import (
+    function_signature_to_4byte_selector,
+    get_abi_input_types,
+    get_abi_output_types,
+)
 
 from nethermind.starknet_abi import AbiFunction, AbiParameter, DecodedFunction
 from nethermind.starknet_abi.abi_types import StarknetType
@@ -17,6 +21,11 @@ logger = root_logger.getChild("entro").getChild("decoding")
 
 
 class CairoFunctionDecoder(AbiFunction):
+    """
+    Represents a single Starknet Cairo Function.  Parses input & output types to efficiently decode
+    starknet traces
+    """
+
     priority: int
     abi_name: str
 
@@ -28,46 +37,59 @@ class CairoFunctionDecoder(AbiFunction):
         self.abi_name = abi_name
 
     def decode(self, calldata: list[bytes], result: list[bytes] | None = None) -> DecodedFunction | None:
+        """
+        Decode function calldata & result data into a DecodedFunction object.  Converts calldata into int calldata
+        for starknet decoder
+        """
         return super().decode(
             calldata=[int.from_bytes(data, "big") for data in calldata],
-            result=[int.from_bytes(data, "big") for data in result],
+            result=[int.from_bytes(data, "big") for data in result or []],
         )
 
     def id_str(self, full_signature: bool = True) -> str:
+        """
+        If full_signature is true, returns function name with parameter names and types.
+        If false, returns function name
+        """
         if full_signature:
             return super().id_str()
         return self.name
 
 
 class EVMFunctionDecoder:
+    """
+    Represents a single EVM function selector.  Parses input & output types to efficiently decode
+    transactions & traces with its selector
+    """
+
     name: str
     abi_name: str
     function_signature: str
     signature: bytes
     priority: int
 
-    input_types: list[str]
-    input_names: list[str]
-    output_types: list[str]
-    output_names: list[str]
+    _input_types: list[str]
+    _input_names: list[str]
+    _output_types: list[str]
+    _output_names: list[str]
 
-    formatters: dict[str, Callable[[Any], Any]] = {}
+    _formatters: dict[str, Callable[[Any], Any]] = {}
 
     def __init__(self, abi_function: ABIFunction, abi_name: str, priority: int):
         self.priority = priority
         self.abi_name = abi_name
         self.name = abi_function["name"]
 
-        self.input_types = get_abi_input_types(abi_function)
-        self.input_names = [input["name"] for input in abi_function["inputs"]]
+        self._input_types = get_abi_input_types(abi_function)
+        self._input_names = [input["name"] for input in abi_function["inputs"]]
 
-        self.output_types = get_abi_output_types(abi_function)
-        self.output_names = [output["name"] for output in abi_function["outputs"]]
+        self._output_types = get_abi_output_types(abi_function)
+        self._output_names = [output["name"] for output in abi_function["outputs"]]
 
         self.function_signature = abi_to_signature(abi_function)
         self.signature = function_signature_to_4byte_selector(self.function_signature)
 
-        self.formatters = {"address": to_checksum_address}
+        self._formatters = {"address": to_checksum_address}
 
     def decode(self, calldata: list[bytes], result: list[bytes] | None = None) -> DecodedFunction | None:
         """
@@ -78,28 +100,31 @@ class EVMFunctionDecoder:
         :return: DecodedFunction
         """
 
-        decoded_input = decode_evm_abi_from_types(self.input_types, b"".join(calldata))
+        decoded_input = decode_evm_abi_from_types(self._input_types, b"".join(calldata))
         if decoded_input is None:
             logger.debug(f"Error Decoding {self.function_signature} For Input {[c.hex() for c in calldata]}")
             return None
 
-        formatted_input = self.apply_formatters(decoded_input, self.input_types)
-        return_input = dict(zip(self.input_names, formatted_input, strict=True))
+        formatted_input = self.apply_formatters(decoded_input, self._input_types)
+        return_input = dict(zip(self._input_names, formatted_input, strict=True))
 
         if result and len(result) > 0:
-            decoded_output = decode_evm_abi_from_types(self.output_types, b"".join(result))
+            decoded_output = decode_evm_abi_from_types(self._output_types, b"".join(result))
             if decoded_output is None:
-                logger.debug(f"Error Decoding {self.function_signature} for Function Result {r}")
+                logger.debug(
+                    f"Error Decoding {self.function_signature} for "
+                    f"Function Result {[f'0x{r.hex()}' for r in result]}"
+                )
                 return None
 
-            formatted_output = self.apply_formatters(decoded_output, self.output_types)
-            return_output = dict(zip(self.output_names, formatted_output, strict=True))
+            formatted_output = self.apply_formatters(decoded_output, self._output_types)
+            return_output = dict(zip(self._output_names, formatted_output, strict=True))
         else:
             return_output = None
 
         return DecodedFunction(
             abi_name=self.abi_name,
-            func_name=self.name,
+            name=self.name,
             inputs=return_input,
             outputs=return_output,
         )
@@ -113,7 +138,7 @@ class EVMFunctionDecoder:
         """
         formatted_values = []
         for value, typ in zip(decoding_result, types, strict=True):
-            formatter = self.formatters.get(typ)
+            formatter = self._formatters.get(typ)
             if formatter is not None:
                 formatted_values.append(formatter(value))
             else:
@@ -122,6 +147,10 @@ class EVMFunctionDecoder:
         return formatted_values
 
     def id_str(self, full_signature: bool = True) -> str:
+        """
+        Returns ID string for function.  If full_signature is True, returns the function name & parameter types.
+        If full_signature is false, returns function name
+        """
         if full_signature:
             return self.function_signature
         return self.name

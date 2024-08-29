@@ -8,10 +8,7 @@ Initializing Pricing Oracle
 Class Documentation
 -------------------
 
-.. autoclass:: nethermind.entro.pricing.PricingOracle
-   :exclude-members: __init__
-   :members:
-
+Pricing Oracle class is currently under development and is not yet ready for production use.
 
 Database Tables
 ---------------

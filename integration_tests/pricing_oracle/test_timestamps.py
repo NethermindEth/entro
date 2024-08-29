@@ -3,9 +3,9 @@ import tempfile
 
 import click.utils
 
+from entro.backfill.timestamps import TimestampConverter
 from nethermind.entro.backfill.utils import get_current_block_number
 from nethermind.entro.database.migrations import migrate_up
-from nethermind.entro.pricing.timestamp_converter import TimestampConverter
 from nethermind.entro.types.backfill import SupportedNetwork
 
 

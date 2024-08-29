@@ -1,16 +1,19 @@
 import json
 import logging
 import shutil
-from typing import Any, Literal
+from typing import Any, Literal, Sequence, TypedDict
 
+from eth_typing import ABIEvent, ABIFunction
 from rich.table import Table
 from sqlalchemy import Connection, Engine
 from sqlalchemy.orm import Session, sessionmaker
-from web3.types import ABIEvent, ABIFunction
 
 from nethermind.entro.exceptions import DecodingError
-from nethermind.entro.types.backfill import Dataclass, SupportedNetwork
-from nethermind.entro.types.decoding import DecodedFunction
+from nethermind.entro.types.backfill import (
+    Dataclass,
+    ExporterDataType,
+    SupportedNetwork,
+)
 from nethermind.entro.utils import pprint_list
 from nethermind.starknet_abi import StarknetAbi
 
@@ -23,12 +26,18 @@ from .utils import filter_events, filter_functions
 root_logger = logging.getLogger("nethermind")
 logger = root_logger.getChild("entro").getChild("decoding")
 
-# pylint: disable=raise-missing-from
-
 
 def _split_evm_data(data: bytes) -> list[bytes]:
     """Splits EVM Calldata into function selector and a list of 32 byte words"""
     return [data[i : i + 32] for i in range(0, len(data), 32)]
+
+
+class GroupedAbi(TypedDict):
+    """Grouped Abi Data Helper Class for Visualizing DecodingDispatcher to console"""
+
+    priority: int
+    functions: list[AbiFunctionDecoder]
+    events: list[AbiEventDecoder]
 
 
 class DecodingDispatcher:
@@ -126,7 +135,7 @@ class DecodingDispatcher:
 
     def add_function_decoders(
         self,
-        functions: list[AbiFunctionDecoder],
+        functions: Sequence[AbiFunctionDecoder],
     ):
         """
         Adds function decoders from a given ABI to the dispatcher.  If a function selector is already present, the
@@ -147,7 +156,7 @@ class DecodingDispatcher:
 
             elif existing_decoder.priority > func.priority:
                 logger.debug(
-                    f"Function {func.name} with Signature {func.signature} already "
+                    f"Function {func.name} with Signature 0x{func.signature.hex()} already "
                     f"defined in ABI {existing_decoder.abi_name} with Priority: {existing_decoder.priority}"
                 )
                 continue
@@ -155,12 +164,12 @@ class DecodingDispatcher:
             else:
                 logger.warning(
                     f"ABI {func.abi_name} and {existing_decoder.abi_name} share the decoder for the function "
-                    f"{func.signature}, and both are set to priority {func.priority}.  "
+                    f"{func.name}, and both are set to priority {func.priority}.  "
                     f"Increase or decrease the priority of an ABI to resolve this conflict."
                 )
                 continue
 
-    def add_event_decoders(self, events: list[AbiEventDecoder]):
+    def add_event_decoders(self, events: Sequence[AbiEventDecoder]):
         """
         Adds event decoders from a given ABI to the dispatcher.  If an event selector is already present, the
         decoder with the higher priority will be used to decode that event selector.  If an event selector is already
@@ -205,7 +214,8 @@ class DecodingDispatcher:
 
                 if existing_event.priority > new_event.priority:
                     continue
-                elif existing_event.priority < new_event.priority:
+
+                if existing_event.priority < new_event.priority:
                     self._set_event_decoder(new_event, True)
                 else:
                     logger.warning(
@@ -214,7 +224,7 @@ class DecodingDispatcher:
                     )
 
     @classmethod
-    def from_abis(
+    def from_cache(
         cls,
         classify_abis: list[str],
         db_session: Session | None,
@@ -249,16 +259,16 @@ class DecodingDispatcher:
 
         if len(decoding_abis) != len(classify_abis) and not all_abis:
             raise DecodingError(
-                f"Some ABIs passed to DecodingDispatcher.from_abis() not present.  Missing ABIs: "
+                f"Some ABIs passed to DecodingDispatcher.from_cache() not present.  ABIs not present in Cache: "
                 f"{','.join(set(classify_abis) - set(abi.abi_name for abi in decoding_abis))}"
             )
 
         for abi in decoding_abis:
             dispatcher.add_abi(
                 abi_name=abi.abi_name,
-                abi_data=json.loads(abi.abi_json)  # type: ignore
-                if isinstance(abi.abi_json, (str, bytes))
-                else abi.abi_json,
+                abi_data=(
+                    json.loads(abi.abi_json) if isinstance(abi.abi_json, (str, bytes)) else abi.abi_json  # type: ignore
+                ),
                 priority=abi.priority,
             )
 
@@ -279,32 +289,51 @@ class DecodingDispatcher:
             return
 
         try:
-            self.event_decoders[event.signature].update({add_decoder_index: decoder})  # type: ignore
+            self.event_decoders[event.signature].update({event.indexed_params: event})  # type: ignore
         except AttributeError:
-            existing_decoder = self.event_decoders[event.signature]
+            existing_event = self.event_decoders[event.signature]
 
-            if isinstance(existing_decoder, dict):
+            if isinstance(existing_event, dict):
                 raise DecodingError("Event Signature already loaded with multiple index levels")
 
             self.event_decoders.update(
                 {
                     event.signature: {
-                        existing_decoder.indexed_params: existing_decoder,
+                        existing_event.indexed_params: existing_event,
                         event.indexed_params: event,
                     }
                 }
             )
 
-    def _group_abis(self) -> dict[str, [int, list[AbiFunctionDecoder], list[AbiEventDecoder]]]:
-        output_dict = {name: [-1, [], []] for name in self.loaded_abis}
+    def get_flattened_events(self) -> list[AbiEventDecoder]:
+        """
+        Returns a list of all event decoders currently loaded into the dispatcher.  If there are multiple index
+        levels for an event, will return the event implementation with the fewest indexed parameters.
+
+        """
+        output_events = []
+        for event in self.event_decoders.values():
+            if isinstance(event, dict):
+                indicies = sorted(event.keys())
+                output_events.append(event[indicies[0]])
+            else:
+                output_events.append(event)
+
+        return output_events
+
+    def _group_abis(self) -> dict[str, GroupedAbi]:
+
+        output_dict: dict[str, GroupedAbi] = {
+            name: {"priority": -1, "functions": [], "events": []} for name in self.loaded_abis
+        }
 
         for func in self.function_decoders.values():
-            output_dict[func.abi_name][1].append(func)
-            output_dict[func.abi_name][0] = func.priority
+            output_dict[func.abi_name]["functions"].append(func)
+            output_dict[func.abi_name]["priority"] = func.priority
 
-        for event in self.event_decoders.values():
-            output_dict[event.abi_name][2].append(event)
-            output_dict[event.abi_name][0] = event.priority
+        for event in self.get_flattened_events():
+            output_dict[event.abi_name]["events"].append(event)
+            output_dict[event.abi_name]["priority"] = event.priority
 
         return output_dict
 
@@ -337,18 +366,19 @@ class DecodingDispatcher:
 
         grouped_abis = self._group_abis()
 
-        sorted_abis = sorted(grouped_abis.items(), key=lambda x: x[1][0], reverse=True)
+        sorted_abis = sorted(grouped_abis.items(), key=lambda x: x[1]["priority"], reverse=True)
 
-        for abi_name, (priority, functions, events) in sorted_abis:
+        for abi_name, abi_params in sorted_abis:
+            events, funcs = abi_params["events"], abi_params["functions"]
             match print_functions, print_events:
                 case True, True:
                     sig_cols = [
-                        "\n".join(pprint_list(sorted(f.id_str(fs) for f in functions), int(term_width * 0.4))),
+                        "\n".join(pprint_list(sorted(f.id_str(fs) for f in funcs), int(term_width * 0.4))),
                         "\n".join(pprint_list(sorted(e.id_str(fs) for e in events), int(term_width * 0.2))),
                     ]
                 case True, False:
                     sig_cols = [
-                        "\n".join(pprint_list(sorted(f.id_str(fs) for f in functions), int(term_width * 0.7))),
+                        "\n".join(pprint_list(sorted(f.id_str(fs) for f in funcs), int(term_width * 0.7))),
                     ]
                 case False, True:
                     sig_cols = [
@@ -359,11 +389,11 @@ class DecodingDispatcher:
                 case _:
                     raise NotImplementedError("Invalid Printout Case")
 
-            abi_table.add_row(abi_name, str(priority), *sig_cols)
+            abi_table.add_row(abi_name, str(abi_params["priority"]), *sig_cols)
 
         return abi_table
 
-    def decode_transaction(self, tx: Dataclass) -> DecodedFunction | None:
+    def decode_transaction(self, tx: Dataclass):
         """
         Decodes Transaction Response JSON Dict with currently loaded ABIs
 
@@ -377,19 +407,26 @@ class DecodingDispatcher:
 
                 function_decoder = self.function_decoders.get(tx.input[:4])
                 if function_decoder is None:
-                    return None
-                return function_decoder.decode(calldata=_split_evm_data(tx.input[4:]))
+                    return
+                decode_result = function_decoder.decode(calldata=_split_evm_data(tx.input[4:]))
+                if decode_result:
+                    tx.decoded_input = decode_result.inputs  # type: ignore
+                    tx.function_name = decode_result.name  # type: ignore
 
             case "Cairo":
                 assert hasattr(tx, "calldata") and isinstance(
                     tx.calldata, list
                 ), "Cairo Transactions must have calldata array"
-                if hasattr(tx, "signature"):
-                    function_decoder = self.function_decoders.get(tx.signature)
-                    if function_decoder is None:
-                        return None
-                    return function_decoder.decode(calldata=tx.calldata)
-                return None
+
+                assert hasattr(tx, "selector"), "Cairo Transactions must have selector"
+
+                function_decoder = self.function_decoders.get(tx.selector)
+                if function_decoder is None:
+                    return
+                decode_result = function_decoder.decode(calldata=tx.calldata)
+                if decode_result:
+                    tx.decoded_input = decode_result.inputs  # type: ignore
+                    tx.function_name = decode_result.name  # type: ignore
 
             case _:
                 raise ValueError(f"Invalid Decoder OS: {self.decoder_os}")
@@ -408,10 +445,17 @@ class DecodingDispatcher:
 
                 event_decoder = self.event_decoders.get(event.topics[0])
                 if event_decoder is None:
-                    return None
-                decoded = event_decoder.decode(data=_split_evm_data(event.data), keys=event.keys)
-                event.decoded_params = decoded.data
-                event.event_name = decoded.name
+                    return
+
+                if isinstance(event_decoder, dict):  # Multiple Index Levels
+                    event_decoder = event_decoder.get(len(event.topics) - 1)
+                    if event_decoder is None:
+                        return
+
+                decoded = event_decoder.decode(data=_split_evm_data(event.data), keys=event.topics)
+                if decoded:
+                    event.decoded_params = decoded.data  # type: ignore
+                    event.event_name = decoded.name  # type: ignore
 
             case "Cairo":
                 assert hasattr(event, "keys") and isinstance(event.keys, list), "Cairo Events must have Keys Array"
@@ -419,33 +463,51 @@ class DecodingDispatcher:
 
                 event_decoder = self.event_decoders.get(event.keys[0])
                 if event_decoder is None:
-                    return None
+                    return
+
+                if isinstance(event_decoder, dict):  # Multiple Index Levels
+                    event_decoder = event_decoder.get(len(event.keys) - 1)
+                    if event_decoder is None:
+                        return
+
                 decoded = event_decoder.decode(data=event.data, keys=event.keys)
-                event.decoded_params = decoded.data
-                event.event_name = decoded.name
+                if decoded:
+                    event.decoded_params = decoded.data  # type: ignore
+                    event.event_name = decoded.name  # type: ignore
 
             case _:
                 raise ValueError(f"Invalid Decoder OS: {self.decoder_os}")
 
     def decode_dataclasses(
         self,
-        data_kind: Literal["transactions", "traces", "events"],
+        data_kind: ExporterDataType,
         dataclasses: list[Dataclass],
     ):
+        """
+        Decodes a list of Dataclasses with the current ABI Decoders.
+        Accepts mutable list of dataclasses & modifies them in place with decoded data if applicable
+
+        :param data_kind:  Matches the data key for the dict returned by importer callables
+        :param dataclasses: List of Dataclasses to decode
+
+        """
         match data_kind:
-            case "transactions":
+            case ExporterDataType.transactions:
                 for tx in dataclasses:
                     self.decode_transaction(tx)
 
-            case "events":
+            case ExporterDataType.events:
                 for event in dataclasses:
                     self.decode_event(event)
 
-            case "traces":
+            case ExporterDataType.traces:
                 raise NotImplementedError("Trace Decoding not yet implemented")
 
     @classmethod
     def decoder_os_for_network(cls, network: SupportedNetwork) -> Literal["EVM", "Cairo"]:
+        """
+        Returns the Decoder OS for a given network.  Currently only supports Starknet and EVM
+        """
         match network:
             case SupportedNetwork.starknet:
                 return "Cairo"

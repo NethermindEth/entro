@@ -8,14 +8,14 @@ from sqlalchemy.orm import Session
 
 from nethermind.entro.addresses import STABLECOIN_ADDRESSES, USDC_ADDRESS, WETH_ADDRESS
 from nethermind.entro.backfill.planner import BackfillPlan
-from nethermind.entro.backfill.prices import update_pool_creations
+from nethermind.entro.backfill.prices.get_prices import update_pool_creations
+from nethermind.entro.backfill.timestamps import TimestampConverter
 from nethermind.entro.backfill.utils import get_current_block_number
 from nethermind.entro.database.models import BackfilledRange
 from nethermind.entro.database.readers.prices import get_supported_markets
 from nethermind.entro.exceptions import OracleError
-from nethermind.entro.pricing.timestamp_converter import TimestampConverter
 from nethermind.entro.types.backfill import BackfillDataType, SupportedNetwork
-from nethermind.entro.types.prices import AbstractTokenMarket, TokenMarketInfo
+from nethermind.entro.types.prices import TokenMarketInfo
 
 root_logger = logging.getLogger("nethermind")
 logger = root_logger.getChild("entro").getChild("prices")
@@ -227,13 +227,11 @@ class PriceOracle:
         :return:
         """
 
-        backfill_plan = BackfillPlan.generate(
+        backfill_plan = BackfillPlan.from_database(
             db_session=self.db_session,
             backfill_type=BackfillDataType.spot_prices,
             network=self.network,
-            start_block=market_info.initialization_block,
-            end_block=self.latest_block,
-            market_address=market_info.market_address,
-            market_protocol=market_info.pool_class,
+            from_block=market_info.initialization_block,
+            to_block=self.latest_block,
+            filter_params={"market_address": market_info.market_address, "market_protocol": market_info.pool_class},
         )
-        pass
