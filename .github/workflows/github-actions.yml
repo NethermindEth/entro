@@ -41,6 +41,7 @@ jobs:
       - name: Install Dependencies
         if: steps.cached-poetry-dependencies.outputs.cache-hit != 'true'
         run: |
+          poetry config virtualenvs.create true
           poetry install --no-interaction --with docs --with evm --with dev
 
   lint:
