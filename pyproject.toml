@@ -38,7 +38,7 @@ pytest-mock = "^3.14.0"
 optional = true
 
 [tool.poetry.group.evm.dependencies]
-pyrevm = {git = "https://github.com/paradigmxyz/pyrevm"}
+pyrevm = ">=0.3.0"
 
 [tool.poetry.group.docs]
 optional = true

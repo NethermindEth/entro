@@ -1416,35 +1416,6 @@ files = [
 ]
 
 [[package]]
-name = "maturin"
-version = "1.5.1"
-description = "Build and publish crates with pyo3, rust-cpython and cffi bindings as well as rust binaries as python packages"
-optional = false
-python-versions = ">=3.7"
-files = [
-    {file = "maturin-1.5.1-py3-none-linux_armv6l.whl", hash = "sha256:589e9b7024007e130b136ba6f1c2c8393a87e42cf968d12852913ab1e3c69ed3"},
-    {file = "maturin-1.5.1-py3-none-macosx_10_12_x86_64.macosx_11_0_arm64.macosx_10_12_universal2.whl", hash = "sha256:a1abda07093b3c8ef897626166c02ed64e3e446c48460b28efb51833abf89cbb"},
-    {file = "maturin-1.5.1-py3-none-macosx_10_12_x86_64.whl", hash = "sha256:48a1fbbdc2514525f27d6d339ab97b098ede28759f8593d110c89cc07bbe40ed"},
-    {file = "maturin-1.5.1-py3-none-manylinux_2_12_i686.manylinux2010_i686.musllinux_1_1_i686.whl", hash = "sha256:96d96b1fa3a165db9ca539f764d31da8ebc92e31ca3a1dd6ccd50008d222bd96"},
-    {file = "maturin-1.5.1-py3-none-manylinux_2_12_x86_64.manylinux2010_x86_64.musllinux_1_1_x86_64.whl", hash = "sha256:786bf36a98c4e27cbebb1dc8e432c1bcbbb59e7a9719592cbb89e46a0ccd5bcc"},
-    {file = "maturin-1.5.1-py3-none-manylinux_2_17_aarch64.manylinux2014_aarch64.musllinux_1_1_aarch64.whl", hash = "sha256:d821b37da759884ad09cfee4cd9deac10f4132744cc66e4d9190a1972233bc83"},
-    {file = "maturin-1.5.1-py3-none-manylinux_2_17_armv7l.manylinux2014_armv7l.musllinux_1_1_armv7l.whl", hash = "sha256:62133bf690555bbc8cc6b1c18a0c57b0ab2b4d68d3fcd320eb16df941563fe06"},
-    {file = "maturin-1.5.1-py3-none-manylinux_2_17_ppc64le.manylinux2014_ppc64le.musllinux_1_1_ppc64le.whl", hash = "sha256:6bff165252b1fcc887679ddf7b71b5cc024327ba96ea893133be38c0ed38f163"},
-    {file = "maturin-1.5.1-py3-none-manylinux_2_17_s390x.manylinux2014_s390x.whl", hash = "sha256:2c42a95466ffc3de0a3940cd20c57cf0c44fe5ea679375d73422afbb00236c64"},
-    {file = "maturin-1.5.1-py3-none-win32.whl", hash = "sha256:d09538b4aa0da4b59fd47cb429003b45bfd5d801714adf1db2511bf8bdea532f"},
-    {file = "maturin-1.5.1-py3-none-win_amd64.whl", hash = "sha256:a3db9054222ac79275e082b21cfd234b8e036714a4ff227a0a28f6a3ffa3744d"},
-    {file = "maturin-1.5.1-py3-none-win_arm64.whl", hash = "sha256:acf528e51413f6ae489473d64116d8c83f140386349004949d29137c16a82193"},
-    {file = "maturin-1.5.1.tar.gz", hash = "sha256:3dd834ece80edb866af18cbd4635e0ecac40139c726428d5f1849ae154b26dca"},
-]
-
-[package.dependencies]
-tomli = {version = ">=1.1.0", markers = "python_version < \"3.11\""}
-
-[package.extras]
-patchelf = ["patchelf"]
-zig = ["ziglang (>=0.10.0,<0.11.0)"]
-
-[[package]]
 name = "mccabe"
 version = "0.7.0"
 description = "McCabe checker, plugin for flake8"
@@ -2201,20 +2172,44 @@ testutils = ["gitpython (>3)"]
 [[package]]
 name = "pyrevm"
 version = "0.3.3"
-description = "Python bindings to rust evm (revm)"
+description = ""
 optional = false
-python-versions = ">=3.8"
-files = []
-develop = false
-
-[package.dependencies]
-maturin = "1.5.1"
-
-[package.source]
-type = "git"
-url = "https://github.com/paradigmxyz/pyrevm"
-reference = "HEAD"
-resolved_reference = "695ec591dcc583db18ac4e95ce484104a07e74a8"
+python-versions = ">=3.7"
+files = [
+    {file = "pyrevm-0.3.3-cp310-cp310-macosx_10_12_x86_64.whl", hash = "sha256:b9520ca226830f4d3100c58251e0af2ab12853a88e8d64dfd2d9fcbbee5963d8"},
+    {file = "pyrevm-0.3.3-cp310-cp310-macosx_11_0_arm64.whl", hash = "sha256:72396324a7fff824339d175fa16113fe670626eece50c7a665d8152d0c81e408"},
+    {file = "pyrevm-0.3.3-cp310-cp310-manylinux_2_17_i686.manylinux2014_i686.whl", hash = "sha256:e55ecec995c5831bddbd46add07f1478eb2ea6211fed5bdbed1e7ad80ed4a8c7"},
+    {file = "pyrevm-0.3.3-cp310-cp310-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:df35ac89ec7cbf1b7203a30776d51a76a2a4f5390b24f8558da400b75037daad"},
+    {file = "pyrevm-0.3.3-cp310-none-win_amd64.whl", hash = "sha256:07d40e08928a287f19abcd19f86e48ef7994e844449fd4a27dbe444690ddb4b7"},
+    {file = "pyrevm-0.3.3-cp311-cp311-macosx_10_12_x86_64.whl", hash = "sha256:c6f48cd9c9728d236eaf963746b38218cb346e5049c04a9d1fda59f17018e28f"},
+    {file = "pyrevm-0.3.3-cp311-cp311-macosx_11_0_arm64.whl", hash = "sha256:9c97ddbfc3c5a408ff24df7014f4cd87dcc7eb2e1d697cefe53aa6be4ba86067"},
+    {file = "pyrevm-0.3.3-cp311-cp311-manylinux_2_17_i686.manylinux2014_i686.whl", hash = "sha256:950a07c64b3428f5b761c273589d12ea1a22419d41729e14a1059afff317105a"},
+    {file = "pyrevm-0.3.3-cp311-cp311-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:d0d18c286f579b1b60ee9111d887a832de213313424751c94ea61d70c18bc03a"},
+    {file = "pyrevm-0.3.3-cp311-none-win_amd64.whl", hash = "sha256:a0565c1cbd3b9ed55664217e9d1af981e1ec6a96fb5fe3f1c80c7da35038d2a3"},
+    {file = "pyrevm-0.3.3-cp312-cp312-macosx_10_12_x86_64.whl", hash = "sha256:ec688b37dfc39a85a0a6f7709ee434b72e4e9c9f0bc7a525cd583dd5b7b97529"},
+    {file = "pyrevm-0.3.3-cp312-cp312-macosx_11_0_arm64.whl", hash = "sha256:ac341771699dc5652ae7d5ffb151fcdc80181c03197eed7b0282422a922f73e2"},
+    {file = "pyrevm-0.3.3-cp312-cp312-manylinux_2_17_i686.manylinux2014_i686.whl", hash = "sha256:a738adcc0d567b5cc4e6e4a8378b4d894125240c84516cf7bfd779cad597ed5c"},
+    {file = "pyrevm-0.3.3-cp312-cp312-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:40f982b736d44c2ba0ecbf60d31895062db7a51fd4f8f7a16fc24062c4980b3a"},
+    {file = "pyrevm-0.3.3-cp312-none-win_amd64.whl", hash = "sha256:405d3c63872b59cb82b699000ad2fdff185bc25b91c4f8a6c06bc6a35afcd0c9"},
+    {file = "pyrevm-0.3.3-cp37-cp37m-manylinux_2_17_i686.manylinux2014_i686.whl", hash = "sha256:b4dedd627fc0198ef0fc82f43ba953e92480fbf6e23b6a99bcc93da289447114"},
+    {file = "pyrevm-0.3.3-cp37-cp37m-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:11bc780947f176cfc7de8d463f80c271b73302c438cf280964ee8210c8a98115"},
+    {file = "pyrevm-0.3.3-cp37-none-win_amd64.whl", hash = "sha256:2d24be778326393adffe7adb588e3129ec66eb9acbaf126795550529ec5307ca"},
+    {file = "pyrevm-0.3.3-cp38-cp38-manylinux_2_17_i686.manylinux2014_i686.whl", hash = "sha256:2f07a98d69d2161bdc889960d2c28c4b65d80a0fd0126aef373d431306555044"},
+    {file = "pyrevm-0.3.3-cp38-cp38-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:93e88e84c0ef4d6b023102fa1568ebf46ed279c7bd98c4ff4fed1820f4c42406"},
+    {file = "pyrevm-0.3.3-cp38-none-win_amd64.whl", hash = "sha256:a4adc108ef1474be58a286f98749085ebcdce57974ef51b18ff1c243e3360af2"},
+    {file = "pyrevm-0.3.3-cp39-cp39-manylinux_2_17_i686.manylinux2014_i686.whl", hash = "sha256:2f5cf30a97002bbf3d9abe41bf247f6dd0414ae64a735771995cfcedbf027fdc"},
+    {file = "pyrevm-0.3.3-cp39-cp39-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:08013d4c29575195e0cebbfa33d88b783df034376fea9ceb71d2cfffe964a5b6"},
+    {file = "pyrevm-0.3.3-cp39-none-win_amd64.whl", hash = "sha256:a86918316cad702fdbacbde02cc1e929dbd577aff02d1f125af7056b00c965df"},
+    {file = "pyrevm-0.3.3-pp310-pypy310_pp73-manylinux_2_17_i686.manylinux2014_i686.whl", hash = "sha256:43bfe5954f8af2e3e53615c06930aba76e128581bcb53ce99421e8255d3d7886"},
+    {file = "pyrevm-0.3.3-pp310-pypy310_pp73-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:9661740a03b0cb6ad57f5dce3272e940181c431686650cedc7c957f8e908923f"},
+    {file = "pyrevm-0.3.3-pp37-pypy37_pp73-manylinux_2_17_i686.manylinux2014_i686.whl", hash = "sha256:1a14d6c1f9a527eb34551057074977d76fe13682fa6a5236f521a4bb5b3bd87d"},
+    {file = "pyrevm-0.3.3-pp37-pypy37_pp73-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:fd67c520f18a85fac8b245c53021b161203e521bb4149ec73d46fadd53969098"},
+    {file = "pyrevm-0.3.3-pp38-pypy38_pp73-manylinux_2_17_i686.manylinux2014_i686.whl", hash = "sha256:4c2ce24313f42de56059e588cd8124a11c3dcf700a08e886fd41b5d112d02d6a"},
+    {file = "pyrevm-0.3.3-pp38-pypy38_pp73-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:67dc61d584622dd877531c503adf3de6be4b1748baec052df9f9b33e61643c69"},
+    {file = "pyrevm-0.3.3-pp39-pypy39_pp73-manylinux_2_17_i686.manylinux2014_i686.whl", hash = "sha256:9dcb27a4aa69cca3cfe7334785f6477b4dde0286827db880ab48a147838ad12c"},
+    {file = "pyrevm-0.3.3-pp39-pypy39_pp73-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:108ad8dc1f41302a64bc870faeadd3405056c93b09953584cdde6eba51b918a3"},
+    {file = "pyrevm-0.3.3.tar.gz", hash = "sha256:cd2686a08c51872c0f1f615b9cbedb92d5fe28a7709226b40ced54dfff81cb3f"},
+]
 
 [[package]]
 name = "pytest"
@@ -2985,13 +2980,13 @@ test = ["covdefaults (>=2.3)", "coverage (>=7.2.7)", "coverage-enable-subprocess
 
 [[package]]
 name = "web3"
-version = "7.1.0"
+version = "7.2.0"
 description = "web3: A Python library for interacting with Ethereum"
 optional = false
 python-versions = "<4,>=3.8"
 files = [
-    {file = "web3-7.1.0-py3-none-any.whl", hash = "sha256:74001c60ae684ef6e46e41f7b3f6b96296a2df64c8402130d1733e787b7ff878"},
-    {file = "web3-7.1.0.tar.gz", hash = "sha256:9d4dd41deb47fee7610db542cf79b314826b25d2b1768feaca5a486b4f719d47"},
+    {file = "web3-7.2.0-py3-none-any.whl", hash = "sha256:35def004dd652a7ee5b2321431797c4aa26697faec4e34196aa2a158e63005ff"},
+    {file = "web3-7.2.0.tar.gz", hash = "sha256:98bbee7e73dcdfa567633c694a80e62ce78a0a7b16a9c52027764db06b194be0"},
 ]
 
 [package.dependencies]
@@ -3216,4 +3211,4 @@ multidict = ">=4.0"
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.10"
-content-hash = "9d8bfbd74b8366ae7d589f5b8e36953f8a662a4b6c876e5ceb577c765639d1d2"
+content-hash = "da9fc6fceabbec4b22cfbd49425d7445934672b91ed3589e6a3ff2033654e1bb"
