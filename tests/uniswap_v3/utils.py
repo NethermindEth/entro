@@ -1,11 +1,4 @@
-import logging
-import os
-from typing import Optional
-
 from eth_utils import to_checksum_address
-
-from python_eth_amm import PoolFactory
-from python_eth_amm.uniswap_v3 import UniswapV3Pool
 
 TICK_SPACINGS = {"LOW": 10, "MEDIUM": 60, "HIGH": 200}
 

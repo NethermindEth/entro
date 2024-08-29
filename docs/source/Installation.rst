@@ -32,15 +32,13 @@ improvements over ganache, or any other EVM implementations.
 The evm instance is used during testing & development, and is not required for normal usage of the library.  To
 enable this functionality, pass the option exact_math=True to the PoolFactory object.
 
-.. code-block:: console
+.. code-block:: shell
 
-    $ git clone https://github.com/nethermindETH/python-eth-amm.git
-    $ cd python-eth-amm
-    $ git clone https://github.com/elicbarbieri/pyrevm.git  # temporary until official pyrevm supports result decoding
-    $ poetry env use python3.10
+    $ git clone https://github.com/nethermindETH/entro.git
+    $ cd entro
+    $ poetry env use python3.12
     $ poetry install --all-extras
     $ poetry run pytest
-    $ maturin develop --release pyrevm/
 
 
 Development Guide
@@ -52,7 +50,7 @@ Installing & Manually Running Pre-Commit
 Linting & Pre-commits
 ^^^^^^^^^^^^^^^^^^^^^
 
-.. code-block:: console
+.. code-block:: shell
 
     $ poetry run pre-commit install
     $ poetry run pre-commit run --all-files
@@ -61,15 +59,22 @@ Test Environment
 ^^^^^^^^^^^^^^^^
 
 .. code-block::
-    :caption: tests/.env
+    :caption: integration_tests/.env
 
-    SQLALCHEMY_DB_URI='postgresql://user:pass@host:5432/db_name'
-    ARCHIVE_NODE_RPC_URL='http://node_ip:8545'
+    # PG_* env vars are used to create the database docker-container for testing
+    PG_PASS=secret
+    PG_PORT=5432  # Offset to 5430 to avoid conflicts with local postgres
+
+    ETH_JSON_RPC=http://localhost:8545
+    ETH_ARCHIVE_JSON_RPC=http://...
+    ETHERSCAN_API_KEY=
+
+    STARKNET_JSON_RPC=https://free-rpc.nethermind.io/mainnet-juno/
 
 Running Tests
 ^^^^^^^^^^^^^
 
-.. code-block:: console
+.. code-block:: shell
 
     $ poetry run pytest tests/
 

@@ -1,17 +1,10 @@
-import os
+import logging
 import random
-from logging import Logger
+from pathlib import Path
 
 import pytest
-from dotenv import load_dotenv
 from eth_utils import to_checksum_address
-from sqlalchemy import create_engine
-from sqlalchemy.orm import Session, sessionmaker
-from web3 import Web3
-
-from .utils import TEST_LOGGER
-
-load_dotenv()
+from pytest import FixtureRequest
 
 
 @pytest.fixture(name="get_random_binary_string")
@@ -32,18 +25,26 @@ def fixture_random_address():
     return _generate_random_address
 
 
-@pytest.fixture
-def w3_archive_node():
-    return Web3(Web3.HTTPProvider(os.environ["ARCHIVE_NODE_RPC_URL"]))
+@pytest.fixture(scope="function")
+def debug_logger(request: FixtureRequest):
+    log_filename = request.module.__name__.replace("tests.", "") + "." + request.function.__name__
 
+    parent_dir = Path(__file__).parent
+    log_file = parent_dir / "logs" / f"{log_filename}.log"
 
-@pytest.fixture
-def db_session() -> Session:
-    return sessionmaker(
-        bind=create_engine(os.environ.get("SQLALCHEMY_DB_URI", "sqlite:///:memory:"))
-    )()
+    formatter = logging.Formatter(
+        "%(levelname)-8s | %(name)-36s | %(asctime)-15s | %(message)s \t\t (%(filename)s --> %(funcName)s)"
+    )
 
+    file_handler = logging.FileHandler(log_file)
+    file_handler.setFormatter(formatter)
 
-@pytest.fixture
-def test_logger() -> Logger:
-    return TEST_LOGGER
+    logger = logging.getLogger("nethermind")
+    logger.addHandler(file_handler)
+    logger.setLevel(logging.DEBUG)
+
+    logger.info("-" * 100)
+    logger.info(f"\t\tInitializing New Run for Test: {request.function.__name__}")
+    logger.info("-" * 100)
+
+    return logger
