@@ -2,7 +2,7 @@ from aiohttp import ClientSession, TCPConnector
 
 from nethermind.entro.exceptions import BackfillError
 from nethermind.entro.types.backfill import Dataclass, ExporterDataType
-from nethermind.idealis.rpc.ethereum import get_blocks
+from nethermind.idealis.rpc.ethereum import get_blocks, get_events_for_contract
 from nethermind.idealis.utils import to_bytes
 from nethermind.idealis.wrapper.etherscan import get_transactions_for_account
 
@@ -63,3 +63,34 @@ def ethereum_transaction_importer(from_block: int, to_block: int, **kwargs) -> d
         return retry_async_run(_get_rpc_block_data, **kwargs)
 
     raise BackfillError("'json_rpc' or 'etherscan_api_key' required to backfill starknet transactions")
+
+
+def ethereum_event_importer(from_block: int, to_block: int, **kwargs) -> dict[ExporterDataType, list[Dataclass]]:
+    """Import ethereum events from a range of blocks"""
+
+    async def _get_rpc_block_data(**kwargs):
+        client_session = ClientSession()
+        try:
+            events = await get_events_for_contract(
+                contract_address=to_bytes(kwargs["contract_address"], pad=20),
+                topics=[
+                    to_bytes(topic) if not isinstance(topic, list) else [to_bytes(t) for t in topic]
+                    for topic in kwargs["topics"]
+                ],
+                from_block=from_block,
+                to_block=to_block,
+                rpc_url=kwargs["json_rpc"],
+                aiohttp_session=client_session,
+            )
+        finally:
+            await client_session.close()
+
+        return {ExporterDataType.events: events}
+
+    if kwargs["json_rpc"]:
+        assert kwargs["contract_address"], "Missing 'contract_address' in kwargs for event import"
+        assert kwargs["topics"], "Missing 'topics' in kwargs for event import"
+
+        return retry_async_run(_get_rpc_block_data, **kwargs)
+
+    raise BackfillError("'json_rpc' required to backfill starknet transactions")

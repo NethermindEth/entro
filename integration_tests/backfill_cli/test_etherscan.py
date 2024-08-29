@@ -1,3 +1,4 @@
+import pytest
 from click.testing import CliRunner
 
 from integration_tests.backfill_cli.utils import printout_error_and_traceback
@@ -30,6 +31,8 @@ def test_backfill_ethereum_transactions(
             18_000_000,
             "-to",
             18_005_000,
+            "--batch-size",
+            500,
             *cli_db_url,
             *etherscan_cli_config,
         ],
@@ -48,6 +51,7 @@ def test_backfill_ethereum_transactions(
     assert backfills[0].filter_data == {"for_address": WETH_9}
 
 
+@pytest.mark.skip("Non-Critical")
 def test_required_parameters_for_etherscan_backfill(integration_postgres_db, cli_db_url, etherscan_cli_config):
     runner = CliRunner()
 

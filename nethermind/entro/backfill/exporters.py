@@ -18,7 +18,6 @@ from nethermind.entro.database.models import (
     transfer_model_for_network,
 )
 from nethermind.entro.database.models.uniswap import UNI_EVENT_MODELS
-from nethermind.entro.database.writers.utils import db_encode_hex
 from nethermind.entro.exceptions import BackfillError
 from nethermind.entro.types.backfill import (
     BackfillDataType,
@@ -27,14 +26,13 @@ from nethermind.entro.types.backfill import (
     SupportedNetwork,
     dataclass_as_dict,
 )
-from nethermind.entro.utils import camel_to_snake
 from nethermind.idealis.utils import to_hex
 
 root_logger = logging.getLogger("nethermind")
 logger = root_logger.getChild("entro").getChild("export")
 
 
-ALL_EVENT_MODELS: dict[str, Type[DeclarativeBase]] = {
+ALL_EVENT_MODELS: dict[bytes, Type[DeclarativeBase]] = {
     **UNI_EVENT_MODELS,
 }
 
@@ -63,31 +61,32 @@ class IntegrityMode(Enum):
     fail = "fail"
 
 
+def db_json_encode(data: Any) -> Any:
+    """
+    Recursively encodes a dictionary or list.  Converts all binary types to hexstrings that can be saved to
+    the database in JSON columns.
+
+    :param data:
+    :return:
+    """
+    if isinstance(data, dict):
+        return {k: db_json_encode(v) for k, v in data.items()}
+
+    if isinstance(data, (list, tuple)):
+        return [db_json_encode(d) for d in data]
+
+    if isinstance(data, Enum):
+        return data.name
+
+    if isinstance(data, bytes):
+        return "0x" + data.hex()
+
+    return data
+
+
 # TODO: Refactor this to not be a steaming pile of primary school garbage :facepalm:
-def encode_val(obj: Any, csv_out: bool = False, hex_encode_bytes: bool = False) -> Any:
+def encode_val(obj: Any, csv_out: bool = False, hex_encode_bytes: bool = True, json_dump: bool = True) -> Any:
     """Encode a dataclass dictionary into a format that can be passed to a Sqlalchemy model or written as CSV"""
-
-    def json_encode(data: Any) -> Any:
-        """
-        Recursively encodes a dictionary or list.  Converts all binary types to hexstrings that can be saved to
-        the database in JSON columns.
-
-        :param data:
-        :return:
-        """
-        if isinstance(data, dict):
-            return {k: json_encode(v) for k, v in data.items()}
-
-        if isinstance(data, (list, tuple)):
-            return [json_encode(d) for d in data]
-
-        if isinstance(data, Enum):
-            return data.name
-
-        if isinstance(data, bytes):
-            return "0x" + data.hex()
-
-        return data
 
     if obj is None and csv_out:
         return ""
@@ -96,7 +95,11 @@ def encode_val(obj: Any, csv_out: bool = False, hex_encode_bytes: bool = False) 
         return str(obj)
 
     if isinstance(obj, (list, tuple, dict)):
-        return json.dumps(json_encode(obj))
+        if json_dump:  # If writing to CSV, json.dumps the object
+            return json.dumps(db_json_encode(obj))
+
+        # If writing to sqlalchemy, it auto-calls JSON.dumps on the dict obj
+        return db_json_encode(obj)
 
     if isinstance(obj, bytes) and hex_encode_bytes:
         return to_hex(obj)
@@ -107,27 +110,27 @@ def encode_val(obj: Any, csv_out: bool = False, hex_encode_bytes: bool = False) 
     return obj
 
 
-def db_encode_dataclass(dataclass: Dataclass, db_dialect: str) -> dict[str, Any]:
+def db_encode_dataclass(dataclass: Dataclass) -> dict[str, Any]:
     """
     Encode a dataclass dictionary into a format that can be passed to a Sqlalchemy model
     :param dataclass: Dataclass to encode
-    :param db_dialect: Database dialect to determine how to encode bytes
     """
     dataclass_dict = dataclass_as_dict(dataclass)
-    hex_encode = db_dialect != "postgresql"
 
-    return {k: encode_val(v, hex_encode_bytes=hex_encode) for k, v in dataclass_dict.items()}
+    return {k: encode_val(v, hex_encode_bytes=True, json_dump=False) for k, v in dataclass_dict.items()}
 
 
 class AbstractResourceExporter:
     """Abstract class for exporting data to a datastore"""
 
     export_mode: ExportMode
+    export_data_type: ExporterDataType
     init_time: float
     resources_saved: int = 0
 
-    def __init__(self):
+    def __init__(self, export_data_type: ExporterDataType):
         self.init_time = time.time()
+        self.export_data_type = export_data_type
 
     @abstractmethod
     def write(self, resources: list[Dataclass]):
@@ -137,7 +140,10 @@ class AbstractResourceExporter:
     def close(self):
         """Perform any necessary cleanup operations & Printout export stats"""
         minutes, seconds = divmod(time.time() - self.init_time, 60)
-        logger.info(f"Exported {self.resources_saved} rows in {minutes} minutes {seconds:.1f} seconds")
+        logger.info(
+            f"Exported {self.resources_saved} {self.export_data_type.name.capitalize()} "
+            f"in {minutes} minutes {seconds:.1f} seconds"
+        )
 
 
 class FileResourceExporter(AbstractResourceExporter):
@@ -147,8 +153,8 @@ class FileResourceExporter(AbstractResourceExporter):
     write_headers: bool = False
     csv_separator: str = "|"
 
-    def __init__(self, file_name: str, append: bool = True):
-        super().__init__()
+    def __init__(self, data_type: ExporterDataType, file_name: str, append: bool = True):
+        super().__init__(data_type)
 
         if not file_name.endswith(".csv"):
             raise ValueError("Export File name must be a .csv file")
@@ -200,11 +206,12 @@ class DBResourceExporter(AbstractResourceExporter):
 
     def __init__(
         self,
+        data_type: ExporterDataType,
         engine: Engine | Connection,
         default_model: Type[DeclarativeBase],
         integrity_mode: IntegrityMode = IntegrityMode.ignore,
     ):
-        super().__init__()
+        super().__init__(data_type)
 
         self.engine = engine
         self.default_model = default_model
@@ -234,7 +241,7 @@ class DBResourceExporter(AbstractResourceExporter):
         db_models = []
 
         for resource in resources:
-            encoded_dataclass = db_encode_dataclass(resource, self.dialect)
+            encoded_dataclass = db_encode_dataclass(resource)
             try:
                 db_models.append(self.default_model(**encoded_dataclass))
             except BaseException:
@@ -259,63 +266,70 @@ class EventExporter(DBResourceExporter):
     """
 
     db_cache: dict[str, list[DeclarativeBase]]
-    event_model_mapping: dict[str, Type[DeclarativeBase]]
-    event_model_overrides: dict[str, Type[DeclarativeBase]] | None = None
+    event_model_mapping: dict[bytes, Type[DeclarativeBase]]
+    event_model_overrides: dict[bytes, Type[DeclarativeBase]] | None = None
 
     def __init__(
         self,
+        data_type: ExporterDataType,
         engine: Engine | Connection,
         event_model: Type[DeclarativeBase],
-        event_model_overrides: dict[str, Type[DeclarativeBase]] | None = None,
+        event_model_overrides: dict[bytes, Type[DeclarativeBase]] | None = None,
         integrity_mode: IntegrityMode = IntegrityMode.ignore,
     ):
-        super().__init__(engine=engine, integrity_mode=integrity_mode, default_model=event_model)
+        super().__init__(
+            data_type=data_type,
+            engine=engine,
+            integrity_mode=integrity_mode,
+            default_model=event_model,
+        )
 
         self.event_model_mapping = ALL_EVENT_MODELS.copy()
 
         if event_model_overrides:
             self.event_model_overrides = event_model_overrides
             self.event_model_mapping.update(event_model_overrides)
-            self.event_model_mapping.update({"default": self.default_model})
-
-    def _db_encode_event_params(self, decoded_params: dict[str, Any], snake: bool = False) -> dict[str, Any]:
-        db_encoded_event = {}
-        for name, val in decoded_params.items():
-            db_name = camel_to_snake(name) if snake else name
-            if isinstance(val, bytes) or (isinstance(val, str) and val.startswith("0x")):
-                db_encoded_event.update({db_name: db_encode_hex(val, self.dialect)})
-            else:
-                db_encoded_event.update({db_name: val})
-
-        return db_encoded_event
 
     def write(self, resources: list[Dataclass]):
         """Writes an event to the database."""
         write_events = []
 
         for event in resources:
-            encoded_dataclass = db_encode_dataclass(event, self.dialect)
+            encoded_dataclass = db_encode_dataclass(event)
 
-            custom_model = None
-            if hasattr(event, "event_signature") and event.event_signature in self.event_model_mapping:
-                signature = event.event_signature
-                custom_model = self.event_model_mapping[signature]
+            if hasattr(event, "keys"):
+                event_signature = event.keys[0]
+            elif hasattr(event, "topics"):
+                event_signature = event.topics[0]
+            else:
+                event_signature = None
+
+            custom_model = self.event_model_mapping.get(event_signature) if event_signature else None
 
             if custom_model:
                 model_fields = {
                     k: v
                     for k, v in encoded_dataclass.items()
-                    if k not in ("event_signature", "event_name", "decoded_params")
+                    if k in ("block_number", "transaction_index", "event_index", "contract_address")
                 }
 
+                mapped_fields = {}
+                assert hasattr(
+                    event, "decoded_params"
+                ), "Event Dataclass must have decoded_params attribute to be exported to datastore"
+
+                for event_param, event_val in event.decoded_params.items():
+                    # mapped_col: Column | None = custom_model.__table__.columns.get(event_param)
+
+                    mapped_fields.update({event_param: event_val})
+
                 try:
-                    write_events.append(
-                        custom_model(
-                            **model_fields, **self._db_encode_event_params(encoded_dataclass["decoded_params"])
-                        )
-                    )
+                    write_events.append(custom_model(**model_fields, **mapped_fields))
                 except (AttributeError, TypeError, IntegrityError):
-                    logger.warning(f"Error encoding event to Custom Model {custom_model}.  Event: {encoded_dataclass}")
+                    logger.warning(
+                        f"Error encoding event to Custom Model {custom_model}.  "
+                        f" Default Model Params: {model_fields} -- Custom Model Params: {mapped_fields}"
+                    )
                     write_events.append(self.default_model(**encoded_dataclass))
 
             else:
@@ -334,29 +348,31 @@ def get_file_exporters_for_backfill(
         case BackfillDataType.full_blocks:
             if kwargs["block_file"] and kwargs["transaction_file"] and kwargs["event_file"]:
                 return {
-                    ExporterDataType.blocks: FileResourceExporter(kwargs["block_file"]),
-                    ExporterDataType.transactions: FileResourceExporter(kwargs["transaction_file"]),
-                    ExporterDataType.events: FileResourceExporter(kwargs["event_file"]),
+                    ExporterDataType.blocks: FileResourceExporter(ExporterDataType.blocks, kwargs["block_file"]),
+                    ExporterDataType.transactions: FileResourceExporter(
+                        ExporterDataType.transactions, kwargs["transaction_file"]
+                    ),
+                    ExporterDataType.events: FileResourceExporter(ExporterDataType.events, kwargs["event_file"]),
                 }
             raise BackfillError("Block, Transaction, and Event export files required for full block backfill")
 
         case BackfillDataType.blocks:
             if kwargs["block_file"]:
-                return {ExporterDataType.blocks: FileResourceExporter(kwargs["block_file"])}
+                return {ExporterDataType.blocks: FileResourceExporter(ExporterDataType.blocks, kwargs["block_file"])}
             raise BackfillError("Block export file required for Block backfill")
 
         case BackfillDataType.events:
             if kwargs["event_file"]:
-                return {ExporterDataType.events: FileResourceExporter(kwargs["event_file"])}
+                return {ExporterDataType.events: FileResourceExporter(ExporterDataType.events, kwargs["event_file"])}
             raise BackfillError("Event export file required for Event backfill")
 
         case BackfillDataType.transactions:
             if kwargs["transaction_file"]:
-                tx_exporter = FileResourceExporter(kwargs["transaction_file"])
+                tx_exporter = FileResourceExporter(ExporterDataType.transactions, kwargs["transaction_file"])
 
                 if kwargs["block_file"]:
                     return {
-                        ExporterDataType.blocks: FileResourceExporter(kwargs["block_file"]),
+                        ExporterDataType.blocks: FileResourceExporter(ExporterDataType.blocks, kwargs["block_file"]),
                         ExporterDataType.transactions: tx_exporter,
                     }
 
@@ -367,13 +383,17 @@ def get_file_exporters_for_backfill(
 
         case BackfillDataType.transfers:
             if kwargs["transfer_file"]:
-                return {ExporterDataType.transfers: FileResourceExporter(kwargs["transfer_file"])}
+                return {
+                    ExporterDataType.transfers: FileResourceExporter(
+                        ExporterDataType.transfers, kwargs["transfer_file"]
+                    )
+                }
 
             raise BackfillError("Transfer export file required for transfer backfill")
 
         case BackfillDataType.traces:
             if kwargs["trace_file"]:
-                return {ExporterDataType.traces: FileResourceExporter(kwargs["trace_file"])}
+                return {ExporterDataType.traces: FileResourceExporter(ExporterDataType.traces, kwargs["trace_file"])}
             raise BackfillError("Trace export file required")
 
         case _:
@@ -386,32 +406,58 @@ def get_db_exporters_for_backfill(
     """Returns a mapping of exporters for the given backfill type"""
     match backfill_type:
         case backfill_type.blocks:
-            return {ExporterDataType.blocks: DBResourceExporter(db_engine, block_model_for_network(network))}
+            return {
+                ExporterDataType.blocks: DBResourceExporter(
+                    ExporterDataType.blocks, db_engine, block_model_for_network(network)
+                )
+            }
 
         case backfill_type.transactions:
             return {
-                ExporterDataType.blocks: DBResourceExporter(db_engine, block_model_for_network(network)),
-                ExporterDataType.transactions: DBResourceExporter(db_engine, transaction_model_for_network(network)),
+                ExporterDataType.blocks: DBResourceExporter(
+                    ExporterDataType.blocks, db_engine, block_model_for_network(network)
+                ),
+                ExporterDataType.transactions: DBResourceExporter(
+                    ExporterDataType.transactions, db_engine, transaction_model_for_network(network)
+                ),
             }
         case backfill_type.transfers:
-            return {ExporterDataType.transfers: DBResourceExporter(db_engine, transfer_model_for_network(network))}
+            return {
+                ExporterDataType.transfers: DBResourceExporter(
+                    ExporterDataType.transfers, db_engine, transfer_model_for_network(network)
+                )
+            }
 
         case backfill_type.traces:
-            return {ExporterDataType.traces: DBResourceExporter(db_engine, trace_model_for_network(network))}
+            return {
+                ExporterDataType.traces: DBResourceExporter(
+                    ExporterDataType.traces, db_engine, trace_model_for_network(network)
+                )
+            }
 
         case backfill_type.events:
             return {
                 ExporterDataType.events: EventExporter(
-                    db_engine, default_event_model_for_network(network), kwargs.get("event_model_overrides")
+                    ExporterDataType.events,
+                    db_engine,
+                    default_event_model_for_network(network),
+                    kwargs.get("event_model_overrides"),
                 )
             }
 
         case backfill_type.full_blocks:
             return {
-                ExporterDataType.blocks: DBResourceExporter(db_engine, block_model_for_network(network)),
-                ExporterDataType.transactions: DBResourceExporter(db_engine, transaction_model_for_network(network)),
+                ExporterDataType.blocks: DBResourceExporter(
+                    ExporterDataType.blocks, db_engine, block_model_for_network(network)
+                ),
+                ExporterDataType.transactions: DBResourceExporter(
+                    ExporterDataType.transactions, db_engine, transaction_model_for_network(network)
+                ),
                 ExporterDataType.events: EventExporter(
-                    db_engine, default_event_model_for_network(network), kwargs.get("event_model_overrides")
+                    ExporterDataType.events,
+                    db_engine,
+                    default_event_model_for_network(network),
+                    kwargs.get("event_model_overrides"),
                 ),
             }
         case _:

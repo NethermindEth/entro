@@ -11,6 +11,7 @@ from sqlalchemy.orm import DeclarativeBase, Session, sessionmaker
 
 from nethermind.entro.backfill.exporters import (
     AbstractResourceExporter,
+    db_json_encode,
     get_db_exporters_for_backfill,
     get_file_exporters_for_backfill,
 )
@@ -109,7 +110,9 @@ class BackfillPlan:
         decoder = cls._initialize_decoder(db_session, metadata_dict, network)
 
         if backfill_type == BDT.events:
-            assert decoder is not None, "Decoder must be initialized for Event Backfill"
+            assert (
+                kwargs["decode_abis"] is not None and decoder is not None
+            ), "Must provide Valid ABI for Event Backfill"
             cls._inject_event_topics(decoder, filter_params, metadata_dict)
             if metadata_dict.get("db_models"):
                 model_overrides = dict(metadata_dict["db_models"])
@@ -202,7 +205,7 @@ class BackfillPlan:
         if not decode_abis:
             return None
 
-        return DecodingDispatcher.from_abis(
+        return DecodingDispatcher.from_cache(
             classify_abis=decode_abis,
             db_session=db_session,
             decoder_os=DecodingDispatcher.decoder_os_for_network(network),
@@ -302,7 +305,9 @@ class BackfillPlan:
 
                     progress.update(range_progress, advance=batch_end - batch_start, searching_block=batch_end)
 
-        console.print("[green]---- Backfill Complete ------")
+                self.range_plan.mark_finalized(range_idx, self.range_kwargs())
+
+        logger.info("---- Backfill Complete ------")
 
     def print_backfill_plan(self, console: Console):  # pylint: disable=too-many-locals
         """Prints the backfill plan to the console"""
@@ -342,24 +347,6 @@ class BackfillPlan:
         # Print Decoded ABis
         if self.decoder:
             self.print_decode_abis(console, term_width)
-
-        match self.backfill_type:
-            case BDT.events:
-                console.print(f"[bold green]Querying Events for Contract: {self.get_filter_param('contract_address')}")
-                console.print(f"[bold]{self.filter_params['abi_name']} ABI Decoding Events:")
-                for row in pprint_list(self.filter_params["event_names"], int(term_width * 0.8)):
-                    console.print(f"\t{row}")
-
-            case BDT.transactions | BDT.traces:
-                if not self.filter_params:
-                    console.print(f"[bold]Querying all {backfill_type} in each block")
-
-            case BDT.full_blocks:
-                console.print("[bold]Querying Transactions, Logs, and Receipts for Block Range")
-            case BDT.blocks:
-                pass
-            case _:
-                raise NotImplementedError(f"Cannot Printout {backfill_type} Backfills")
 
         console.print(f"[bold]{'-' * int(term_width * .8)}")
 
@@ -410,11 +397,11 @@ class BackfillPlan:
     def range_kwargs(self) -> dict[str, Any]:
         """Returns additional arguments to be passed to the BackfilledRange Model in DB/File Cache"""
         return {
-            "data_type": self.backfill_type,
-            "network": self.network,
-            "filter_data": self.filter_params,
-            "metadata_dict": self.metadata_dict,
-            "decoded_abis": (
+            "data_type": self.backfill_type.name,
+            "network": self.network.name,
+            "filter_data": db_json_encode(self.filter_params),
+            "metadata_dict": db_json_encode(self.metadata_dict),
+            "decoded_abis": db_json_encode(
                 self.decoder.loaded_abis if self.decoder and self.metadata_dict.get("all_abis", False) else []
             ),
         }

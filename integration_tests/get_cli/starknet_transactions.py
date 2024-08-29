@@ -50,4 +50,4 @@ def test_get_invalid_trace_txn(starknet_rpc_url):
         ],
     )
 
-    assert result.exit_code == 1
+    assert result.exit_code == 2

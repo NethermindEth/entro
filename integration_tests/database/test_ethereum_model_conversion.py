@@ -28,7 +28,7 @@ def test_block(integration_db_session):
         base_fee_per_gas=77550695617,
     )
 
-    model = BlockModel(**db_encode_dataclass(test_block, "postgresql"))
+    model = BlockModel(**db_encode_dataclass(test_block))
 
     integration_db_session.add(model)
     integration_db_session.commit()
@@ -63,14 +63,14 @@ def test_transaction(integration_db_session):
         function_name=None,
     )
 
-    model = TransactionModel(**asdict(test_tx))
+    model = TransactionModel(**db_encode_dataclass(test_tx))
 
     integration_db_session.add(model)
     integration_db_session.commit()
 
     db_tx = (
         integration_db_session.query(TransactionModel)
-        .filter_by(transaction_hash=to_bytes("0x1fb4eac2b0e87afb62dcdc8cfc35eb6e58d199503d53510c09f9e159360a5a90"))
+        .filter_by(transaction_hash="0x1fb4eac2b0e87afb62dcdc8cfc35eb6e58d199503d53510c09f9e159360a5a90")
         .first()
     )
 

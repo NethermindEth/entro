@@ -14,6 +14,7 @@ from nethermind.entro.database.models.base import (
     UInt160,
     UInt256,
 )
+from nethermind.idealis.utils import to_bytes
 
 # pylint: disable=missing-class-docstring
 
@@ -63,16 +64,16 @@ class UniV3MintEvent(AbstractEvent):
 
     sender: Mapped[IndexedAddress]
     owner: Mapped[IndexedAddress]
-    tick_lower: Mapped[int]
-    tick_upper: Mapped[int]
+    tickLower: Mapped[int]
+    tickUpper: Mapped[int]
     amount: Mapped[UInt256]
-    amount_0: Mapped[UInt256]
-    amount_1: Mapped[UInt256]
+    amount0: Mapped[UInt256]
+    amount1: Mapped[UInt256]
 
     __table_args__ = (
-        PrimaryKeyConstraint("block_number", "log_index"),
+        PrimaryKeyConstraint("block_number", "event_index"),
         Index("uniswap.ix_v3_mint_sender", "sender"),
-        Index("uniswap.ix_v3_mint_position", "owner", "tick_lower", "tick_upper"),
+        Index("uniswap.ix_v3_mint_position", "owner", "tickLower", "tickUpper"),
         {"schema": "uniswap"},
     )
 
@@ -82,14 +83,14 @@ class UniV3CollectEvent(AbstractEvent):
 
     owner: Mapped[IndexedAddress]
     recipient: Mapped[IndexedAddress]
-    tick_lower: Mapped[int]
-    tick_upper: Mapped[int]
-    amount_0: Mapped[UInt256]
-    amount_1: Mapped[UInt256]
+    tickLower: Mapped[int]
+    tickUpper: Mapped[int]
+    amount0: Mapped[UInt256]
+    amount1: Mapped[UInt256]
 
     __table_args__ = (
-        PrimaryKeyConstraint("block_number", "log_index"),
-        Index("uniswap.ix_v3_collect_position", "owner", "tick_lower", "tick_upper"),
+        PrimaryKeyConstraint("block_number", "event_index"),
+        Index("uniswap.ix_v3_collect_position", "owner", "tickLower", "tickUpper"),
         Index("uniswap.ix_v3_collect_recipient", "recipient"),
         {"schema": "uniswap"},
     )
@@ -99,15 +100,15 @@ class UniV3BurnEvent(AbstractEvent):
     __tablename__ = "v3_burn_events"
 
     owner: Mapped[IndexedAddress]
-    tick_lower: Mapped[int]
-    tick_upper: Mapped[int]
+    tickLower: Mapped[int]
+    tickUpper: Mapped[int]
     amount: Mapped[UInt256]
-    amount_0: Mapped[UInt256]
-    amount_1: Mapped[UInt256]
+    amount0: Mapped[UInt256]
+    amount1: Mapped[UInt256]
 
     __table_args__ = (
-        PrimaryKeyConstraint("block_number", "log_index"),
-        Index("uniswap.ix_v3_burn_position", "owner", "tick_lower", "tick_upper"),
+        PrimaryKeyConstraint("block_number", "event_index"),
+        Index("uniswap.ix_v3_burn_position", "owner", "tickLower", "tickUpper"),
         {"schema": "uniswap"},
     )
 
@@ -117,14 +118,14 @@ class UniV3SwapEvent(AbstractEvent):
 
     sender: Mapped[IndexedAddress]
     recipient: Mapped[IndexedAddress]
-    amount_0: Mapped[UInt256]
-    amount_1: Mapped[UInt256]
-    sqrt_price: Mapped[UInt160]
+    amount0: Mapped[UInt256]
+    amount1: Mapped[UInt256]
+    sqrtPrice: Mapped[UInt160]
     liquidity: Mapped[UInt128]
     tick: Mapped[int]
 
     __table_args__ = (
-        PrimaryKeyConstraint("block_number", "log_index"),
+        PrimaryKeyConstraint("block_number", "event_index"),
         Index("uniswap.ix_v3_swap_sender", "sender"),
         Index("uniswap.ix_v3_swap_recipient", "recipient"),
         {"schema": "uniswap"},
@@ -136,13 +137,13 @@ class UniV3FlashEvent(AbstractEvent):
 
     sender: Mapped[IndexedAddress]
     recipient: Mapped[IndexedAddress]
-    amount_0: Mapped[UInt256]
-    amount_1: Mapped[UInt256]
-    paid_0: Mapped[UInt256]
-    paid_1: Mapped[UInt256]
+    amount0: Mapped[UInt256]
+    amount1: Mapped[UInt256]
+    paid0: Mapped[UInt256]
+    paid1: Mapped[UInt256]
 
     __table_args__ = (
-        PrimaryKeyConstraint("block_number", "log_index"),
+        PrimaryKeyConstraint("block_number", "event_index"),
         Index("uniswap.ix_v3_flash_sender", "sender"),
         Index("uniswap.ix_v3_flash_recipient", "recipient"),
         {"schema": "uniswap"},
@@ -152,26 +153,26 @@ class UniV3FlashEvent(AbstractEvent):
 class UniV3PoolCreationEvent(AbstractEvent):
     __tablename__ = "v3_pool_creation_events"
 
-    token_0: Mapped[IndexedAddress]
-    token_1: Mapped[IndexedAddress]
+    token0: Mapped[IndexedAddress]
+    token1: Mapped[IndexedAddress]
     pool: Mapped[IndexedAddress]
     fee: Mapped[int]
-    tick_spacing: Mapped[int]
+    tickSpacing: Mapped[int]
 
     __table_args__ = (
-        PrimaryKeyConstraint("block_number", "log_index"),
-        Index("uniswap.ix_v3_pool_creation_token_0", "token_0"),
-        Index("uniswap.ix_v3_pool_creation_token_1", "token_1"),
+        PrimaryKeyConstraint("block_number", "event_index"),
+        Index("uniswap.ix_v3_pool_creation_token_0", "token0"),
+        Index("uniswap.ix_v3_pool_creation_token_1", "token1"),
         Index("uniswap.ix_v3_pool_creation_pool", "pool"),
         {"schema": "uniswap"},
     )
 
 
-UNI_EVENT_MODELS: dict[str, Type[AbstractEvent]] = {
-    "Mint(address,address,int24,int24,uint128,uint256,uint256)": UniV3MintEvent,
-    "Collect(address,address,int24,int24,uint128,uint128)": UniV3CollectEvent,
-    "Burn(address,int24,int24,uint128,uint256,uint256)": UniV3BurnEvent,
-    "Swap(address,address,int256,int256,uint160,uint128,int24)": UniV3SwapEvent,
-    "Flash(address,address,uint256,uint256,uint256,uint256)": UniV3FlashEvent,
-    "PoolCreated(address,address,uint24,int24,address)": UniV3PoolCreationEvent,
+UNI_EVENT_MODELS: dict[bytes, Type[AbstractEvent]] = {
+    to_bytes("0x7a53080ba414158be7ec69b987b5fb7d07dee101fe85488f0853ae16239d0bde"): UniV3MintEvent,
+    to_bytes("0x70935338e69775456a85ddef226c395fb668b63fa0115f5f20610b388e6ca9c0"): UniV3CollectEvent,
+    to_bytes("0x0c396cd989a39f4459b5fa1aed6a9a8dcdbc45908acfd67e028cd568da98982c"): UniV3BurnEvent,
+    to_bytes("0xc42079f94a6350d7e6235f29174924f928cc2ac818eb64fed8004e115fbcca67"): UniV3SwapEvent,
+    to_bytes("0xbdbdb71d7860376ba52b25a5028beea23581364a40522f6bcfb86bb1f2dca633"): UniV3FlashEvent,
+    to_bytes("0x783cca1c0412dd0d695e784568c96da2e9c22ff989357a2e8b1d9b2b4e6b7118"): UniV3PoolCreationEvent,
 }

@@ -240,14 +240,14 @@ def fetch_positions(
     position_keys = db_session.execute(
         select(
             UniV3MintEvent.owner,
-            UniV3MintEvent.tick_lower,
-            UniV3MintEvent.tick_upper,
+            UniV3MintEvent.tickLower,
+            UniV3MintEvent.tickUpper,
         )
         .distinct(
             tuple_(
                 UniV3MintEvent.owner,
-                UniV3MintEvent.tick_lower,
-                UniV3MintEvent.tick_upper,
+                UniV3MintEvent.tickLower,
+                UniV3MintEvent.tickUpper,
             )
         )
         .filter(  # type: ignore

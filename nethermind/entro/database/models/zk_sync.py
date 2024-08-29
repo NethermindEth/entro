@@ -1,7 +1,6 @@
 from typing import Any
 
 from sqlalchemy import JSON, BigInteger, Numeric, PrimaryKeyConstraint, Text
-from sqlalchemy.dialects.postgresql import BYTEA
 from sqlalchemy.orm import Mapped, mapped_column
 
 from nethermind.entro.database.models.base import (
@@ -27,7 +26,7 @@ class EraBlock(AbstractBlock):
     difficulty: Mapped[int] = mapped_column(Numeric(32, 0), nullable=True)
     gas_limit: Mapped[int] = mapped_column(BigInteger, nullable=False)
 
-    extra_data: Mapped[str] = mapped_column(Text().with_variant(BYTEA, "postgresql"), nullable=False)
+    extra_data: Mapped[str] = mapped_column(Text, nullable=False)
 
     __table_args__ = {"schema": "zk_sync_data"}
 
@@ -40,7 +39,7 @@ class EraDefaultEvent(AbstractEvent):
     decoded_event: Mapped[dict[str, Any] | None] = mapped_column(JSON, nullable=True)
 
     __table_args__ = (
-        PrimaryKeyConstraint("block_number", "log_index"),
+        PrimaryKeyConstraint("block_number", "event_index"),
         {"schema": "zk_sync_data"},
     )
 
@@ -69,4 +68,4 @@ class EraTransaction(AbstractTransaction):
 class EraERC20Transfer(AbstractERC20Transfer):
     __tablename__ = "era_erc20_transfers"
 
-    __table_args__ = (PrimaryKeyConstraint("transaction_hash", "log_index"), {"schema": "zk_sync_data"})
+    __table_args__ = (PrimaryKeyConstraint("transaction_hash", "event_index"), {"schema": "zk_sync_data"})

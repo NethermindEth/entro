@@ -32,7 +32,7 @@ def test_block(integration_db_session):
         total_fee=820297381255144003,
     )
 
-    model = StarknetBlockModel(**db_encode_dataclass(test_block, "postgresql"))
+    model = StarknetBlockModel(**db_encode_dataclass(test_block))
 
     integration_db_session.add(model)
     integration_db_session.commit()
@@ -85,15 +85,14 @@ def test_transaction(integration_db_session):
         revert_error=None,
     )
 
-    print(db_encode_dataclass(test_tx, "postgresql"))
-    model = TransactionModel(**db_encode_dataclass(test_tx, "postgresql"))
+    model = TransactionModel(**db_encode_dataclass(test_tx))
 
     integration_db_session.add(model)
     integration_db_session.commit()
 
     db_tx = (
         integration_db_session.query(TransactionModel)
-        .filter_by(transaction_hash=to_bytes("01139643045af8ad540f84685aad59115073f7aae58b1c46fd57cffdef438657"))
+        .filter_by(transaction_hash="0x01139643045af8ad540f84685aad59115073f7aae58b1c46fd57cffdef438657")
         .first()
     )
 

@@ -1,4 +1,5 @@
 import csv
+import json
 import os
 from decimal import Decimal
 
@@ -67,34 +68,33 @@ def test_backfill_mint_events_for_weth_wbtc_pool(
         input="y",
     )
 
-    printout_error_and_traceback(mint_backfill_result)
-
     assert mint_backfill_result.exit_code == 0
 
     expected_output = [
-        "------ Backfill Plan for Ethereum Events ------",
         "Backfill Block Ranges",
-        "17,800,000",
-        "17,900,000",
-        "100,000",
-        "0xCBCdF9626bC03E24f779434178A73a0B4bad62eD",
-        "UniswapV3Pool ABI Decoding Events:",
-        "'Mint'",
+        "┌─────────────────────────┬────────────────────────┬──────────────────────────┐",
+        "│ Start Block             │ End Block              │             Total Blocks │",
+        "├─────────────────────────┼────────────────────────┼──────────────────────────┤",
+        "│ 17,800,000              │ 17,900,000             │                  100,000 │",
+        "└─────────────────────────┴────────────────────────┴──────────────────────────┘",
+        "contract_address │ 0xCBCdF9626bC03E24f779434178A73a0B4bad62eD",
+        "event_names      │ ['Mint']",
+        "abi_name         │ UniswapV3Pool",
     ]
 
     for line in expected_output:
         assert line in mint_backfill_result.output
 
     mint_events = integration_db_session.execute(select(UniV3MintEvent)).scalars().all()
-    assert mint_events[0].sender == bytes.fromhex("C36442b4a4522E871399CD717aBDD847Ab11FE88")
+    assert mint_events[0].sender == "0xC36442b4a4522E871399CD717aBDD847Ab11FE88"
 
     assert mint_events[0].amount == 32500065523907
-    assert mint_events[0].tick_lower == 254220
-    assert mint_events[0].tick_upper == 258060
+    assert mint_events[0].tickLower == 254220
+    assert mint_events[0].tickUpper == 258060
 
     assert mint_events[-1].amount == 5108528917685
-    assert mint_events[-1].tick_lower == 255480
-    assert mint_events[-1].tick_upper == 258900
+    assert mint_events[-1].tickLower == 255480
+    assert mint_events[-1].tickUpper == 258900
 
     assert len(mint_events) == 95
 
@@ -124,7 +124,8 @@ def test_cli_backfill_multiple_events(
         entro_cli,
         [
             "backfill",
-            "ethereum" "events",
+            "ethereum",
+            "events",
             "-from",
             18_000_000,
             "-to",
@@ -145,11 +146,12 @@ def test_cli_backfill_multiple_events(
         input="y",
     )
 
+    printout_error_and_traceback(event_backfill_res)
+
     expected_out = [
         "18,000,000",
         "18,005,000",
-        "UniswapV3Pool ABI Decoding Events:",
-        "'Mint', 'Burn', 'Collect'",
+        "['Mint', 'Burn', 'Collect']",
     ]
 
     for out in expected_out:
@@ -165,20 +167,20 @@ def test_cli_backfill_multiple_events(
     assert len(burn_events) == 7
     assert len(collect_events) == 8
 
-    assert mint_events[0].tick_lower == 250920
-    assert mint_events[0].tick_upper == 264780
+    assert mint_events[0].tickLower == 250920
+    assert mint_events[0].tickUpper == 264780
 
-    assert mint_events[-1].tick_lower == 251280
-    assert mint_events[-1].tick_upper == 264360
+    assert mint_events[-1].tickLower == 251280
+    assert mint_events[-1].tickUpper == 264360
 
-    assert burn_events[0].tick_lower == 255960
-    assert burn_events[0].tick_upper == 258300
+    assert burn_events[0].tickLower == 255960
+    assert burn_events[0].tickUpper == 258300
 
-    assert burn_events[-1].tick_lower == collect_events[-1].tick_lower == 251280
-    assert burn_events[-1].tick_upper == collect_events[-1].tick_upper == 264360
+    assert burn_events[-1].tickLower == collect_events[-1].tickLower == 251280
+    assert burn_events[-1].tickUpper == collect_events[-1].tickUpper == 264360
 
-    assert burn_events[-1].amount_0 == collect_events[-1].amount_0 == Decimal("398206")
-    assert burn_events[-1].amount_1 == collect_events[-1].amount_1 == Decimal("63404179018897713")
+    assert burn_events[-1].amount0 == collect_events[-1].amount0 == Decimal("398206")
+    assert burn_events[-1].amount1 == collect_events[-1].amount1 == Decimal("63404179018897713")
 
 
 def test_event_cli_required_params(integration_postgres_db, integration_db_session, cli_db_url):
@@ -190,6 +192,7 @@ def test_event_cli_required_params(integration_postgres_db, integration_db_sessi
         entro_cli,
         [
             "backfill",
+            "ethereum",
             "events",
             "-abi",
             "UniswapV3Pool",
@@ -203,6 +206,7 @@ def test_event_cli_required_params(integration_postgres_db, integration_db_sessi
         entro_cli,
         [
             "backfill",
+            "ethereum",
             "events",
             "--contract-address",
             to_checksum_address("0xcbcdf9626bc03e24f779434178a73a0b4bad62ed"),
@@ -216,6 +220,7 @@ def test_event_cli_required_params(integration_postgres_db, integration_db_sessi
         entro_cli,
         [
             "backfill",
+            "ethereum",
             "events",
             "--contract-address",
             to_checksum_address("0xcbcdf9626bc03e24f779434178a73a0b4bad62ed"),
@@ -231,17 +236,10 @@ def test_event_cli_required_params(integration_postgres_db, integration_db_sessi
     assert "Error: Missing option '--contract-address'" in missing_contract_address.output
 
     assert missing_abi_name.exit_code == 0
-    assert "Error Occurred Generating Backfill: Expected 1 ABI for Event backfill" in missing_abi_name.output
-    assert "Specify an ABI using --contract-abi" in missing_abi_name.output
+    assert "Must provide Valid ABI for Event Backfill" in missing_abi_name.output
 
     assert invalid_abi.exit_code == 0
-
-    expected_error = [
-        "Error Occurred Generating Backfill:",
-        "ABIs not in DB: InvalidABI",
-    ]
-    for line in expected_error:
-        assert line in invalid_abi.output
+    assert "not present in Cache: InvalidABI" in invalid_abi.output
 
 
 def test_backfill_starknet_swaps(starknet_rpc_url):
@@ -288,7 +286,12 @@ def test_backfill_starknet_swaps(starknet_rpc_url):
 
             swap_events = list(csv_reader)
 
-        for swap in swap_events:
-            print(swap)
+        assert len(swap_events) == 8389
 
-        assert False
+        assert swap_events[1][0] == "600000"
+        assert swap_events[1][7] == "Swap"
+        assert json.loads(swap_events[1][8])["buy_amount"] == 6953719595
+
+        assert swap_events[-1][0] == "600990"
+        assert swap_events[-1][7] == "Swap"
+        assert json.loads(swap_events[-1][8])["buy_amount"] == 4546691991

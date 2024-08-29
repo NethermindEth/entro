@@ -179,7 +179,7 @@ def backfill_spot_prices(
                 backfill_plan.process_failed_backfill(start_slice)
                 break
 
-            sorted_events = sorted(pricing_events, key=lambda x: (x["block_number"], x["log_index"]))
+            sorted_events = sorted(pricing_events, key=lambda x: (x["block_number"], x["event_index"]))
             prev_event = sorted_events[0]
 
             # TODO: Cleanup DRY

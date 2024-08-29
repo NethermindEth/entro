@@ -224,7 +224,7 @@ class DecodingDispatcher:
                     )
 
     @classmethod
-    def from_abis(
+    def from_cache(
         cls,
         classify_abis: list[str],
         db_session: Session | None,
@@ -259,7 +259,7 @@ class DecodingDispatcher:
 
         if len(decoding_abis) != len(classify_abis) and not all_abis:
             raise DecodingError(
-                f"Some ABIs passed to DecodingDispatcher.from_abis() not present.  Missing ABIs: "
+                f"Some ABIs passed to DecodingDispatcher.from_cache() not present.  ABIs not present in Cache: "
                 f"{','.join(set(classify_abis) - set(abi.abi_name for abi in decoding_abis))}"
             )
 

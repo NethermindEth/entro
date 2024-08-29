@@ -89,9 +89,7 @@ def transactions(
 
     backfill_plan.execute_backfill(console=console, killer=killer)
 
-    if backfill_plan.db_session:
-        backfill_plan.save_to_db()
-        backfill_plan.db_session.close()
+    killer.finalize(backfill_plan)
 
 
 @ethereum_group.command()
@@ -147,9 +145,7 @@ def events(
 
     backfill_plan.execute_backfill(console=console, killer=killer)
 
-    if backfill_plan.db_session:
-        backfill_plan.save_to_db()
-        backfill_plan.db_session.close()
+    killer.finalize(backfill_plan)
 
 
 # @backfill_group.command()
@@ -225,9 +221,7 @@ def blocks(
 
     backfill_plan.execute_backfill(console=console, killer=killer)
 
-    if backfill_plan.db_session:
-        backfill_plan.save_to_db()
-        backfill_plan.db_session.close()
+    killer.finalize(backfill_plan)
 
 
 @ethereum_group.command()
@@ -274,9 +268,7 @@ def full_blocks(
 
     backfill_plan.execute_backfill(console=console, killer=killer)
 
-    if backfill_plan.db_session:
-        backfill_plan.save_to_db()
-        backfill_plan.db_session.close()
+    killer.finalize(backfill_plan)
 
 
 @ethereum_group.command()

@@ -4,7 +4,11 @@ from nethermind.entro.types.backfill import (
     SupportedNetwork,
 )
 
-from .ethereum import ethereum_block_importer, ethereum_transaction_importer
+from .ethereum import (
+    ethereum_block_importer,
+    ethereum_event_importer,
+    ethereum_transaction_importer,
+)
 
 # Network Importer Callables
 from .starknet import (
@@ -67,6 +71,8 @@ def get_full_block_importer(network: SupportedNetwork) -> ImporterCallable:
 
 def get_event_importer(network: SupportedNetwork) -> ImporterCallable:
     match network:
+        case network.ethereum:
+            return ethereum_event_importer
         case network.starknet:
             return starknet_event_importer
         case _:

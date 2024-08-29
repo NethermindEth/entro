@@ -11,7 +11,6 @@ from nethermind.entro.database.models.base import (
     BlockNumberPK,
     Hash32,
     Hash32PK,
-    IndexedAddress,
     IndexedBlockNumber,
 )
 from nethermind.idealis.types.starknet import DecodedOperation
@@ -52,12 +51,16 @@ class Block(AbstractBlock):
 class DefaultEvent(AbstractEvent):
     __tablename__ = "default_events"
 
+    keys: Mapped[list[str]] = mapped_column(JSON)
+    data: Mapped[list[str] | None] = mapped_column(JSON, nullable=True)
+
+    class_hash: Mapped[str | None] = mapped_column(Text, nullable=True)
+
     event_name: Mapped[str | None] = mapped_column(Text, index=True)
-    abi_name: Mapped[str | None] = mapped_column(Text, index=True)
-    decoded_event: Mapped[dict[str, Any] | None] = mapped_column(JSON, nullable=True)
+    decoded_params: Mapped[dict[str, Any] | None] = mapped_column(JSON, nullable=True)
 
     __table_args__ = (
-        PrimaryKeyConstraint("block_number", "log_index"),
+        PrimaryKeyConstraint("block_number", "transaction_index", "event_index"),
         {"schema": "starknet_data"},
     )
 
@@ -71,7 +74,7 @@ class Transaction(AbstractTransaction):
 
     type: Mapped[StarknetTxType]
     nonce: Mapped[int]
-    signature: Mapped[list[bytes]] = mapped_column(JSON)
+    signature: Mapped[list[str]] = mapped_column(JSON)
     version: Mapped[int]
     timestamp: Mapped[int]
     status: Mapped[TransactionStatus]
@@ -84,13 +87,13 @@ class Transaction(AbstractTransaction):
 
     tip: Mapped[int] = mapped_column(Numeric)  # Not In Use
     resource_bounds: Mapped[dict[str, int] | None] = mapped_column(JSON, nullable=True)
-    paymaster_data: Mapped[list[bytes]] = mapped_column(JSON)
-    account_deployment_data: Mapped[list[bytes]] = mapped_column(JSON)
+    paymaster_data: Mapped[list[str]] = mapped_column(JSON)
+    account_deployment_data: Mapped[list[str]] = mapped_column(JSON)
 
-    contract_address: Mapped[IndexedAddress | None]
-    selector: Mapped[bytes]
-    calldata: Mapped[list[bytes]] = mapped_column(JSON)
-    class_hash: Mapped[bytes | None]  # Deploy Account & Declare V2
+    contract_address: Mapped[str | None] = mapped_column(Text, index=True, nullable=True)
+    selector: Mapped[str]
+    calldata: Mapped[list[str]] = mapped_column(JSON)
+    class_hash: Mapped[str | None]  # Deploy Account & Declare V2
 
     user_operations: Mapped[list[DecodedOperation]] = mapped_column(JSON)
     revert_error: Mapped[str | None]
@@ -101,4 +104,4 @@ class Transaction(AbstractTransaction):
 class ERC20Transfer(AbstractERC20Transfer):
     __tablename__ = "erc20_transfers"
 
-    __table_args__ = (PrimaryKeyConstraint("transaction_hash", "log_index"), {"schema": "starknet_data"})
+    __table_args__ = (PrimaryKeyConstraint("transaction_hash", "event_index"), {"schema": "starknet_data"})

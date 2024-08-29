@@ -43,12 +43,14 @@ class Block(AbstractBlock):
 class DefaultEvent(AbstractEvent):
     __tablename__ = "default_events"
 
+    topics: Mapped[list[str]] = mapped_column(JSON)
+    data: Mapped[CalldataBytes | None] = mapped_column(Text, nullable=True)
+
     event_name: Mapped[str | None] = mapped_column(Text, index=True)
-    abi_name: Mapped[str | None] = mapped_column(Text, index=True)
-    decoded_event: Mapped[dict[str, Any] | None] = mapped_column(JSON, nullable=True)
+    decoded_params: Mapped[dict[str, Any] | None] = mapped_column(JSON, nullable=True)
 
     __table_args__ = (
-        PrimaryKeyConstraint("block_number", "log_index"),
+        PrimaryKeyConstraint("block_number", "event_index"),
         {"schema": "ethereum_data"},
     )
 
@@ -104,4 +106,4 @@ class Trace(AbstractTrace):
 class ERC20Transfer(AbstractERC20Transfer):
     __tablename__ = "erc20_transfers"
 
-    __table_args__ = (PrimaryKeyConstraint("transaction_hash", "log_index"), {"schema": "ethereum_data"})
+    __table_args__ = (PrimaryKeyConstraint("transaction_hash", "event_index"), {"schema": "ethereum_data"})

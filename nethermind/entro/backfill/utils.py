@@ -1,3 +1,4 @@
+import logging
 import os
 import signal
 
@@ -151,6 +152,8 @@ class GracefulKiller:
 
     signal_names = {signal.SIGINT: "SIGINT", signal.SIGTERM: "SIGTERM"}
 
+    logger = logging.getLogger("nethermind").getChild("entro").getChild("cli")
+
     def __init__(self, console: Console):
         self.kill_now = False
         self.console = console
@@ -161,3 +164,14 @@ class GracefulKiller:
         """Prints out a message and sets kill_now to True"""
         self.console.print("[green]Received Shutdown Signal.  Finishing Backfill...")
         self.kill_now = True
+
+    def finalize(self, backfill_plan):
+        """Finalizes the backfill"""
+
+        if backfill_plan.db_session is not None:
+            self.logger.info("Saving Backfill Progress to Database")
+            backfill_plan.save_to_db()
+            backfill_plan.db_session.close()
+
+        for exporter in backfill_plan.exporters.values():
+            exporter.close()

@@ -186,7 +186,7 @@ def list_abi_decoders(decoder_type, db_url, full_signatures):
 
     db_session = create_cli_session(db_url) if db_url else None
 
-    decoder = DecodingDispatcher.from_abis(
+    decoder = DecodingDispatcher.from_cache(
         classify_abis=[], db_session=db_session, decoder_os=decoder_type, all_abis=True
     )
 

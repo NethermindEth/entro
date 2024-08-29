@@ -1,4 +1,5 @@
 import logging
+import os
 
 import click
 
@@ -77,9 +78,7 @@ def full_blocks(**kwargs):
 
     backfill_plan.execute_backfill(console=console, killer=killer)
 
-    if backfill_plan.db_session:
-        backfill_plan.save_to_db()
-        backfill_plan.db_session.close()
+    killer.finalize(backfill_plan)
 
 
 @starknet_group.command()
@@ -125,9 +124,7 @@ def transactions(**kwargs):
 
     backfill_plan.execute_backfill(console=console, killer=killer)
 
-    if backfill_plan.db_session:
-        backfill_plan.save_to_db()
-        backfill_plan.db_session.close()
+    killer.finalize(backfill_plan)
 
 
 @starknet_group.command()
@@ -174,9 +171,7 @@ def events(**kwargs):
 
     backfill_plan.execute_backfill(console=console, killer=killer)
 
-    if backfill_plan.db_session:
-        backfill_plan.save_to_db()
-        backfill_plan.db_session.close()
+    killer.finalize(backfill_plan)
 
 
 @starknet_group.command()

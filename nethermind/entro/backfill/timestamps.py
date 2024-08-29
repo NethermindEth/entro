@@ -44,7 +44,7 @@ def get_blocks_for_network(
             case SupportedNetwork.starknet:
                 blocks = await get_starknet_blocks(block_numbers, json_rpc, client_session)
             case SupportedNetwork.ethereum:
-                blocks, _ = await get_ethereum_blocks(block_numbers, json_rpc, client_session)
+                blocks, _ = await get_ethereum_blocks(block_numbers, json_rpc, client_session, False)
             case _:
                 raise ValueError(f"Unsupported Network: {network}")
         await client_session.close()

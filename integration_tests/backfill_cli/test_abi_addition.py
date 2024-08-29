@@ -109,11 +109,9 @@ def test_abi_decoding(
         assert len(transactions) == 113
 
         for transaction in transactions:
-            assert transaction.to_address.hex() == weth_9[2:]
+            assert transaction.to_address == weth_9
 
             if transaction.function_name in ["transfer", "approve"]:
-                print("Transaction: ")
-                print(transaction.__dict__)
                 assert transaction.decoded_input is not None
 
             else:

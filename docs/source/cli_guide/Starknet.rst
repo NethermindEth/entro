@@ -396,3 +396,34 @@ output to the file 'starknet-transfer-events.csv'.  The Starknet-ETH ABI will be
     ------------------------------------------------------------------------------------------------------------------------------------------------
     Execute Backfill?   [y/n]:
 
+
+Timestamps
+**********
+
+The entro tool can also backfill block timestamps for a block range.
+This is used by the entro.backfill.TimestampConverter which provides utilities for
+converting block numbers to approximate timestamps, and vice versa.  This backfills
+timestamps using a block resolution, and when queried, will calculate the approximate
+timestamp for a block number.
+
+Timestamps are cached to the system application directory by default
+
+.. code-block:: shell
+
+    entro backfill starknet timestamps --json-rpc http://localhost:8545
+
+This will backfill every 100th starknet block, and cache the timestamp for these blocks.  When requesting
+block numbers with exact block % 100 == 0, the timestamp will be returned from the cache.  Otherwise, the
+timestamp will be calculated by taking the
+average block time, and the closest_block_in_cache + (distance * average_block_time).
+
+.. code-block:: python
+
+    from nethermind.entro.backfill import TimestampConverter, SupportedNetwork
+
+    starknet_converter = TimestampConverter(SupportedNetwork.starknet, rpc_url='http://localhost:8545')
+
+    # Get the timestamp for block 620000
+    timestamp = starknet_converter.get_timestamp(620000)
+
+    # 2024-05-11T16:41:26+00:00
